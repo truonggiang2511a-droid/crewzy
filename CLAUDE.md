@@ -7,7 +7,8 @@ Văn Phòng AI là web app riêng, **không liên quan Lumi**. Ý tưởng: doan
 (Claude hoặc ChatGPT) làm bộ não rồi bấm Run. Giao diện trông như văn phòng có các phòng đang làm việc thật.
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
-**Hiện trạng (21/11/2026): bản thử giao diện tĩnh.** Chưa có backend, chưa có đăng nhập thật, mọi số liệu là dữ liệu mẫu.
+**Hiện trạng (22/11/2026): bản thử giao diện + kết nối thật Gmail, Google Sheets qua Composio.** Chưa có đăng nhập khách thật
+(mỗi trình duyệt có mã khách riêng trong localStorage `vpai.uid`), các số liệu khác là dữ liệu mẫu.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
 Tên biến/hàm: tiếng Anh. Không tuyên bố "đã chạy được/đã build xong" nếu chưa thực sự chạy lệnh và thấy kết quả.
@@ -43,9 +44,15 @@ public/ket-noi.html      Màn 3 · Kết nối công cụ: tiến độ 5 công 
 public/assets/style.css  Biến màu --accent, focus, menu gọn trên điện thoại (≤640px)
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
 public/assets/favicon.svg
-netlify.toml            publish = "public", header X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục)
+public/assets/connect.js   Nút kết nối thật Gmail/Google Sheets: gọi /api/connect, /api/status
+netlify/functions/connect.mjs  GET /api/connect?toolkit=gmail|googlesheets&uid=… → link đăng nhập Composio (session.authorize, callback về ket-noi.html?ket_noi=…)
+netlify/functions/status.mjs   GET /api/status?uid=… → công cụ đã ACTIVE (connectedAccounts.list, dự phòng session.toolkits)
+package.json            @composio/core 0.31.0 (Netlify tự cài khi build)
+netlify.toml            publish = "public", functions = netlify/functions (esbuild), header X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục)
 ```
 
+- Biến môi trường Netlify: `COMPOSIO_API_KEY` (bí mật). **Đổi giá trị xong phải deploy lại** thì hàm máy chủ mới nhận khoá mới.
+- Mã khách gửi lên Composio có dạng `vpai-<uid>`; chỉ cho phép toolkit trong danh sách `ALLOWED_TOOLKITS`.
 - Mỗi trang có tương tác khai báo `window.PAGE_LOGIC = { state, vals(state, set) }` trong thẻ `<script>` ngay trước `assets/app.js`.
 - Chạy cục bộ: `python3 -m http.server 8765 -d public` trong thư mục repo, mở `http://127.0.0.1:8765/`.
 - Netlify: dự án `van-phong-ai`, site id `26e332c7-f0ff-4912-81ad-5154ae75eb88`, link https://van-phong-ai.netlify.app
@@ -97,7 +104,17 @@ netlify.toml            publish = "public", header X-Robots-Tag: noindex (bản 
   Trên điện thoại menu bên trái chiếm hết màn đầu → thu thành hàng cuộn ngang, ẩn ô credit (≤640px).
 - 21/11/2026: Giang chốt làm app riêng, không gắn vào Lumi (sau khi nghe phản biện về việc trùng chức năng với Lumi).
 
+- 22/11/2026: Nối thật Gmail, Google Sheets qua Composio bằng Netlify Functions. Bài học về khoá Composio:
+  khoá `ck_` là khoá mục For You (consumer), app phải dùng khoá dự án `ak_` ở mục Platform → Settings → API Keys.
+  Khoá có phân quyền: "Write only" KHÔNG gồm đọc; quyền cố định lúc tạo. Cần: Session management, Connected accounts,
+  Auth configs = Read and write; Toolkits, Tools = Read only; Session tool execution = Write only.
+  Trên điện thoại menu Composio bị ẩn: link thẳng https://dashboard.composio.dev/~/project/settings/api-keys
+- 22/11/2026: Token deploy của Netlify MCP hết hạn sau khoảng 40 phút (lỗi 401) → gọi lại deploy-site để lấy lệnh mới.
+- 22/11/2026: Từ đây `public/` là nguồn chính, không chạy lại `convert.py` từ canvas (sẽ mất nút kết nối thật).
+
 ## 6. Việc tiếp theo
 
+- Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
+- Bỏ trường `detail` trong lỗi trả về của hàm khi xong giai đoạn thử.
 - Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit".
 - Kiểm chứng nhu cầu theo quy trình saas-startup-foundry trước khi làm backend.

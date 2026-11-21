@@ -1,0 +1,8 @@
+{
+  "name": "van-phong-ai",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@composio/core": "0.31.0"
+  }
+}
