@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Việc chờ duyệt · Văn Phòng AI (bản thử)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F6F8; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1B2230">
+
+<nav aria-label="Điều hướng chính" style="flex: 1 1 240px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">VP</div>
+<div>
+<p style="margin: 0; font-weight: 700; font-size: 16px">Văn Phòng AI</p>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Nhà Đất Mẫu</p>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<a href="index.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Văn phòng</a>
+<a href="cho-duyet.html" aria-current="page" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600; color: var(--accent); background: #EEF2FF">Việc chờ duyệt<span style="min-width: 24px; height: 24px; border-radius: 12px; background: #FFF1D6; color: #7A4A00; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center"><span data-text="remaining"></span></span></a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết quả</a>
+<a href="ket-noi.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết nối công cụ</a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Mẫu quy trình</a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Gói và credit</a>
+</div>
+<div style="margin-top: auto; border: 1px solid #E3E6EB; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 13px; color: #5B6472">Credit còn lại</p>
+<p style="margin: 0; font-size: 22px; font-weight: 700">1.240</p>
+<div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 62%; height: 6px; border-radius: 99px; background: var(--accent)"></div></div>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Gói Doanh nghiệp · gia hạn 21/12</p>
+<a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid #CBD2DC; text-decoration: none; color: #1B2230; font-weight: 600; font-size: 14px">Nạp credit</a>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div>
+<p style="margin: 0; font-size: 13px; color: #5B6472">Các phòng dừng ở đây cho tới khi bạn bấm duyệt. Việc nội bộ vẫn chạy bình thường.</p>
+<h1 style="margin: 4px 0 0; font-size: 28px; font-weight: 700"><span data-text="heading"></span></h1>
+</div>
+<span style="padding: 6px 10px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Dữ liệu mẫu</span>
+</div>
+
+<div role="group" aria-label="Lọc theo loại việc" style="display: flex; flex-wrap: wrap; gap: 10px">
+<div data-if="isAll" style="display: contents"><button type="button" aria-pressed="true" data-click="pickAll" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--accent); background: #EEF2FF; color: #1A3DB3; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Tất cả · 3</button></div>
+<div data-if="notAll" style="display: contents"><button type="button" aria-pressed="false" data-click="pickAll" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">Tất cả · 3</button></div>
+<div data-if="isMoney" style="display: contents"><button type="button" aria-pressed="true" data-click="pickMoney" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--accent); background: #EEF2FF; color: #1A3DB3; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Chi tiền · 1</button></div>
+<div data-if="notMoney" style="display: contents"><button type="button" aria-pressed="false" data-click="pickMoney" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">Chi tiền · 1</button></div>
+<div data-if="isPost" style="display: contents"><button type="button" aria-pressed="true" data-click="pickPost" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--accent); background: #EEF2FF; color: #1A3DB3; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Đăng bài · 1</button></div>
+<div data-if="notPost" style="display: contents"><button type="button" aria-pressed="false" data-click="pickPost" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">Đăng bài · 1</button></div>
+<div data-if="isProduct" style="display: contents"><button type="button" aria-pressed="true" data-click="pickProduct" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--accent); background: #EEF2FF; color: #1A3DB3; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Sản phẩm · 1</button></div>
+<div data-if="notProduct" style="display: contents"><button type="button" aria-pressed="false" data-click="pickProduct" style="min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">Sản phẩm · 1</button></div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<section aria-label="Danh sách việc chờ duyệt" style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<div data-if="showMoney" style="display: contents">
+<div data-if="moneyOpen" style="display: contents">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">Q</div>
+<p style="margin: 0; flex: 1; min-width: 160px; font-size: 13px; color: #5B6472">Phòng Quảng cáo · Quân · gửi lúc 08:41</p>
+<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FDE8E3; color: #8A2A12">Chi tiền · bắt buộc chủ duyệt</span>
+</div>
+<h2 style="margin: 0; font-size: 20px; font-weight: 600">Chạy quảng cáo cho bài “Nhà phố sổ hồng riêng”</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #3F4652">Bài này nhận 5 tin nhắn trong 48 giờ, nhiều nhất tuần. Phòng Quảng cáo đề xuất chạy Facebook 300.000đ/ngày trong 5 ngày.</p>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Tổng ngân sách</dt><dd style="margin: 4px 0 0; font-size: 16px; font-weight: 600">1.500.000đ</dd></div>
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Trần ngày của bạn</dt><dd style="margin: 4px 0 0; font-size: 16px; font-weight: 600">500.000đ</dd></div>
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Đối tượng</dt><dd style="margin: 4px 0 0; font-size: 16px; font-weight: 600">Mua nhà để ở</dd></div>
+</dl>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" data-click="approveMoney" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Duyệt chi tiền</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Sửa ngân sách</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; color: #5B6472; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Từ chối</button>
+</div>
+</article>
+</div>
+<div data-if="moneyDone" style="display: contents">
+<article style="background: #F1FAF4; border: 1px solid #A8DDB8; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14612D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+<p style="margin: 0; font-size: 15px; color: #14612D">Đã duyệt chi tiền. Phòng Quảng cáo bắt đầu chạy chiến dịch và báo số mỗi sáng.</p>
+</article>
+</div>
+</div>
+
+<div data-if="showPost" style="display: contents">
+<div data-if="postOpen" style="display: contents">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">T</div>
+<p style="margin: 0; flex: 1; min-width: 160px; font-size: 13px; color: #5B6472">Phòng Nội dung · Thảo · gửi lúc 08:50</p>
+<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4A00">Đăng bài</span>
+</div>
+<h2 style="margin: 0; font-size: 20px; font-weight: 600">Lịch 7 bài tuần 23–29/11</h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<li style="display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px; background: #F5F6F8; border-radius: 10px; font-size: 14px"><span style="width: 120px; font-weight: 600">Thứ Hai 19:30</span><span style="flex: 1; min-width: 200px">Carousel 6 ảnh căn A12</span><span style="color: #5B6472">Facebook, Instagram</span></li>
+<li style="display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px; background: #F5F6F8; border-radius: 10px; font-size: 14px"><span style="width: 120px; font-weight: 600">Thứ Ba 20:00</span><span style="flex: 1; min-width: 200px">Video 30 giây căn A12</span><span style="color: #5B6472">TikTok, YouTube Shorts</span></li>
+<li style="display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px; background: #F5F6F8; border-radius: 10px; font-size: 14px"><span style="width: 120px; font-weight: 600">Thứ Tư 11:30</span><span style="flex: 1; min-width: 200px">Hỏi đáp: sổ hồng riêng là gì</span><span style="color: #5B6472">Facebook</span></li>
+</ul>
+<p style="margin: 0; font-size: 13px; color: #5B6472">Và 4 bài nữa từ thứ Năm tới Chủ nhật.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" data-click="approvePost" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Duyệt cả tuần</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Xem từng bài</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; color: #5B6472; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Yêu cầu sửa</button>
+</div>
+</article>
+</div>
+<div data-if="postDone" style="display: contents">
+<article style="background: #F1FAF4; border: 1px solid #A8DDB8; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14612D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+<p style="margin: 0; font-size: 15px; color: #14612D">Đã duyệt cả tuần. 7 bài sẽ đăng đúng giờ trên các kênh đã chọn.</p>
+</article>
+</div>
+</div>
+
+<div data-if="showProduct" style="display: contents">
+<div data-if="productOpen" style="display: contents">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">M</div>
+<p style="margin: 0; flex: 1; min-width: 160px; font-size: 13px; color: #5B6472">Phòng Sản phẩm · Minh · gửi lúc 08:20</p>
+<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4A00">Xác minh sản phẩm</span>
+</div>
+<h2 style="margin: 0; font-size: 20px; font-weight: 600">Xác minh căn A15 trước khi viết bài</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: #FFF8EA; border: 1px solid #F2C46D; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #7A4A00">Giá</dt><dd style="margin: 4px 0 0; font-size: 15px; font-weight: 600">Chưa có · AI chưa được viết số giá</dd></div>
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Diện tích</dt><dd style="margin: 4px 0 0; font-size: 15px; font-weight: 600">4,5 × 20 m</dd></div>
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Pháp lý</dt><dd style="margin: 4px 0 0; font-size: 15px; font-weight: 600">Sổ hồng riêng</dd></div>
+<div style="background: #F5F6F8; border-radius: 10px; padding: 12px"><dt style="font-size: 12px; color: #5B6472">Nguồn</dt><dd style="margin: 4px 0 0; font-size: 15px; font-weight: 600">Tin đăng bạn dán lúc 08:20</dd></div>
+</dl>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" data-click="approveProduct" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Xác minh đúng</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Thêm giá và sửa</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; color: #5B6472; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Bỏ căn này</button>
+</div>
+</article>
+</div>
+<div data-if="productDone" style="display: contents">
+<article style="background: #F1FAF4; border: 1px solid #A8DDB8; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14612D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+<p style="margin: 0; font-size: 15px; color: #14612D">Đã xác minh căn A15. Phòng Hình ảnh bắt đầu làm bộ ảnh.</p>
+</article>
+</div>
+</div>
+
+<div data-if="allDone" style="display: contents">
+<button type="button" data-click="reset" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Xem lại bản thử từ đầu</button>
+</div>
+
+</section>
+
+<aside aria-labelledby="rule-h" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="rule-h" style="margin: 0; font-size: 18px; font-weight: 600">Mức duyệt của bạn</h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14px">
+<li style="display: flex; justify-content: space-between; gap: 12px"><span>Chi tiền quảng cáo</span><span style="font-weight: 600; color: #8A2A12">Luôn chờ bạn</span></li>
+<li style="display: flex; justify-content: space-between; gap: 12px"><span>Sản phẩm mới</span><span style="font-weight: 600; color: #7A4A00">Chờ bạn xác minh</span></li>
+<li style="display: flex; justify-content: space-between; gap: 12px"><span>Đăng bài</span><span style="font-weight: 600; color: #7A4A00">Duyệt cả tuần</span></li>
+<li style="display: flex; justify-content: space-between; gap: 12px"><span>Trả lời khách, giao sale</span><span style="font-weight: 600; color: #14612D">Tự chạy</span></li>
+</ul>
+<a href="#" style="font-size: 14px; font-weight: 600">Đổi mức duyệt</a>
+</aside>
+
+</div>
+</main>
+</div>
+<script>
+window.PAGE_LOGIC = {
+  state: { filter: 'all', done: {} },
+  vals: function (s, set) {
+    var f = s.filter, d = s.done;
+    var pick = function (k) { return function () { set({ filter: k }); }; };
+    var approve = function (k) { return function () { var n = Object.assign({}, d); n[k] = true; set({ done: n }); }; };
+    var count = (d.money ? 1 : 0) + (d.post ? 1 : 0) + (d.product ? 1 : 0);
+    var remaining = 3 - count;
+    return {
+      remaining: remaining,
+      heading: remaining > 0 ? remaining + ' việc đang chờ bạn duyệt' : 'Đã duyệt hết, các phòng đang chạy tiếp',
+      isAll: f === 'all', notAll: f !== 'all', isMoney: f === 'money', notMoney: f !== 'money',
+      isPost: f === 'post', notPost: f !== 'post', isProduct: f === 'product', notProduct: f !== 'product',
+      showMoney: f === 'all' || f === 'money', showPost: f === 'all' || f === 'post', showProduct: f === 'all' || f === 'product',
+      moneyOpen: !d.money, moneyDone: !!d.money, postOpen: !d.post, postDone: !!d.post,
+      productOpen: !d.product, productDone: !!d.product, allDone: remaining === 0,
+      pickAll: pick('all'), pickMoney: pick('money'), pickPost: pick('post'), pickProduct: pick('product'),
+      approveMoney: approve('money'), approvePost: approve('post'), approveProduct: approve('product'),
+      reset: function () { set({ filter: 'all', done: {} }); }
+    };
+  }
+};
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

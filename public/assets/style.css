@@ -1,0 +1,35 @@
+:root {
+  --accent: #2350E6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #F5F6F8;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  color: #1B2230;
+}
+a { color: #2350E6; }
+a:hover { color: #1A3DB3; }
+button:focus-visible, a:focus-visible, input:focus-visible {
+  outline: 3px solid #93AEFF;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  main { padding: 20px 16px 40px !important; }
+  nav[aria-label="Điều hướng chính"] { border-right: 0 !important; border-bottom: 1px solid #E3E6EB; }
+}
+@media (max-width: 640px) {
+  nav[aria-label="Điều hướng chính"] { padding: 12px 12px 8px !important; gap: 10px !important; }
+  nav[aria-label="Điều hướng chính"] > div:nth-child(2) {
+    flex-direction: row !important;
+    overflow-x: auto;
+    gap: 6px !important;
+    padding-bottom: 4px;
+  }
+  nav[aria-label="Điều hướng chính"] > div:nth-child(2) > a {
+    flex-shrink: 0;
+    white-space: nowrap;
+    gap: 8px;
+  }
+  nav[aria-label="Điều hướng chính"] > div:nth-child(3) { display: none !important; }
+}
