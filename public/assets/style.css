@@ -33,3 +33,9 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   }
   nav[aria-label="Điều hướng chính"] > div:nth-child(3) { display: none !important; }
 }
+
+/* Trang Trợ lý AI: chừa chỗ cho huy hiệu Netlify góc phải dưới; trên điện thoại khung chat cao theo màn hình */
+@media (max-width: 640px) {
+  main[data-chat-main] { height: auto !important; padding-bottom: 80px !important; }
+  main[data-chat-main] #chat-log { flex: none !important; height: 58vh; height: 58dvh; }
+}

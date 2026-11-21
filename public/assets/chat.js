@@ -1,0 +1,229 @@
+// Trang Trợ lý AI: khung chat gọi /api/chat, hiện từng bước AI dùng công cụ Composio.
+(function () {
+  var UID_KEY = 'vpai.uid';
+  var MODE_KEY = 'vpai.aiMode';
+  var CHAT_KEY = 'vpai.chat';
+  var UID_PATTERN = /^[a-z0-9-]{8,64}$/;
+
+  function store(key, value) {
+    try {
+      if (value === undefined) return localStorage.getItem(key);
+      if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);
+    } catch (e) {}
+    return null;
+  }
+
+  function getUid() {
+    var id = store(UID_KEY);
+    if (!id || !UID_PATTERN.test(id)) {
+      id = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)).toLowerCase();
+      store(UID_KEY, id);
+    }
+    return id;
+  }
+
+  var uid = getUid();
+  var log = document.getElementById('chat-log');
+  var form = document.querySelector('[data-chat-form]');
+  var input = document.getElementById('chat-input');
+  var sendBtn = document.querySelector('[data-chat-send]');
+  var modeSel = document.getElementById('ai-mode');
+  var keyBox = document.querySelector('[data-key-box]');
+  var keyInput = document.getElementById('ai-key');
+  var modeNote = document.querySelector('[data-mode-note]');
+  var suggest = document.querySelector('[data-suggest]');
+  var busy = false;
+  var appMode = true;
+
+  // items: {kind: 'user'|'assistant'|'tool'|'error', text}
+  var items = [];
+  try { items = JSON.parse(store(CHAT_KEY) || '[]'); } catch (e) { items = []; }
+  if (!Array.isArray(items)) items = [];
+
+  function save() { store(CHAT_KEY, JSON.stringify(items.slice(-60))); }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function formatText(text) {
+    var html = escapeHtml(text);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    return html;
+  }
+
+  function bubble(item) {
+    var el = document.createElement('div');
+    if (item.kind === 'user') {
+      el.style.cssText = 'align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #EEF2FF; color: #1B2230; font-size: 15px; line-height: 1.55; white-space: pre-wrap; word-break: break-word';
+      el.innerHTML = formatText(item.text);
+    } else if (item.kind === 'assistant') {
+      el.style.cssText = 'align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #F5F6F8; color: #1B2230; font-size: 15px; line-height: 1.55; white-space: pre-wrap; word-break: break-word';
+      el.innerHTML = formatText(item.text);
+    } else if (item.kind === 'tool') {
+      el.style.cssText = 'align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5B6472';
+      el.innerHTML = '<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1E8E4A; flex-shrink: 0"></span><span>' + escapeHtml(item.text) + '</span>';
+    } else {
+      el.style.cssText = 'align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 12px; background: #FDE8E3; color: #8A2A12; font-size: 14px';
+      el.textContent = item.text;
+    }
+    return el;
+  }
+
+  function renderAll() {
+    log.innerHTML = '';
+    if (!items.length) {
+      log.appendChild(bubble({ kind: 'assistant', text: 'Chào anh/chị, em là Trợ lý AI của Văn Phòng AI. Anh/chị giao việc bằng tiếng Việt, em sẽ dùng các ứng dụng đã kết nối để làm. Việc đăng bài, gửi tin hay chi tiền em luôn hỏi trước khi làm.' }));
+    }
+    items.forEach(function (item) { log.appendChild(bubble(item)); });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function add(item) {
+    items.push(item);
+    save();
+    log.appendChild(bubble(item));
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function apiMessages() {
+    return items
+      .filter(function (i) { return i.kind === 'user' || i.kind === 'assistant'; })
+      .map(function (i) { return { role: i.kind, content: i.text }; })
+      .slice(-20);
+  }
+
+  function keyName(mode) { return 'vpai.key.' + mode; }
+
+  function renderMode() {
+    var mode = modeSel.value;
+    var needsKey = mode !== 'app';
+    keyBox.style.display = needsKey ? 'flex' : 'none';
+    if (needsKey) {
+      keyInput.value = store(keyName(mode)) || '';
+      keyInput.placeholder = mode === 'claude' ? 'Khoá Claude (console.anthropic.com), bắt đầu bằng sk-ant-' : 'Khoá ChatGPT (platform.openai.com), bắt đầu bằng sk-';
+      modeNote.textContent = 'Khoá chỉ lưu trên trình duyệt này và gửi kèm mỗi lần chat, máy chủ không lưu. Tiền AI tính vào tài khoản của bạn.';
+    } else {
+      modeNote.textContent = appMode ? 'Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.' : 'Chế độ credit của app chưa bật, hãy chọn khoá API riêng.';
+    }
+  }
+
+  modeSel.addEventListener('change', function () {
+    store(MODE_KEY, modeSel.value);
+    renderMode();
+  });
+  keyInput.addEventListener('change', function () {
+    store(keyName(modeSel.value), keyInput.value.trim());
+  });
+
+  function setBusy(value) {
+    busy = value;
+    sendBtn.disabled = value;
+    sendBtn.textContent = value ? 'Đang làm…' : 'Gửi';
+    sendBtn.style.opacity = value ? '0.7' : '1';
+  }
+
+  function send(text) {
+    text = (text || '').trim();
+    if (!text || busy) return;
+    var mode = modeSel.value;
+    var key = mode === 'app' ? undefined : (keyInput.value || '').trim();
+    if (mode !== 'app' && !key) {
+      add({ kind: 'error', text: 'Anh/chị dán khoá API vào ô Khoá API trước nhé.' });
+      keyInput.focus();
+      return;
+    }
+    if (key) store(keyName(mode), key);
+    add({ kind: 'user', text: text });
+    input.value = '';
+    setBusy(true);
+
+    var thinking = bubble({ kind: 'tool', text: 'Đang suy nghĩ…' });
+    log.appendChild(thinking);
+    log.scrollTop = log.scrollHeight;
+    var turnText = [];
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ uid: uid, mode: mode, key: key, messages: apiMessages() })
+    }).then(function (res) {
+      var type = res.headers.get('content-type') || '';
+      if (!res.ok || type.indexOf('ndjson') === -1) {
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error(j.error || 'Máy chủ chưa trả lời được, thử lại sau.');
+        });
+      }
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+      function handle(line) {
+        if (!line.trim()) return;
+        var ev;
+        try { ev = JSON.parse(line); } catch (e) { return; }
+        if (thinking.parentNode) thinking.parentNode.removeChild(thinking);
+        if (ev.type === 'tool') add({ kind: 'tool', text: ev.label });
+        else if (ev.type === 'text') add({ kind: 'assistant', text: ev.text });
+        else if (ev.type === 'error') add({ kind: 'error', text: ev.message });
+      }
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) { handle(buffer); return; }
+          buffer += decoder.decode(r.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+          lines.forEach(handle);
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (err) {
+      if (thinking.parentNode) thinking.parentNode.removeChild(thinking);
+      add({ kind: 'error', text: err.message });
+    }).then(function () {
+      setBusy(false);
+      // Trên điện thoại không tự mở bàn phím sau mỗi câu trả lời.
+      if (!(window.matchMedia && matchMedia('(pointer: coarse)').matches)) input.focus();
+    });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send(input.value);
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send(input.value);
+    }
+  });
+  suggest.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-suggest-text]');
+    if (btn) send(btn.getAttribute('data-suggest-text'));
+  });
+  document.querySelector('[data-chat-clear]').addEventListener('click', function () {
+    if (busy) return;
+    items = [];
+    save();
+    renderAll();
+  });
+
+  var savedMode = store(MODE_KEY);
+  if (savedMode) modeSel.value = savedMode;
+  renderMode();
+  renderAll();
+
+  fetch('/api/chat').then(function (r) { return r.json(); }).then(function (j) {
+    appMode = !!j.appMode;
+    var opt = modeSel.querySelector('option[value="app"]');
+    if (!appMode) {
+      opt.disabled = true;
+      opt.textContent = 'Credit của app (chưa bật)';
+      if (modeSel.value === 'app') { modeSel.value = 'claude'; store(MODE_KEY, 'claude'); }
+    }
+    renderMode();
+  }).catch(function () {});
+})();

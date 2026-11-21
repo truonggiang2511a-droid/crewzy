@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Trợ lý AI · Văn Phòng AI (bản thử)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F6F8; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1B2230">
+
+<nav aria-label="Điều hướng chính" style="flex: 1 1 240px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">VP</div>
+<div>
+<p style="margin: 0; font-weight: 700; font-size: 16px">Văn Phòng AI</p>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Nhà Đất Mẫu</p>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<a href="index.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Văn phòng</a>
+<a href="chat.html" aria-current="page" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600; color: var(--accent); background: #EEF2FF">Trợ lý AI</a>
+<a href="cho-duyet.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Việc chờ duyệt<span style="min-width: 24px; height: 24px; border-radius: 12px; background: #FFF1D6; color: #7A4A00; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">3</span></a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết quả</a>
+<a href="ket-noi.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết nối công cụ</a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Mẫu quy trình</a>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Gói và credit</a>
+</div>
+<div style="margin-top: auto; border: 1px solid #E3E6EB; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 13px; color: #5B6472">Credit còn lại</p>
+<p style="margin: 0; font-size: 22px; font-weight: 700">1.240</p>
+<div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 62%; height: 6px; border-radius: 99px; background: var(--accent)"></div></div>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Gói Doanh nghiệp · gia hạn 21/12</p>
+<a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid #CBD2DC; text-decoration: none; color: #1B2230; font-weight: 600; font-size: 14px">Nạp credit</a>
+</div>
+</nav>
+
+<main data-chat-main="" style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 20px 24px 76px; display: flex; flex-direction: column; gap: 14px; height: 100vh; height: 100dvh; max-width: 1000px">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+<div>
+<h1 style="margin: 0; font-size: 26px; font-weight: 700">Trợ lý AI</h1>
+<p style="margin: 4px 0 0; font-size: 14px; color: #3F4652">Ra lệnh bằng tiếng Việt. AI dùng các ứng dụng bạn đã <a href="ket-noi.html">kết nối</a> để làm việc. Việc đăng bài, gửi tin, chi tiền luôn hỏi bạn trước.</p>
+</div>
+<button type="button" data-chat-clear="" style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Cuộc trò chuyện mới</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 12px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px">
+<label for="ai-mode" style="font-size: 12px; font-weight: 600; color: #3F4652">AI đang dùng</label>
+<select id="ai-mode" style="min-height: 40px; padding: 0 10px; border: 1px solid #CBD2DC; border-radius: 10px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1B2230">
+<option value="app">Credit của app (dùng thử)</option>
+<option value="claude">Claude · khoá API riêng</option>
+<option value="openai">ChatGPT · khoá API riêng</option>
+</select>
+</div>
+<div data-key-box="" style="display: none; flex: 1; min-width: 220px; flex-direction: column; gap: 4px">
+<label for="ai-key" style="font-size: 12px; font-weight: 600; color: #3F4652">Khoá API</label>
+<input id="ai-key" type="password" autocomplete="off" placeholder="Dán khoá API của bạn" style="min-height: 40px; box-sizing: border-box; padding: 0 10px; border: 1px solid #CBD2DC; border-radius: 10px; font-family: inherit; font-size: 14px">
+</div>
+<p data-mode-note="" style="margin: 0; flex-basis: 100%; font-size: 12px; color: #5B6472">Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.</p>
+</div>
+</div>
+
+<div id="chat-log" role="log" aria-live="polite" aria-label="Cuộc trò chuyện" style="flex: 1; min-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px"></div>
+
+<div data-suggest="" style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" data-suggest-text="Liệt kê các Fanpage em đang quản lý được" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; cursor: pointer">Liệt kê các Fanpage</button>
+<button type="button" data-suggest-text="Em đang kết nối được những ứng dụng nào của anh/chị?" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; cursor: pointer">Đã kết nối những gì?</button>
+<button type="button" data-suggest-text="Đọc 10 dòng đầu trong Google Sheet khách hàng của tôi" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; cursor: pointer">Đọc Google Sheet</button>
+<button type="button" data-suggest-text="Xem lịch hẹn tuần này trên Google Calendar" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; cursor: pointer">Lịch tuần này</button>
+<button type="button" data-suggest-text="Soạn giúp tôi 1 bài đăng Facebook giới thiệu sản phẩm, chưa đăng, cho tôi xem trước" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 13px; cursor: pointer">Soạn bài đăng</button>
+</div>
+
+<form data-chat-form="" style="display: flex; gap: 8px; align-items: flex-end">
+<label for="chat-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Tin nhắn cho Trợ lý AI</label>
+<textarea id="chat-input" rows="2" placeholder="Ví dụ: Đăng bài này lên Fanpage lúc 8 giờ tối nay…" style="flex: 1; min-height: 48px; max-height: 160px; box-sizing: border-box; padding: 12px; border: 1px solid #CBD2DC; border-radius: 12px; font-family: inherit; font-size: 15px; resize: vertical; color: #1B2230"></textarea>
+<button type="submit" data-chat-send="" style="min-height: 48px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Gửi</button>
+</form>
+
+</main>
+</div>
+<script src="assets/chat.js"></script>
+</body>
+</html>
