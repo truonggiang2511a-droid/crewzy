@@ -41,150 +41,116 @@
 
 <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px; max-width: 1080px">
 
-<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 10px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
 <div>
-<p style="margin: 0; font-size: 13px; color: #5B6472">Mẫu đang chọn: Tuần nội dung</p>
+<p style="margin: 0; font-size: 13px; color: #5B6472">Kết nối thật qua Composio · mỗi công cụ nối được tối đa 5 tài khoản</p>
 <h1 style="margin: 4px 0 0; font-size: 28px; font-weight: 700">Kết nối công cụ</h1>
 </div>
-<span style="padding: 6px 10px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Dữ liệu mẫu</span>
+<span style="padding: 6px 10px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Bản thử</span>
 </div>
-<p style="margin: 0; font-size: 15px; color: #3F4652">Mẫu này cần 5 công cụ. Bạn đã kết nối <span data-text="count"></span>/5.</p>
-<div aria-hidden="true" style="display: flex; gap: 6px">
-<div style="flex: 1; height: 8px; border-radius: 99px; background: var(--accent)"></div>
-<div style="flex: 1; height: 8px; border-radius: 99px; background: var(--accent)"></div>
-<div style="flex: 1; height: 8px; border-radius: 99px; background: var(--accent)"></div>
-<div data-if="seg4" style="display: contents"><div style="flex: 1; height: 8px; border-radius: 99px; background: var(--accent)"></div></div>
-<div data-if="noSeg4" style="display: contents"><div style="flex: 1; height: 8px; border-radius: 99px; background: #E3E6EB"></div></div>
-<div data-if="seg5" style="display: contents"><div style="flex: 1; height: 8px; border-radius: 99px; background: var(--accent)"></div></div>
-<div data-if="noSeg5" style="display: contents"><div style="flex: 1; height: 8px; border-radius: 99px; background: #E3E6EB"></div></div>
-</div>
+<p style="margin: 0; font-size: 15px; color: #3F4652">Mẫu Tuần nội dung cần: AI của bạn, Facebook Fanpage, Instagram, YouTube. Đã xong <span data-ready-count="">0</span>/4.</p>
 </div>
 
-<section aria-labelledby="need-h" style="display: flex; flex-direction: column; gap: 12px">
-<h2 id="need-h" style="margin: 0; font-size: 18px; font-weight: 600">Cần cho mẫu này</h2>
-<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
-
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">AI</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">AI của bạn (bộ não)</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Claude hoặc ChatGPT · đã nối qua link riêng của bạn</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đã kết nối</span>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Xem link</button>
-</li>
-
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">FB</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">Facebook Fanpage</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">2 trang: Nhà Đất Mẫu, Nhà Đất Mẫu 2</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đã kết nối</span>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Quản lý</button>
-</li>
-
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">IG</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">Instagram</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">@nhadatmau · tài khoản doanh nghiệp</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đã kết nối</span>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Quản lý</button>
-</li>
-
-<div data-if="tiktokOn" style="display: contents">
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">TT</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">TikTok</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">@nhadatmau · vừa kết nối</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đã kết nối</span>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Quản lý</button>
-</li>
+<section aria-labelledby="ai-h" style="display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #FFFFFF; border: 1px solid #A9BEFF; border-radius: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+<h2 id="ai-h" style="margin: 0; font-size: 18px; font-weight: 600">AI của bạn (bộ não)</h2>
+<span data-ai-badge="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa tạo link</span>
 </div>
-<div data-if="tiktokOff" style="display: contents">
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px dashed #CBD2DC; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">TT</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">TikTok</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Cần để đăng video ngắn</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EEF0F3; color: #3F4652">Chưa kết nối</span>
-<button type="button" data-click="connectTiktok" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối TikTok</button>
-</li>
+<p style="margin: 0; font-size: 14px; color: #3F4652">Tạo link riêng rồi dán vào Claude hoặc ChatGPT. AI của bạn sẽ dùng được mọi công cụ bạn đã kết nối bên dưới: đăng bài, đọc tin nhắn, ghi Sheet, gửi email.</p>
+<button type="button" data-ai-create="" style="align-self: flex-start; min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Tạo link nối AI</button>
+<p data-ai-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<div data-ai-box="" style="display: none; flex-direction: column; gap: 10px">
+<label for="ai-link" style="font-size: 13px; font-weight: 600">Link nối AI của bạn</label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<input id="ai-link" type="text" readonly style="flex: 1; min-width: 220px; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CBD2DC; border-radius: 10px; font-family: inherit; font-size: 13px; color: #1B2230; background: #F5F6F8">
+<button type="button" data-ai-copy="" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Sao chép</button>
 </div>
-
-<div data-if="youtubeOn" style="display: contents">
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">YT</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">YouTube</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Kênh Nhà Đất Mẫu · vừa kết nối</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đã kết nối</span>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Quản lý</button>
-</li>
+<p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #FFF8EA; border: 1px solid #F2C46D; font-size: 13px; color: #7A4A00">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px">
+<div style="padding: 12px; border-radius: 10px; background: #F5F6F8; font-size: 13px; line-height: 1.6"><p style="margin: 0 0 4px; font-weight: 600">Dán vào Claude</p><ol style="margin: 0; padding-left: 18px"><li>Mở claude.ai, vào Cài đặt (Settings) → Connectors.</li><li>Bấm Add custom connector, đặt tên Văn Phòng AI.</li><li>Dán link, bấm Add. Không cần đăng nhập thêm.</li></ol></div>
+<div style="padding: 12px; border-radius: 10px; background: #F5F6F8; font-size: 13px; line-height: 1.6"><p style="margin: 0 0 4px; font-weight: 600">Dán vào ChatGPT</p><ol style="margin: 0; padding-left: 18px"><li>Settings → Apps → Advanced settings, bật Developer mode (cần gói Plus trở lên).</li><li>Bấm Create app, dán link.</li><li>Phần xác thực chọn No authentication, rồi lưu.</li></ol></div>
 </div>
-<div data-if="youtubeOff" style="display: contents">
-<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #FFFFFF; border: 1px dashed #CBD2DC; border-radius: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #F5F6F8; border: 1px solid #E3E6EB; color: #3F4652; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">YT</div>
-<div style="flex: 1; min-width: 180px"><p style="margin: 0; font-size: 15px; font-weight: 600">YouTube</p><p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Cần để đăng Shorts</p></div>
-<span style="padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EEF0F3; color: #3F4652">Chưa kết nối</span>
-<button type="button" data-click="connectYoutube" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối YouTube</button>
-</li>
 </div>
-
-</ul>
 </section>
 
-<fieldset style="margin: 0; padding: 18px; border: 1px solid #E3E6EB; border-radius: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 12px">
-<legend style="padding: 0 6px; font-size: 18px; font-weight: 600">Chạy tự động khi bạn vắng mặt</legend>
-<p style="margin: 0; font-size: 14px; color: #3F4652">AI của bạn chỉ làm việc khi bạn đang chat. Để các phòng chạy cả ban đêm, chọn một cách:</p>
-<label style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid #E3E6EB; border-radius: 12px; cursor: pointer">
-<input type="radio" name="brain" data-checked="brainCredit" data-change="pickCredit" style="width: 20px; height: 20px; margin: 2px 0 0; flex-shrink: 0">
-<span><span style="display: block; font-size: 15px; font-weight: 600">Dùng credit của app</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #5B6472">Trừ vào credit mỗi lần AI làm việc. Không cần cài gì thêm.</span></span>
-</label>
-<label style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid #E3E6EB; border-radius: 12px; cursor: pointer">
-<input type="radio" name="brain" data-checked="brainKey" data-change="pickKey" style="width: 20px; height: 20px; margin: 2px 0 0; flex-shrink: 0">
-<span><span style="display: block; font-size: 15px; font-weight: 600">Dán khoá API riêng</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #5B6472">Claude hoặc ChatGPT. Bạn trả tiền AI thẳng cho nhà cung cấp.</span></span>
-</label>
-<div data-if="brainKey" style="display: contents">
-<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px">
-<div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px">
-<label for="api-key" style="font-size: 13px; font-weight: 600">Khoá API</label>
-<input id="api-key" type="password" placeholder="Dán khoá vào đây" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CBD2DC; border-radius: 10px; font-family: inherit; font-size: 14px">
+<section aria-labelledby="social-h" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="social-h" style="margin: 0; font-size: 18px; font-weight: 600">Mạng xã hội</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px">
+<div data-real-tile="facebook" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Facebook Fanpage</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Đăng bài, đọc bình luận, tin nhắn, form khách</p>
+<p style="margin: 0; font-size: 12px; color: #5B6472">1 lần kết nối thấy hết các Fanpage bạn quản lý.</p><p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="facebook" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="instagram" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Instagram</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Đăng ảnh, Reels, carousel, đọc bình luận</p>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Cần tài khoản Business hoặc Creator.</p><p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="instagram" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="youtube" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">YouTube</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Tải video, đọc và trả lời bình luận</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="youtube" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="linkedin" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">LinkedIn</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Đăng bài trên trang cá nhân hoặc trang công ty</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="linkedin" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
 </div>
-<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Lưu khoá</button>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #F5F6F8; border: 1px dashed #CBD2DC; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">TikTok</p><span style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Sắp có</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Cần app TikTok riêng được TikTok kiểm duyệt thì bài mới đăng công khai.</p>
+<button type="button" disabled style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: #E3E6EB; color: #4A5260; font-family: inherit; font-size: 14px; font-weight: 600; cursor: not-allowed">Chưa mở</button>
 </div>
 </div>
-</fieldset>
+</section>
 
-<section aria-labelledby="more-h" style="display: flex; flex-direction: column; gap: 12px">
-<h2 id="more-h" style="margin: 0; font-size: 18px; font-weight: 600">Công cụ khác (không bắt buộc)</h2>
-<p style="margin: 0; font-size: 14px; color: #3F4652">Gmail và Google Sheets kết nối thật qua Composio. Các ô còn lại vẫn là bản thử.</p>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px">
-<div data-real-tile="googlesheets" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #A9BEFF; border-radius: 12px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Google Sheets</p><span style="padding: 3px 8px; border-radius: 99px; background: #EEF2FF; color: #1A3DB3; font-size: 11px; font-weight: 600">Kết nối thật</span></div><p style="margin: 0; font-size: 13px; color: #5B6472">Danh sách khách, sản phẩm</p><p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p><button type="button" data-real-connect="googlesheets" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối Google Sheets</button></div>
-<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px"><p style="margin: 0; font-size: 15px; font-weight: 600">Google Calendar</p><p style="margin: 0; font-size: 13px; color: #5B6472">Lịch hẹn xem nhà cho sale</p><button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button></div>
-<div data-real-tile="gmail" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #A9BEFF; border-radius: 12px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Gmail</p><span style="padding: 3px 8px; border-radius: 99px; background: #EEF2FF; color: #1A3DB3; font-size: 11px; font-weight: 600">Kết nối thật</span></div><p style="margin: 0; font-size: 13px; color: #5B6472">Gửi báo cáo, trả lời email</p><p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p><button type="button" data-real-connect="gmail" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối Gmail</button></div>
-<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px"><p style="margin: 0; font-size: 15px; font-weight: 600">Zalo OA</p><p style="margin: 0; font-size: 13px; color: #5B6472">Nhắn khách, nhắc lịch hẹn</p><button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button></div>
-<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px"><p style="margin: 0; font-size: 15px; font-weight: 600">HubSpot</p><p style="margin: 0; font-size: 13px; color: #5B6472">Nếu bạn đang dùng CRM này</p><button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button></div>
+<section aria-labelledby="apps-h" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="apps-h" style="margin: 0; font-size: 18px; font-weight: 600">Ứng dụng khác</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px">
+<div data-real-tile="gmail" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Gmail</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Gửi báo cáo, đọc và trả lời email</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="gmail" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="googlesheets" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Google Sheets</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Danh sách khách, sản phẩm, số liệu</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="googlesheets" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="googlecalendar" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Google Calendar</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Lịch hẹn xem nhà, lịch gọi khách</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="googlecalendar" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="googledrive" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Google Drive</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Ảnh, video, tài liệu của doanh nghiệp</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="googledrive" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="notion" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">Notion</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Ghi chú, quy trình, kho tri thức</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="notion" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div><div data-real-tile="hubspot" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><p style="margin: 0; font-size: 15px; font-weight: 600">HubSpot</p><span data-real-count="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa kết nối</span></div>
+<p style="margin: 0; font-size: 13px; color: #3F4652">Nếu bạn đang dùng CRM này</p>
+<p data-real-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+<button type="button" data-real-connect="hubspot" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Kết nối</button>
+</div>
 </div>
 </section>
 
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 18px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px">
-<p style="margin: 0; flex: 1; min-width: 240px; font-size: 13px; color: #5B6472">Bạn đăng nhập trên trang chính thức của từng app và có thể ngắt kết nối bất cứ lúc nào.</p>
-<div data-if="allReady" style="display: contents"><a href="index.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 10px; background: var(--accent); color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600">Run mẫu Tuần nội dung</a></div>
-<div data-if="notReady" style="display: contents"><button type="button" disabled style="min-height: 48px; padding: 0 22px; border-radius: 10px; border: 0; background: #E3E6EB; color: #4A5260; font-family: inherit; font-size: 15px; font-weight: 600; cursor: not-allowed">Còn thiếu <span data-text="missing"></span> công cụ để Run</button></div>
+<p style="margin: 0; flex: 1; min-width: 240px; font-size: 13px; color: #5B6472">Bạn đăng nhập trên trang chính thức của từng app (màn hình xin quyền đang hiện tên Composio) và ngắt kết nối được bất cứ lúc nào.</p>
+<a href="index.html" data-run-ready="" style="display: none; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 10px; background: var(--accent); color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600">Run mẫu Tuần nội dung</a>
+<button type="button" data-run-wait="" disabled style="min-height: 48px; padding: 0 22px; border-radius: 10px; border: 0; background: #E3E6EB; color: #4A5260; font-family: inherit; font-size: 15px; font-weight: 600; cursor: not-allowed">Còn thiếu <span data-run-missing="">4</span> mục để Run</button>
 </div>
 
 </main>
 </div>
-<script>
-window.PAGE_LOGIC = {
-  state: { tiktok: false, youtube: false, brain: 'credit' },
-  vals: function (s, set) {
-    var count = 3 + (s.tiktok ? 1 : 0) + (s.youtube ? 1 : 0);
-    return {
-      count: count, missing: 5 - count,
-      seg4: count >= 4, noSeg4: count < 4, seg5: count >= 5, noSeg5: count < 5,
-      allReady: count === 5, notReady: count < 5,
-      tiktokOn: s.tiktok, tiktokOff: !s.tiktok, youtubeOn: s.youtube, youtubeOff: !s.youtube,
-      brainCredit: s.brain === 'credit', brainKey: s.brain === 'key',
-      connectTiktok: function () { set({ tiktok: true }); },
-      connectYoutube: function () { set({ youtube: true }); },
-      pickCredit: function () { set({ brain: 'credit' }); },
-      pickKey: function () { set({ brain: 'key' }); }
-    };
-  }
-};
-</script>
-<script src="assets/app.js"></script>
 <script src="assets/connect.js"></script>
 </body>
 </html>

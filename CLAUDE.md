@@ -7,7 +7,7 @@ Văn Phòng AI là web app riêng, **không liên quan Lumi**. Ý tưởng: doan
 (Claude hoặc ChatGPT) làm bộ não rồi bấm Run. Giao diện trông như văn phòng có các phòng đang làm việc thật.
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
-**Hiện trạng (22/11/2026): bản thử giao diện + kết nối thật Gmail, Google Sheets qua Composio.** Chưa có đăng nhập khách thật
+**Hiện trạng (22/11/2026): bản thử giao diện + kết nối thật 10 công cụ qua Composio + link nối AI của khách (MCP).** Chưa có đăng nhập khách thật
 (mỗi trình duyệt có mã khách riêng trong localStorage `vpai.uid`), các số liệu khác là dữ liệu mẫu.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
@@ -44,15 +44,24 @@ public/ket-noi.html      Màn 3 · Kết nối công cụ: tiến độ 5 công 
 public/assets/style.css  Biến màu --accent, focus, menu gọn trên điện thoại (≤640px)
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
 public/assets/favicon.svg
-public/assets/connect.js   Nút kết nối thật Gmail/Google Sheets: gọi /api/connect, /api/status
-netlify/functions/connect.mjs  GET /api/connect?toolkit=gmail|googlesheets&uid=… → link đăng nhập Composio (session.authorize, callback về ket-noi.html?ket_noi=…)
-netlify/functions/status.mjs   GET /api/status?uid=… → công cụ đã ACTIVE (connectedAccounts.list, dự phòng session.toolkits)
+public/assets/connect.js   Trang Kết nối: thẻ thật từng công cụ (số tài khoản, Thêm tài khoản), tạo link nối AI, sao chép
+netlify/lib/common.mjs     Danh sách TOOLKITS (10 công cụ), tối đa 5 tài khoản/công cụ, ký link MCP (signUpstream)
+netlify/functions/connect.mjs   GET /api/connect?toolkit=…&uid=… → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
+netlify/functions/status.mjs    GET /api/status?uid=… → {accounts: {slug: số tài khoản ACTIVE}}
+netlify/functions/mcp-link.mjs  GET /api/mcp-link?uid=… → link https://<site>/mcp/<token> để dán vào Claude/ChatGPT
+netlify/edge-functions/mcp-gateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ
 package.json            @composio/core 0.31.0 (Netlify tự cài khi build)
 netlify.toml            publish = "public", functions = netlify/functions (esbuild), header X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục)
 ```
 
 - Biến môi trường Netlify: `COMPOSIO_API_KEY` (bí mật). **Đổi giá trị xong phải deploy lại** thì hàm máy chủ mới nhận khoá mới.
-- Mã khách gửi lên Composio có dạng `vpai-<uid>`; chỉ cho phép toolkit trong danh sách `ALLOWED_TOOLKITS`.
+- Mã khách gửi lên Composio có dạng `vpai-<uid>`; chỉ cho phép toolkit trong `TOOLKITS` (netlify/lib/common.mjs).
+  10 công cụ đã thử tạo link được (22/11): facebook, instagram, youtube, linkedin, gmail, googlesheets, googlecalendar, googledrive, notion, hubspot.
+  TikTok chưa mở: cần app TikTok developer riêng và qua kiểm duyệt.
+- Link nối AI: Composio bắt buộc header x-api-key cho mọi link MCP, nên KHÔNG đưa link Composio cho khách.
+  Token = base64url(link phiên Composio) + '.' + HMAC-SHA256 (khoá ký = sha256('vpai-mcp|' + COMPOSIO_API_KEY)).
+  Đổi COMPOSIO_API_KEY thì mọi link cũ hết hiệu lực. "Tạo link mới" tạo phiên mới nhưng link cũ vẫn chạy (chưa thu hồi được).
+  Đã thử qua cổng: initialize, tools/list (6 công cụ gốc COMPOSIO_*), tools/call COMPOSIO_SEARCH_TOOLS ~1 giây.
 - Mỗi trang có tương tác khai báo `window.PAGE_LOGIC = { state, vals(state, set) }` trong thẻ `<script>` ngay trước `assets/app.js`.
 - Chạy cục bộ: `python3 -m http.server 8765 -d public` trong thư mục repo, mở `http://127.0.0.1:8765/`.
 - Netlify: dự án `van-phong-ai`, site id `26e332c7-f0ff-4912-81ad-5154ae75eb88`, link https://van-phong-ai.netlify.app
@@ -109,11 +118,14 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
   Khoá có phân quyền: "Write only" KHÔNG gồm đọc; quyền cố định lúc tạo. Cần: Session management, Connected accounts,
   Auth configs = Read and write; Toolkits, Tools = Read only; Session tool execution = Write only.
   Trên điện thoại menu Composio bị ẩn: link thẳng https://dashboard.composio.dev/~/project/settings/api-keys
+- 22/11/2026: Mở rộng 10 công cụ, nhiều tài khoản/công cụ, dựng cổng MCP trên Edge (hàm thường giới hạn 10 giây, Edge chỉ tính CPU).
 - 22/11/2026: Token deploy của Netlify MCP hết hạn sau khoảng 40 phút (lỗi 401) → gọi lại deploy-site để lấy lệnh mới.
 - 22/11/2026: Từ đây `public/` là nguồn chính, không chạy lại `convert.py` từ canvas (sẽ mất nút kết nối thật).
 
 ## 6. Việc tiếp theo
 
+- Bắt buộc trước khi bán: đăng nhập khách thật (thay mã trong localStorage), lưu và thu hồi link nối AI,
+  giới hạn lượt gọi công cụ theo credit (mọi lượt gọi đang tính vào tài khoản Composio của Giang).
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm khi xong giai đoạn thử.
 - Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit".
