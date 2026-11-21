@@ -1,5 +1,5 @@
 // Trang Kết nối công cụ: kết nối thật qua Composio (hàm /api/connect, /api/status) và tạo link nối AI (/api/mcp-link).
-// Bản thử chưa có đăng nhập: mỗi trình duyệt có một mã khách riêng lưu trong localStorage.
+// Đã bật đăng nhập Google thì máy chủ lấy mã khách từ phiên; chưa bật thì dùng mã trình duyệt lưu trong localStorage.
 (function () {
   var UID_KEY = 'vpai.uid';
   var AI_KEY = 'vpai.aiLink';
@@ -29,6 +29,7 @@
 
   function getJson(path) {
     return fetch(path).then(function (r) {
+      if (r.status === 401 && window.vpaiNeedLogin) window.vpaiNeedLogin();
       return r.json()
         .catch(function () { return { error: 'Máy chủ chưa sẵn sàng, thử lại sau.' }; })
         .then(function (body) { return { ok: r.ok, body: body }; });
@@ -65,7 +66,8 @@
   }
 
   function renderReady() {
-    var done = (store(AI_KEY) ? 1 : 0);
+    var orKey = window.VPAIOpenRouter && window.VPAIOpenRouter.key();
+    var done = (store(AI_KEY) || orKey ? 1 : 0);
     TEMPLATE_NEEDS.forEach(function (slug) { if (accounts[slug]) done += 1; });
     var countEl = document.querySelector('[data-ready-count]');
     if (countEl) countEl.textContent = String(done);
@@ -170,6 +172,50 @@
         aiInput.select();
         try { document.execCommand('copy'); done(); } catch (e) {}
       }
+    });
+  }
+
+  // Đăng nhập OpenRouter (bộ não cho Trợ lý AI)
+  var orTile = document.querySelector('[data-or-tile]');
+  function renderOpenRouter() {
+    if (!orTile || !window.VPAIOpenRouter) return;
+    var on = !!window.VPAIOpenRouter.key();
+    var badge = orTile.querySelector('[data-or-badge]');
+    badge.textContent = on ? 'Đã đăng nhập' : 'Chưa đăng nhập';
+    badge.style.background = on ? '#E3F4E8' : '#EEF0F3';
+    badge.style.color = on ? '#14612D' : '#3F4652';
+    orTile.style.borderColor = on ? '#A8DDB8' : '#E3E6EB';
+    orTile.querySelector('[data-or-login]').style.display = on ? 'none' : 'block';
+    orTile.querySelector('[data-or-done]').style.display = on ? 'flex' : 'none';
+    var brain = document.querySelector('[data-brain-badge]');
+    if (brain) {
+      brain.textContent = on ? 'Đang dùng OpenRouter' : 'Đang dùng credit của app';
+      brain.style.background = on ? '#E3F4E8' : '#EEF0F3';
+      brain.style.color = on ? '#14612D' : '#3F4652';
+    }
+    renderReady();
+  }
+  if (orTile && window.VPAIOpenRouter) {
+    var orMsg = orTile.querySelector('[data-or-msg]');
+    orTile.querySelector('[data-or-login]').addEventListener('click', function (e) {
+      e.target.disabled = true;
+      e.target.textContent = 'Đang mở OpenRouter…';
+      window.VPAIOpenRouter.login();
+    });
+    orTile.querySelector('[data-or-logout]').addEventListener('click', function () {
+      window.VPAIOpenRouter.logout();
+      try { if (localStorage.getItem('vpai.aiMode') === 'openrouter') localStorage.removeItem('vpai.aiMode'); } catch (e) {}
+      renderOpenRouter();
+    });
+    window.VPAIOpenRouter.handleCallback().then(function (r) {
+      if (r === 'connected') {
+        try { localStorage.setItem('vpai.aiMode', 'openrouter'); } catch (e) {}
+        showMsg(orMsg, '');
+      }
+      renderOpenRouter();
+    }).catch(function (err) {
+      showMsg(orMsg, err.message);
+      renderOpenRouter();
     });
   }
 

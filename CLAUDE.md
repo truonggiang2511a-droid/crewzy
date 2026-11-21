@@ -42,16 +42,21 @@ public/index.html        Màn 1 · Văn phòng: 9 phòng, trạng thái, bảng 
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
 public/ket-noi.html      Màn 3 · Kết nối công cụ: tiến độ 5 công cụ, chọn credit hoặc khoá API, nút Run
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
+public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
 public/assets/style.css  Biến màu --accent, focus, menu gọn trên điện thoại (≤640px)
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
 public/assets/favicon.svg
 public/assets/connect.js   Trang Kết nối: thẻ thật từng công cụ (số tài khoản, Thêm tài khoản), tạo link nối AI, sao chép
 public/assets/chat.js      Trang Trợ lý AI: gọi /api/chat, đọc NDJSON từng dòng, lưu lịch sử + chế độ + khoá trong localStorage
+public/assets/auth.js      Có trên mọi trang (trong <head>): hỏi /api/auth/me, bắt buộc đăng nhập thì chuyển sang dang-nhap.html, hiện email + Đăng xuất dưới tên app
+public/assets/openrouter.js  Đăng nhập OpenRouter (OAuth PKCE) trên trình duyệt, khoá lưu localStorage vpai.key.openrouter
 netlify/lib/common.mjs     Danh sách TOOLKITS (10 công cụ), tối đa 5 tài khoản/công cụ, ký link MCP (signUpstream)
 netlify/functions/connect.mjs   GET /api/connect?toolkit=…&uid=… → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 netlify/functions/status.mjs    GET /api/status?uid=… → {accounts: {slug: số tài khoản ACTIVE}}
 netlify/functions/mcp-link.mjs  GET /api/mcp-link?uid=… → link https://<site>/mcp/<token> để dán vào Claude/ChatGPT
-netlify/functions/chat.mjs      POST /api/chat → NDJSON {tool|text|done|error}; GET /api/chat → {appMode}
+netlify/functions/chat.mjs      POST /api/chat → NDJSON {tool|text|done|error}; GET /api/chat → {appMode, openrouterModels}
+netlify/functions/auth.mjs      /api/auth/me · /api/auth/google (kiểm tra ID token, tạo phiên) · /api/auth/logout
+netlify/functions/openrouter-key.mjs  Dự phòng đổi mã PKCE lấy khoá OpenRouter khi trình duyệt không gọi thẳng được (không lưu khoá)
 netlify/edge-functions/mcp-gateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ
 package.json            @composio/core 0.31, @anthropic-ai/sdk, openai, @netlify/blobs (Netlify tự cài khi build)
 netlify.toml            publish = "public", functions = netlify/functions (esbuild), header X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục)
@@ -76,6 +81,23 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
   Đã thử (22/11): kiểm tra kết nối ~6 giây, tìm công cụ đăng Fanpage, khoá sai báo "Khoá API không đúng"; điện thoại 390px và máy tính 1440px không lỗi console.
   COMPOSIO_MANAGE_CONNECTIONS tự tạo yêu cầu kết nối "đang chờ" (INITIATED) cho mọi công cụ chưa nối; status/connect chỉ đếm ACTIVE nên không sai số.
   Huy hiệu "Powered by Netlify" nằm góc phải dưới: trang chat chừa 76–80px dưới cùng để không che nút Gửi.
+- Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://van-phong-ai.netlify.app;
+  mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
+  Phiên = cookie HttpOnly `vpai_session` 30 ngày, ký HMAC bằng `SESSION_SECRET` (chưa đặt thì suy ra từ COMPOSIO_API_KEY).
+  ID token kiểm tra bằng khoá công khai Google (JWKS, RS256, aud = Client ID), không gọi tokeninfo. Thử cục bộ: `node scripts/authtest.mjs`.
+  Map tài khoản trong Blobs `vpai-users` (strong): `user:<sub>` → {uid,…}, `uid:<uid>` → sub. Lần đầu đăng nhập nhận luôn mã trình duyệt cũ
+  (nếu chưa thuộc ai) để giữ kết nối Composio đã làm; còn lại uid = `g-<sub>`. Bật đăng nhập rồi thì mọi hàm (connect, status, mcp-link, chat)
+  chỉ tin mã trong phiên (`resolveUid`), bỏ qua uid gửi lên; không có phiên → 401 `{login:true}` → trang tự chuyển sang đăng nhập.
+- Đăng nhập AI (đã nghiên cứu 22/11/2026):
+  OpenRouter OAuth PKCE chạy ngay, không cần đăng ký app: `https://openrouter.ai/auth?callback_url=…&code_challenge=…&code_challenge_method=S256`,
+  quay về `?code=` → POST https://openrouter.ai/api/v1/auth/keys {code, code_verifier, code_challenge_method} → {key}. Chat gọi qua
+  OpenAI SDK baseURL https://openrouter.ai/api/v1, dùng `max_tokens`. Model cho chọn: anthropic/claude-sonnet-5.5, anthropic/claude-haiku-5.5,
+  google/gemini-4-neon (đã thấy trên openrouter.ai; muốn thêm model phải sửa cả OPENROUTER_MODELS trong chat.mjs và chat.html).
+  "Sign in with ChatGPT" (dùng gói Plus/Pro trong app khác) có từ 9–10/2026 nhưng app thương mại đóng mã phải được OpenAI chọn → cần nộp đơn.
+  Claude: gói Pro/Max cấm dùng trong app bên thứ ba; đường hợp lệ là Linked billing (beta) cho tổ chức Claude Console trả trực tiếp
+  (tạo OAuth app trên Console, Anthropic duyệt, thử nghiệm 10 người ≤ 50 USD/tháng, gửi `billing_policy` bill_to user_profile).
+  Google/Gemini: đăng nhập Google chỉ là danh tính, không dùng được gói Gemini; Google cấm mượn token Gemini CLI từ 2/2026 → chỉ khoá API.
+  Composio không làm "bộ não": toolkit openai/gemini của Composio là công cụ dùng khoá API, không có đăng nhập tài khoản AI.
 - Mỗi trang có tương tác khai báo `window.PAGE_LOGIC = { state, vals(state, set) }` trong thẻ `<script>` ngay trước `assets/app.js`.
 - Chạy cục bộ: `python3 -m http.server 8765 -d public` trong thư mục repo, mở `http://127.0.0.1:8765/`.
 - Netlify: dự án `van-phong-ai`, site id `26e332c7-f0ff-4912-81ad-5154ae75eb88`, link https://van-phong-ai.netlify.app
@@ -137,11 +159,16 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
 - 22/11/2026: Từ đây `public/` là nguồn chính, không chạy lại `convert.py` từ canvas (sẽ mất nút kết nối thật).
 - 22/11/2026: Thêm Trợ lý AI (chat.html + /api/chat). Claude Pro / ChatGPT Plus không dùng được trong web của bên thứ ba,
   nên chat trong app phải dùng khoá API của khách hoặc credit của app (Netlify AI Gateway). Deploy bằng Netlify MCP: tạm dời
-  node_modules ra ngoài repo trước khi chạy lệnh (đỡ tải lên), deploy xong nhớ trả lại.
+  node_modules ra ngoài repo trước khi chạy lệnh (đỡ tải lên), deploy xong nhớ trả lại — dùng `trap '…mv lại…' EXIT` trong cùng
+  lệnh, vì lệnh bị ngắt giữa chừng từng để quên node_modules ở ngoài.
+- 22/11/2026: Giang muốn "đăng nhập Google để nối tài khoản AI của khách qua Composio". Phản biện: Composio và Google không làm được
+  việc này (xem mục 1, Đăng nhập AI) → làm đăng nhập Google cho tài khoản Văn Phòng AI + nút Đăng nhập OpenRouter, ChatGPT/Claude để "Sắp có".
 
 ## 6. Việc tiếp theo
 
-- Bắt buộc trước khi bán: đăng nhập khách thật (thay mã trong localStorage), lưu và thu hồi link nối AI,
+- Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.
+- Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.
+- Bắt buộc trước khi bán: (đăng nhập Google đã có, chờ GOOGLE_CLIENT_ID) lưu và thu hồi link nối AI,
   giới hạn lượt gọi công cụ theo credit (mọi lượt gọi đang tính vào tài khoản Composio của Giang).
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.

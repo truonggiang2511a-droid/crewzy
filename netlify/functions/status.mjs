@@ -1,13 +1,12 @@
 // Số tài khoản đã kết nối thật (ACTIVE) theo từng công cụ của một khách.
-// GET /api/status?uid=<mã khách trên trình duyệt>
+// GET /api/status[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { UID_PATTERN, userIdFor, safeDetail, getApiKey } from '../lib/common.mjs';
+import { userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
 
 export default async (req) => {
-  const uid = new URL(req.url).searchParams.get('uid') || '';
-  if (!UID_PATTERN.test(uid)) {
-    return Response.json({ error: 'Mã khách không hợp lệ.' }, { status: 400 });
-  }
+  const who = resolveUid(req, new URL(req.url).searchParams.get('uid'));
+  if (who.response) return who.response;
+  const uid = who.uid;
   const apiKey = getApiKey();
   if (!apiKey) {
     return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });

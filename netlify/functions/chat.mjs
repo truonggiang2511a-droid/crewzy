@@ -1,19 +1,23 @@
 // Khung chat Trợ lý AI: nhận tin nhắn, cho AI (Claude hoặc ChatGPT) dùng công cụ Composio của khách, trả về từng bước.
-// POST /api/chat  { uid, mode: 'app'|'claude'|'openai', key?, messages: [{ role: 'user'|'assistant', content }] }
+// POST /api/chat  { uid?, mode: 'app'|'claude'|'openai'|'openrouter', key?, model?, messages: [{ role: 'user'|'assistant', content }] }
+// Mã khách lấy từ phiên đăng nhập Google; uid trong body chỉ dùng khi chưa bật đăng nhập.
 // Trả về NDJSON, mỗi dòng một sự kiện: {type:'tool', label} · {type:'text', text} · {type:'done'} · {type:'error', message}
 // mode 'app'  : AI qua Netlify AI Gateway, tính vào credit Netlify của Giang, có trần lượt/ngày.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
+// openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { getStore } from '@netlify/blobs';
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, UID_PATTERN, userIdFor, safeDetail, getApiKey } from '../lib/common.mjs';
+import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
 
 const APP_DAILY_CAP = 150;          // số lượt chat/ngày cho chế độ credit của app (toàn site)
 const MAX_STEPS = 8;                // số vòng gọi công cụ tối đa mỗi lượt
 const TIME_BUDGET_MS = 45000;       // dừng sớm để không vượt giới hạn thời gian của hàm
 const MAX_TOOL_RESULT_CHARS = 12000;
 const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini' };
+// Model OpenRouter cho khách chọn (đã kiểm tra có trên openrouter.ai, 22/11/2026). Phần tử đầu là mặc định.
+const OPENROUTER_MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-haiku-5.5', 'google/gemini-4-neon'];
 
 const SYSTEM_PROMPT = `Bạn là Trợ lý điều hành của Văn Phòng AI, làm việc cho một doanh nghiệp nhỏ ở Việt Nam.
 Bạn dùng các công cụ Composio để làm việc trên ứng dụng khách đã kết nối: Facebook Fanpage, Instagram, YouTube, LinkedIn,
@@ -102,10 +106,10 @@ async function runClaude({ client, model, tools, session, messages, emit, deadli
 }
 
 // Vòng gọi công cụ với ChatGPT (OpenAI Chat Completions)
-async function runOpenAI({ client, model, tools, session, messages, emit, deadline }) {
+async function runOpenAI({ client, model, tools, session, messages, emit, deadline, tokenParam = 'max_completion_tokens' }) {
   const convo = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.chat.completions.create({ model, messages: convo, tools, max_completion_tokens: 1500 });
+    const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: 1500 });
     const msg = res.choices[0].message;
     if (msg.content && msg.content.trim()) emit({ type: 'text', text: msg.content.trim() });
     const calls = msg.tool_calls || [];
@@ -130,16 +134,19 @@ async function runOpenAI({ client, model, tools, session, messages, emit, deadli
 export default async (req) => {
   if (req.method === 'GET') {
     // Cho giao diện biết chế độ credit của app có bật không.
-    return Response.json({ appMode: !!Netlify.env.get('ANTHROPIC_BASE_URL') });
+    return Response.json({ appMode: !!Netlify.env.get('ANTHROPIC_BASE_URL'), openrouterModels: OPENROUTER_MODELS });
   }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   let body;
   try { body = await req.json(); } catch (e) { return Response.json({ error: 'Dữ liệu gửi lên không hợp lệ.' }, { status: 400 }); }
-  const { uid, mode, key } = body || {};
+  const { mode, key } = body || {};
   const messages = cleanMessages(body && body.messages);
-  if (!UID_PATTERN.test(uid || '')) return Response.json({ error: 'Mã khách không hợp lệ.' }, { status: 400 });
-  if (!['app', 'claude', 'openai'].includes(mode)) return Response.json({ error: 'Chưa chọn AI.' }, { status: 400 });
+  const who = resolveUid(req, body && body.uid);
+  if (who.response) return who.response;
+  const uid = who.uid;
+  if (!['app', 'claude', 'openai', 'openrouter'].includes(mode)) return Response.json({ error: 'Chưa chọn AI.' }, { status: 400 });
+  const orModel = OPENROUTER_MODELS.includes(body && body.model) ? body.model : OPENROUTER_MODELS[0];
   if (mode !== 'app' && (typeof key !== 'string' || key.trim().length < 20)) return Response.json({ error: 'Chưa có khoá API hợp lệ.' }, { status: 400 });
   if (!messages.length || messages[messages.length - 1].role !== 'user') return Response.json({ error: 'Chưa có tin nhắn.' }, { status: 400 });
   const composioKey = getApiKey();
@@ -165,8 +172,15 @@ export default async (req) => {
           multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
         });
         const tools = await session.tools();
-        const model = MODELS[mode];
-        if (mode === 'openai') {
+        const model = mode === 'openrouter' ? orModel : MODELS[mode];
+        if (mode === 'openrouter') {
+          const client = new OpenAI({
+            apiKey: key.trim(),
+            baseURL: 'https://openrouter.ai/api/v1',
+            defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': 'Van Phong AI' },
+          });
+          await runOpenAI({ client, model, tools, session, messages, emit, deadline, tokenParam: 'max_tokens' });
+        } else if (mode === 'openai') {
           const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
           await runOpenAI({ client, model, tools, session, messages, emit, deadline });
         } else {
@@ -179,7 +193,8 @@ export default async (req) => {
         const detail = safeDetail(err);
         let message = 'AI gặp lỗi, anh/chị thử lại sau ít phút.';
         if (/401|invalid.?api.?key|authentication/i.test(detail)) message = 'Khoá API không đúng hoặc đã hết hạn.';
-        else if (/429|rate|quota|credit/i.test(detail)) message = 'AI đang quá tải hoặc hết hạn mức, thử lại sau ít phút.';
+        else if (/402|insufficient|credits/i.test(detail)) message = mode === 'openrouter' ? 'Tài khoản OpenRouter hết tiền, nạp thêm tại openrouter.ai/settings/credits.' : 'Tài khoản AI hết tiền hoặc hết hạn mức.';
+        else if (/429|rate|quota/i.test(detail)) message = 'AI đang quá tải hoặc hết hạn mức, thử lại sau ít phút.';
         emit({ type: 'error', message, detail });
       }
       controller.close();

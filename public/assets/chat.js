@@ -31,6 +31,10 @@
   var keyBox = document.querySelector('[data-key-box]');
   var keyInput = document.getElementById('ai-key');
   var modeNote = document.querySelector('[data-mode-note]');
+  var orBox = document.querySelector('[data-or-box]');
+  var orModel = document.getElementById('or-model');
+  var orLogin = orBox.querySelector('[data-or-login]');
+  var OR = window.VPAIOpenRouter;
   var suggest = document.querySelector('[data-suggest]');
   var busy = false;
   var appMode = true;
@@ -100,9 +104,18 @@
 
   function renderMode() {
     var mode = modeSel.value;
-    var needsKey = mode !== 'app';
+    var needsKey = mode === 'claude' || mode === 'openai';
     keyBox.style.display = needsKey ? 'flex' : 'none';
-    if (needsKey) {
+    orBox.style.display = mode === 'openrouter' ? 'flex' : 'none';
+    if (mode === 'openrouter') {
+      var on = !!(OR && OR.key());
+      orModel.style.display = on ? 'block' : 'none';
+      orBox.querySelector('[data-or-model-label]').style.display = on ? 'block' : 'none';
+      orLogin.style.display = on ? 'none' : 'block';
+      modeNote.textContent = on
+        ? 'Đã đăng nhập OpenRouter. Tiền AI tính vào tài khoản OpenRouter của bạn. Gỡ đăng nhập ở trang Kết nối công cụ.'
+        : 'Bấm Đăng nhập OpenRouter, đồng ý trên trang OpenRouter rồi quay lại đây.';
+    } else if (needsKey) {
       keyInput.value = store(keyName(mode)) || '';
       keyInput.placeholder = mode === 'claude' ? 'Khoá Claude (console.anthropic.com), bắt đầu bằng sk-ant-' : 'Khoá ChatGPT (platform.openai.com), bắt đầu bằng sk-';
       modeNote.textContent = 'Khoá chỉ lưu trên trình duyệt này và gửi kèm mỗi lần chat, máy chủ không lưu. Tiền AI tính vào tài khoản của bạn.';
@@ -114,6 +127,13 @@
   modeSel.addEventListener('change', function () {
     store(MODE_KEY, modeSel.value);
     renderMode();
+  });
+  orModel.addEventListener('change', function () { store('vpai.or.model', orModel.value); });
+  orLogin.addEventListener('click', function () {
+    orLogin.disabled = true;
+    orLogin.textContent = 'Đang mở OpenRouter…';
+    store(MODE_KEY, 'openrouter');
+    OR.login();
   });
   keyInput.addEventListener('change', function () {
     store(keyName(modeSel.value), keyInput.value.trim());
@@ -130,13 +150,17 @@
     text = (text || '').trim();
     if (!text || busy) return;
     var mode = modeSel.value;
-    var key = mode === 'app' ? undefined : (keyInput.value || '').trim();
+    var key = mode === 'app' ? undefined : mode === 'openrouter' ? (OR && OR.key()) : (keyInput.value || '').trim();
+    if (mode === 'openrouter' && !key) {
+      add({ kind: 'error', text: 'Anh/chị bấm Đăng nhập OpenRouter trước nhé.' });
+      return;
+    }
     if (mode !== 'app' && !key) {
       add({ kind: 'error', text: 'Anh/chị dán khoá API vào ô Khoá API trước nhé.' });
       keyInput.focus();
       return;
     }
-    if (key) store(keyName(mode), key);
+    if (key && mode !== 'openrouter') store(keyName(mode), key);
     add({ kind: 'user', text: text });
     input.value = '';
     setBusy(true);
@@ -149,8 +173,9 @@
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ uid: uid, mode: mode, key: key, messages: apiMessages() })
+      body: JSON.stringify({ uid: uid, mode: mode, key: key, model: mode === 'openrouter' ? orModel.value : undefined, messages: apiMessages() })
     }).then(function (res) {
+      if (res.status === 401 && window.vpaiNeedLogin) window.vpaiNeedLogin();
       var type = res.headers.get('content-type') || '';
       if (!res.ok || type.indexOf('ndjson') === -1) {
         return res.json().catch(function () { return {}; }).then(function (j) {
@@ -213,6 +238,21 @@
 
   var savedMode = store(MODE_KEY);
   if (savedMode) modeSel.value = savedMode;
+  var savedModel = store('vpai.or.model');
+  if (savedModel && orModel.querySelector('option[value="' + savedModel + '"]')) orModel.value = savedModel;
+  if (OR) {
+    OR.handleCallback().then(function (r) {
+      if (r === 'connected') {
+        modeSel.value = 'openrouter';
+        store(MODE_KEY, 'openrouter');
+        add({ kind: 'assistant', text: 'Đã đăng nhập OpenRouter. Từ giờ em dùng tài khoản OpenRouter của anh/chị để làm việc.' });
+      }
+      renderMode();
+    }).catch(function (err) {
+      add({ kind: 'error', text: err.message });
+      renderMode();
+    });
+  }
   renderMode();
   renderAll();
 

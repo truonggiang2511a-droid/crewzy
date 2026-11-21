@@ -1,19 +1,18 @@
 // Tạo link đăng nhập Composio cho một công cụ (mỗi lần bấm thêm 1 tài khoản, tối đa 5 tài khoản/công cụ).
-// GET /api/connect?toolkit=<slug>&uid=<mã khách trên trình duyệt>
+// GET /api/connect?toolkit=<slug>[&uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, UID_PATTERN, userIdFor, safeDetail, getApiKey } from '../lib/common.mjs';
+import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
 
 export default async (req) => {
   const url = new URL(req.url);
   const toolkit = url.searchParams.get('toolkit') || '';
-  const uid = url.searchParams.get('uid') || '';
 
   if (!TOOLKITS.includes(toolkit)) {
     return Response.json({ error: 'Công cụ này chưa được mở kết nối thật.' }, { status: 400 });
   }
-  if (!UID_PATTERN.test(uid)) {
-    return Response.json({ error: 'Mã khách không hợp lệ.' }, { status: 400 });
-  }
+  const who = resolveUid(req, url.searchParams.get('uid'));
+  if (who.response) return who.response;
+  const uid = who.uid;
   const apiKey = getApiKey();
   if (!apiKey) {
     return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });

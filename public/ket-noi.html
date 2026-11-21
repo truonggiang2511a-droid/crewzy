@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/auth.js"></script>
 </head>
 <body>
 <div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F6F8; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1B2230">
@@ -53,9 +54,40 @@
 <p style="margin: 0; font-size: 15px; color: #3F4652">Mẫu Tuần nội dung cần: AI của bạn, Facebook Fanpage, Instagram, YouTube. Đã xong <span data-ready-count="">0</span>/4.</p>
 </div>
 
-<section aria-labelledby="ai-h" style="display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #FFFFFF; border: 1px solid #A9BEFF; border-radius: 14px">
+<section aria-labelledby="ai-login-h" style="display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #FFFFFF; border: 1px solid #A9BEFF; border-radius: 14px">
 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
-<h2 id="ai-h" style="margin: 0; font-size: 18px; font-weight: 600">AI của bạn (bộ não)</h2>
+<h2 id="ai-login-h" style="margin: 0; font-size: 18px; font-weight: 600">AI của bạn (bộ não)</h2>
+<span data-brain-badge="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Đang dùng credit của app</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #3F4652">Đăng nhập tài khoản AI của bạn để Trợ lý AI và các phòng ban dùng. Chưa đăng nhập thì app dùng credit của app.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px">
+<div data-or-tile="" style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #E3E6EB; border-radius: 12px; background: #FFFFFF">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><p style="margin: 0; font-weight: 600; font-size: 15px">OpenRouter</p><span data-or-badge="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa đăng nhập</span></div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5B6472">Một tài khoản dùng được Claude, GPT, Gemini. Bạn nạp tiền vào OpenRouter, dùng bao nhiêu trả bấy nhiêu.</p>
+<button type="button" data-or-login="" style="min-height: 44px; padding: 0 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; border: 0; background: var(--accent); color: #FFFFFF; cursor: pointer">Đăng nhập OpenRouter</button>
+<div data-or-done="" style="display: none; flex-wrap: wrap; gap: 8px">
+<a href="chat.html" style="min-height: 44px; padding: 0 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; text-decoration: none; background: var(--accent); color: #FFFFFF">Dùng trong Trợ lý AI</a>
+<button type="button" data-or-logout="" style="min-height: 44px; padding: 0 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; border: 1px solid #CBD2DC; background: #FFFFFF; color: #1B2230; cursor: pointer">Gỡ đăng nhập</button>
+</div>
+<p data-or-msg="" role="status" style="margin: 0; font-size: 13px; color: #8A2A12; display: none"></p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #E3E6EB; border-radius: 12px; background: #FFFFFF">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><p style="margin: 0; font-weight: 600; font-size: 15px">ChatGPT</p><span style="padding: 3px 8px; border-radius: 99px; background: #FFF1D6; color: #7A4A00; font-size: 12px; font-weight: 600">Sắp có</span></div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5B6472">Dùng luôn gói ChatGPT Plus/Pro bạn đang trả tiền. Đang chờ OpenAI duyệt app.</p>
+<button type="button" disabled style="min-height: 44px; padding: 0 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; border: 1px solid #E3E6EB; background: #F5F6F8; color: #8A919C">Đăng nhập ChatGPT</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #E3E6EB; border-radius: 12px; background: #FFFFFF">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><p style="margin: 0; font-weight: 600; font-size: 15px">Claude</p><span style="padding: 3px 8px; border-radius: 99px; background: #FFF1D6; color: #7A4A00; font-size: 12px; font-weight: 600">Sắp có</span></div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5B6472">Cho doanh nghiệp có tài khoản Claude Console (trả theo API). Gói Pro/Max không dùng được trong app khác.</p>
+<button type="button" disabled style="min-height: 44px; padding: 0 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; border: 1px solid #E3E6EB; background: #F5F6F8; color: #8A919C">Liên kết Claude</button>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Có khoá API Claude hoặc ChatGPT? Dán trong trang <a href="chat.html">Trợ lý AI</a>. Khoá và tài khoản AI chỉ lưu trên trình duyệt này.</p>
+</section>
+
+<section aria-labelledby="ai-h" style="display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+<h2 id="ai-h" style="margin: 0; font-size: 18px; font-weight: 600">Hoặc nối vào app Claude / ChatGPT bạn đang dùng</h2>
 <span data-ai-badge="" style="padding: 3px 8px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Chưa tạo link</span>
 </div>
 <p style="margin: 0; font-size: 14px; color: #3F4652">Tạo link riêng rồi dán vào Claude hoặc ChatGPT. AI của bạn sẽ dùng được mọi công cụ bạn đã kết nối bên dưới: đăng bài, đọc tin nhắn, ghi Sheet, gửi email.</p>
@@ -152,6 +184,7 @@
 
 </main>
 </div>
+<script src="assets/openrouter.js"></script>
 <script src="assets/connect.js"></script>
 </body>
 </html>

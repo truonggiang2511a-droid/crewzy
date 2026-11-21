@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Đăng nhập · Văn Phòng AI (bản thử)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body style="margin: 0; min-height: 100vh; background: #F5F6F8; color: #1B2230; display: flex; align-items: center; justify-content: center; padding: 24px 16px; box-sizing: border-box">
+<main style="width: 100%; max-width: 420px; box-sizing: border-box; padding: 28px 24px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; gap: 10px">
+<div aria-hidden="true" style="width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px">VP</div>
+<div>
+<p style="margin: 0; font-weight: 700; font-size: 17px">Văn Phòng AI</p>
+<p style="margin: 0; font-size: 12px; color: #5B6472">Bản thử</p>
+</div>
+</div>
+<div>
+<h1 style="margin: 0; font-size: 24px; font-weight: 700">Đăng nhập</h1>
+<p style="margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: #3F4652">Dùng tài khoản Google để vào văn phòng. Các kết nối Facebook, Gmail, AI… đi theo tài khoản này, đổi máy không mất.</p>
+</div>
+<div data-google-btn="" style="min-height: 44px; display: flex; justify-content: center"></div>
+<p data-login-msg="" role="status" style="margin: 0; font-size: 14px; color: #8A2A12; display: none"></p>
+<a data-skip="" href="index.html" style="display: none; align-self: center; min-height: 44px; line-height: 44px; font-size: 15px; font-weight: 600">Vào văn phòng</a>
+<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5B6472">App chỉ đọc tên và email Google của bạn. App không đọc Gmail hay Drive nếu bạn chưa bấm kết nối riêng trong trang Kết nối công cụ.</p>
+</main>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var next = params.get('next') || 'index.html';
+  if (!/^[a-z0-9-]+\.html(\?[^#]*)?$/i.test(next) || /^dang-nhap/i.test(next)) next = 'index.html';
+  var btnBox = document.querySelector('[data-google-btn]');
+  var msg = document.querySelector('[data-login-msg]');
+  var skip = document.querySelector('[data-skip]');
+
+  function show(text) { msg.textContent = text; msg.style.display = text ? 'block' : 'none'; }
+
+  function onCredential(resp) {
+    show('');
+    btnBox.style.opacity = '0.5';
+    var localUid = null;
+    try { localUid = localStorage.getItem('vpai.uid'); } catch (e) {}
+    fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ credential: resp.credential, localUid: localUid })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j.user) throw new Error(j.error || 'Đăng nhập chưa được, thử lại.');
+        location.replace(next);
+      });
+    }).catch(function (err) {
+      btnBox.style.opacity = '1';
+      show(err.message);
+    });
+  }
+
+  fetch('/api/auth/me', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (me) {
+    if (me.user) { location.replace(next); return; }
+    if (!me.required || !me.clientId) {
+      show('Bản thử chưa bật đăng nhập Google. Bạn vẫn vào văn phòng được, kết nối lưu theo trình duyệt này.');
+      msg.style.color = '#3F4652';
+      skip.href = next;
+      skip.style.display = 'block';
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = function () {
+      google.accounts.id.initialize({ client_id: me.clientId, callback: onCredential, ux_mode: 'popup', auto_select: false });
+      google.accounts.id.renderButton(btnBox, { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'vi', width: 300 });
+    };
+    s.onerror = function () { show('Không tải được nút đăng nhập Google. Kiểm tra mạng rồi tải lại trang.'); };
+    document.head.appendChild(s);
+  }).catch(function () { show('Máy chủ chưa trả lời, tải lại trang sau ít phút.'); });
+})();
+</script>
+</body>
+</html>

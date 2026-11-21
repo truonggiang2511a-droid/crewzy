@@ -1,15 +1,14 @@
 // Tạo link MCP riêng cho khách để dán vào Claude hoặc ChatGPT.
 // Link trỏ về cổng /mcp/<token> của app; cổng gắn khoá Composio ở máy chủ, khách không thấy khoá.
-// GET /api/mcp-link?uid=<mã khách trên trình duyệt>
+// GET /api/mcp-link[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, UID_PATTERN, userIdFor, safeDetail, getApiKey, signUpstream } from '../lib/common.mjs';
+import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid } from '../lib/common.mjs';
 
 export default async (req) => {
   const url = new URL(req.url);
-  const uid = url.searchParams.get('uid') || '';
-  if (!UID_PATTERN.test(uid)) {
-    return Response.json({ error: 'Mã khách không hợp lệ.' }, { status: 400 });
-  }
+  const who = resolveUid(req, url.searchParams.get('uid'));
+  if (who.response) return who.response;
+  const uid = who.uid;
   const apiKey = getApiKey();
   if (!apiKey) {
     return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });
