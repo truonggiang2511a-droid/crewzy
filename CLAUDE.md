@@ -66,11 +66,14 @@ src/lib/brand.js          Mục Brain thương hiệu, cleanBrand, brandText (KV
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
 src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
-src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ
+src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ; token v2 có mã khách →
+                          chèn instructions (Brain + app đã nối + Skill) vào initialize, thêm CREWZY_* vào tools/list, tự chạy tools/call CREWZY_*
+src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
+                          phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
 src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
 src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
-wrangler.jsonc            Worker "crewzy", nodejs_compat, KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
+wrangler.jsonc            Worker "crewzy", nodejs_compat, AI binding AI (Workers AI), KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
 scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
@@ -87,7 +90,8 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   /api/catalog, Brain KV, /api/connect ra link Composio, chat chế độ app ~3–4 giây (có gọi công cụ Composio, không vượt CPU gói Free),
   link nối AI qua /mcp/* initialize OK. 3 khoá bí mật COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET do Giang tự đặt trên dashboard.
   Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
-- KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày).
+- KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày),
+  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `imgcount:<ngày>:<uid>`.
   KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
 - Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
 - Link nối AI: Composio bắt buộc header x-api-key cho mọi link MCP, nên KHÔNG đưa link Composio cho khách.
@@ -111,6 +115,16 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   cả với slug không tồn tại → không dùng để kiểm tra app có hay không; kiểm bằng ô tìm kiếm trên dashboard hoặc /api/connect).
   Thêm app: thêm vào APPS trong catalog.js với status 'soon', deploy, gọi /api/connect?toolkit=<slug>&uid=test-xxxxxxxx, ra redirectUrl
   thì mới đổi 'ready'. Một slug 'ready' mà cần auth config làm hỏng composio.create() của mọi người (chat, link nối AI).
+- AI phải làm ra kết quả thật (22/11): Canva API (49 công cụ Composio) KHÔNG tạo ảnh từ chữ — Giang nhờ Trợ lý "làm ảnh" thì
+  AI chỉ gửi link Canva để tự làm. Đã thêm CREWZY_TAO_ANH; Skill Canva hướng dẫn: tạo ảnh → CANVA_CREATE_URL_ASSET_UPLOAD_JOB →
+  CANVA_POST_DESIGNS → gửi edit_url. Chat phát sự kiện {type:'image', url} và giao diện hiện ảnh (kể cả cú pháp ![](link)).
+  Đã thử thật: "làm ảnh dọc 4:5 nhà phố hoàng hôn" → ảnh 896×1120 thật trong ~13 giây (flux-2-klein-4b).
+  Workers AI không chạy với `wrangler dev --local` ("Binding AI needs to be run remotely") → thử trên trang thật.
+- Nối AI bên ngoài (đã tra 22/11/2026): Claude (Connectors → Add custom connector), ChatGPT (Developer mode → Create app, No auth, gói Plus+),
+  Gemini (gemini.google.com → Settings → Connected Apps → Add a custom app; chỉ web, giao diện tiếng Anh, cần Keep Activity),
+  Grok (grok.com/connectors → New Connector → Custom, gói trả phí). Cả 4 nhận cùng link /mcp/<token> không cần đăng nhập.
+  Link cũ (v1, token bắt đầu aHR0c) vẫn chạy nhưng thiếu Brain/công cụ Crewzy; connect.js tự xoá link cũ đã lưu và nhắc tạo lại.
+  Đã thử thật: initialize có instructions + serverInfo "Crewzy (Composio)", tools/list có CREWZY_TAO_ANH, CREWZY_BRAIN, tools/call CREWZY_BRAIN OK.
 - Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
 - Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.truonggiang2511a.workers.dev và tên miền riêng sau này;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
@@ -119,6 +133,8 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Map tài khoản trong KV: `user:<sub>` → {uid,…}, `uid:<uid>` → sub. Lần đầu đăng nhập nhận luôn mã trình duyệt cũ
   (nếu chưa thuộc ai) để giữ kết nối Composio đã làm; còn lại uid = `g-<sub>`. Bật đăng nhập rồi thì mọi hàm (connect, status, mcp-link, chat)
   chỉ tin mã trong phiên (`resolveUid`), bỏ qua uid gửi lên; không có phiên → 401 `{login:true}` → trang tự chuyển sang đăng nhập.
+- Bấm nút Bộ não AI ở Văn phòng: khung chi tiết có 4 nút Claude/ChatGPT/Gemini/Grok → ket-noi.html?tab=ai&ai=<x> (làm nổi hướng dẫn).
+  Logo AI: logos.composio.dev/api/claude|openai|gemini|grok (anthropic, chatgpt, xai trả ảnh mặc định).
 - Đăng nhập AI (đã nghiên cứu 22/11/2026):
   OpenRouter OAuth PKCE chạy ngay, không cần đăng ký app: `https://openrouter.ai/auth?callback_url=…&code_challenge=…&code_challenge_method=S256`,
   quay về `?code=` → POST https://openrouter.ai/api/v1/auth/keys {code, code_verifier, code_challenge_method} → {key}. Chat gọi qua
