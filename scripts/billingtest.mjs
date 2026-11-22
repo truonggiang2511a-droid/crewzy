@@ -150,7 +150,7 @@ assert.equal((await call('/api/billing/admin', { uid: 'admin-giang-01', email: '
 const b = (await call('/api/billing')).data;
 assert.equal(b.bat, true);
 assert.equal(b.thanh_toan_mo, true);
-assert.ok(b.so.length >= 3 && b.don.length === 1 && b.goi.length === 3);
+assert.ok(b.so.length >= 3 && b.don.length === 1 && b.goi.length === 4);
 const env2 = { ...env, SEPAY_ACCOUNT: '' };
 const res2 = await billingRoute(new Request('https://crewzy.test/api/billing/order', { method: 'POST', headers: { 'content-type': 'application/json', cookie: await cookie('khach-test-03', 'c@example.com') }, body: JSON.stringify({ item: 'co_ban' }) }), env2);
 assert.equal(res2.status, 503);
