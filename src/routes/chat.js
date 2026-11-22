@@ -11,14 +11,21 @@ import { Composio } from '@composio/core';
 import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
-import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool, storeImageBytes } from '../lib/crewzyTools.js';
+import { loadExternalTools } from '../lib/mcpServers.js';
 
 const APP_DAILY_CAP = 300;          // tổng lượt chat/ngày chế độ credit của app (cả app)
 const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit của app cho MỖI khách
 const MAX_STEPS = 8;                // số vòng gọi công cụ tối đa mỗi lượt
 const TIME_BUDGET_MS = 60000;       // dừng sớm, nhắn khách gõ "tiếp tục"
 const MAX_TOOL_RESULT_CHARS = 12000;
-const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini' };
+const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
+// Gemini và Grok gọi qua cổng tương thích OpenAI (đã tra tài liệu 22/11/2026).
+const OPENAI_COMPAT = {
+  gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  grok: 'https://api.x.ai/v1',
+};
+const KEY_MODES = ['claude', 'openai', 'gemini', 'grok'];
 // Model OpenRouter cho khách chọn (đã kiểm tra có trên openrouter.ai, 22/11/2026). Phần tử đầu là mặc định.
 const OPENROUTER_MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-haiku-5.5', 'google/gemini-4-neon'];
 
@@ -62,6 +69,24 @@ async function buildSystem(env, composio, uid) {
 }
 
 const encoder = new TextEncoder();
+
+// Gemini (cổng OpenAI) chỉ nhận một phần JSON Schema: bỏ các từ khoá hay làm lỗi 400.
+const GEMINI_DROP = new Set(['$schema', '$id', '$ref', '$defs', 'definitions', 'additionalProperties', 'examples', 'default', 'const', 'patternProperties', 'unevaluatedProperties', 'if', 'then', 'else', 'not']);
+function geminiSchema(node) {
+  if (Array.isArray(node)) return node.map(geminiSchema);
+  if (!node || typeof node !== 'object') return node;
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (GEMINI_DROP.has(k)) continue;
+    if (k === 'type' && Array.isArray(v)) { out.type = v.find((t) => t !== 'null') || 'string'; continue; }
+    out[k] = k === 'properties' ? Object.fromEntries(Object.entries(v || {}).map(([pk, pv]) => [pk, geminiSchema(pv)])) : geminiSchema(v);
+  }
+  return out;
+}
+function geminiSafeTool(t) {
+  const f = t.function || t;
+  return { type: 'function', function: { name: f.name, description: f.description, parameters: geminiSchema(f.parameters || { type: 'object', properties: {} }) } };
+}
 
 function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
@@ -110,7 +135,7 @@ async function takeAppQuota(env, uid) {
 }
 
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
-async function runClaude({ client, model, tools, exec, messages, emit, deadline, system }) {
+async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
@@ -125,7 +150,7 @@ async function runClaude({ client, model, tools, exec, messages, emit, deadline,
     convo.push({ role: 'assistant', content: res.content });
     const results = [];
     for (const call of calls) {
-      emit({ type: 'tool', label: toolLabel(call.name, call.input) });
+      emit({ type: 'tool', label: label(call.name, call.input) });
       let out;
       out = await exec(call.name, call.input || {});
       results.push({ type: 'tool_result', tool_use_id: call.id, content: toolResultText(out), is_error: !!(out && out.error) });
@@ -140,7 +165,7 @@ async function runClaude({ client, model, tools, exec, messages, emit, deadline,
 }
 
 // Vòng gọi công cụ với ChatGPT (OpenAI Chat Completions)
-async function runOpenAI({ client, model, tools, exec, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
+async function runOpenAI({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
   const convo = [{ role: 'system', content: system }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: 1500 });
@@ -152,7 +177,7 @@ async function runOpenAI({ client, model, tools, exec, messages, emit, deadline,
     for (const call of calls) {
       let args = {};
       try { args = JSON.parse(call.function.arguments || '{}'); } catch (e) {}
-      emit({ type: 'tool', label: toolLabel(call.function.name, args) });
+      emit({ type: 'tool', label: label(call.function.name, args) });
       let out;
       out = await exec(call.function.name, args);
       convo.push({ role: 'tool', tool_call_id: call.id, content: toolResultText(out) });
@@ -179,7 +204,7 @@ export default async (req, env) => {
   const who = await resolveUid(req, env, body && body.uid);
   if (who.response) return who.response;
   const uid = who.uid;
-  if (!['app', 'claude', 'openai', 'openrouter'].includes(mode)) return Response.json({ error: 'Chưa chọn AI.' }, { status: 400 });
+  if (!['app', 'openrouter', ...KEY_MODES].includes(mode)) return Response.json({ error: 'Chưa chọn AI.' }, { status: 400 });
   const orModel = OPENROUTER_MODELS.includes(body && body.model) ? body.model : OPENROUTER_MODELS[0];
   if (mode !== 'app' && (typeof key !== 'string' || key.trim().length < 20)) return Response.json({ error: 'Chưa có khoá API hợp lệ.' }, { status: 400 });
   if (!messages.length || messages[messages.length - 1].role !== 'user') return Response.json({ error: 'Chưa có tin nhắn.' }, { status: 400 });
@@ -206,9 +231,19 @@ export default async (req, env) => {
           toolkits: TOOLKITS,
           multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
         });
-        const [composioTools, built] = await Promise.all([session.tools(), buildSystem(env, composio, uid)]);
-        const tools = [...composioTools, ...CREWZY_TOOL_DEFS];
-        const system = built.system;
+        const [composioTools, built, ext] = await Promise.all([
+          session.tools(), buildSystem(env, composio, uid),
+          loadExternalTools(env, uid).catch((e) => { console.error('external mcp failed', e && e.message); return { defs: [], names: [], failed: [] }; }),
+        ]);
+        let tools = [...composioTools, ...CREWZY_TOOL_DEFS, ...ext.defs];
+        if (mode === 'gemini') tools = tools.map(geminiSafeTool);
+        let system = built.system;
+        if (ext.names.length || ext.failed.length) {
+          system += '\n\n# Máy chủ MCP khác khách đã nối\n'
+            + (ext.names.length ? 'Đang dùng được: ' + ext.names.join(', ') + '. Công cụ của chúng có tiền tố m…_ và ghi [tên máy chủ] ở đầu mô tả; gọi thẳng, không cần COMPOSIO_SEARCH_TOOLS.' : '')
+            + (ext.failed.length ? '\nTạm không nối được: ' + ext.failed.join(', ') + ' (nhắc khách vào Kết nối → MCP khác để kiểm tra).' : '');
+        }
+        const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
         const origin = new URL(req.url).origin;
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
         const exec = async (name, args) => {
@@ -216,6 +251,20 @@ export default async (req, env) => {
             const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names });
             if (out && out.image) emit({ type: 'image', url: out.image });
             return out;
+          }
+          if (ext.run) {
+            const res = await ext.run(name, args);
+            if (res) {
+              // Ảnh do máy chủ MCP trả về: lưu lại thành link công khai và hiện trong khung chat.
+              const links = [];
+              for (const img of (res.images || []).slice(0, 4)) {
+                try { const url = await storeImageBytes(env, uid, origin, img.data, img.mimeType); links.push(url); emit({ type: 'image', url }); }
+                catch (e) { console.error('store mcp image failed', e && e.message); }
+              }
+              delete res.images;
+              if (links.length) res.anh = links;
+              return res;
+            }
           }
           try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
         };
@@ -226,20 +275,23 @@ export default async (req, env) => {
             baseURL: 'https://openrouter.ai/api/v1',
             defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': APP_NAME },
           });
-          await runOpenAI({ client, model, tools, exec, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+        } else if (OPENAI_COMPAT[mode]) {
+          const client = new OpenAI({ apiKey: key.trim(), baseURL: OPENAI_COMPAT[mode] });
+          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
         } else if (mode === 'openai') {
           const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-          await runOpenAI({ client, model, tools, exec, messages, emit, deadline, system });
+          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
         } else {
           const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-          await runClaude({ client, model, tools, exec, messages, emit, deadline, system });
+          await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system });
         }
         emit({ type: 'done' });
       } catch (err) {
         console.error('chat failed', mode, err && err.message);
         const detail = safeDetail(err);
         let message = 'AI gặp lỗi, anh/chị thử lại sau ít phút.';
-        if (/401|invalid.?api.?key|authentication/i.test(detail)) message = 'Khoá API không đúng hoặc đã hết hạn.';
+        if (/401|invalid.?api.?key|api key not valid|incorrect api key|api_key_invalid|authentication/i.test(detail)) message = 'Khoá API không đúng hoặc đã hết hạn.';
         else if (/402|insufficient|credits/i.test(detail)) message = mode === 'openrouter' ? 'Tài khoản OpenRouter hết tiền, nạp thêm tại openrouter.ai/settings/credits.' : 'Tài khoản AI hết tiền hoặc hết hạn mức.';
         else if (/429|rate|quota/i.test(detail)) message = 'AI đang quá tải hoặc hết hạn mức, thử lại sau ít phút.';
         emit({ type: 'error', message, detail });

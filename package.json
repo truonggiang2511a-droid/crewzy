@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node scripts/authtest.mjs"
+    "test": "node scripts/authtest.mjs && node scripts/mcptest.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.166.0"

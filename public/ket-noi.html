@@ -25,6 +25,7 @@
 <div class="seg" role="group" aria-label="Chọn phần">
 <button type="button" data-tab="apps" aria-pressed="true">Ứng dụng</button>
 <button type="button" data-tab="ai" aria-pressed="false">AI của bạn</button>
+<button type="button" data-tab="mcp" aria-pressed="false">MCP khác</button>
 </div>
 </div>
 
@@ -107,13 +108,52 @@
 <button type="button" class="btn btn-ghost" disabled>Liên kết Claude</button>
 </div>
 </div>
-<p class="muted" style="margin:0;font-size:12px">Có khoá API Claude hoặc ChatGPT? Dán trong trang <a href="chat.html">Trợ lý AI</a>. Khoá và tài khoản AI chỉ lưu trên trình duyệt này.</p>
+<p class="muted" style="margin:0;font-size:12px">Có khoá API Claude, ChatGPT, Gemini hoặc Grok? Chọn trong trang <a href="chat.html">Trợ lý AI</a> rồi dán khoá. Khoá chỉ lưu trên trình duyệt này. Muốn nối MCP của app khác vào Crewzy: tab <a href="ket-noi.html?tab=mcp">MCP khác</a>.</p>
 </div>
 
+</section>
+
+<!-- ===== Máy chủ MCP của app khác (giống Add custom connector của Claude) ===== -->
+<section data-view="mcp" hidden style="display:flex;flex-direction:column;gap:18px;max-width:880px">
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px">
+<div>
+<h2 style="margin:0 0 4px;font-size:18px;font-weight:600">Nối MCP của app khác vào Crewzy</h2>
+<p class="muted" style="margin:0;font-size:14px;line-height:1.5">Giống thêm connector trong Claude: điền tên máy chủ và link MCP rồi bấm Kết nối. App cần đăng nhập sẽ mở trang đăng nhập của app đó, bạn bấm đồng ý là xong. Trợ lý AI trong Crewzy dùng được ngay các công cụ của máy chủ này.</p>
+</div>
+<form data-mcp-form style="display:flex;flex-direction:column;gap:12px" novalidate>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Tên máy chủ
+<input class="field" name="name" maxlength="40" placeholder="Ví dụ: Notion" autocomplete="off"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Link MCP
+<input class="field" name="url" type="url" inputmode="url" placeholder="https://mcp.notion.com/mcp" autocomplete="off" required></label>
+<details style="font-size:13px"><summary style="cursor:pointer;color:var(--muted)">Nâng cao: token truy cập</summary>
+<label style="display:flex;flex-direction:column;gap:4px;margin-top:8px;font-weight:600">Token (chỉ điền khi nhà cung cấp đưa token thay cho đăng nhập)
+<input class="field" name="token" type="password" autocomplete="off" placeholder="Để trống nếu không có"></label>
+<p class="muted" style="margin:6px 0 0">Token được mã hoá trước khi lưu và chỉ dùng để gọi máy chủ này.</p>
+</details>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+<button type="submit" class="btn btn-primary" data-mcp-submit>Kết nối</button>
+<span class="muted" style="font-size:12px">Chỉ nhận link https kiểu Streamable HTTP (thường kết thúc bằng /mcp).</span>
+</div>
+<p data-mcp-msg role="status" style="margin:0;display:none;padding:10px 12px;border-radius:6px;font-size:14px;line-height:1.5"></p>
+</form>
+<div>
+<p style="margin:0 0 8px;font-size:13px;font-weight:600">Điền nhanh</p>
+<div data-mcp-picks style="display:flex;flex-wrap:wrap;gap:8px"></div>
+</div>
+</div>
+
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+<h2 style="margin:0;font-size:18px;font-weight:600">Máy chủ đã nối</h2>
+<a href="chat.html" class="btn btn-ghost">Dùng trong Trợ lý AI</a>
+</div>
+<div data-mcp-list style="display:flex;flex-direction:column;gap:10px"><p class="muted" style="margin:0;font-size:14px">Đang tải…</p></div>
+</div>
 </section>
 </main>
 </div>
 <script src="assets/openrouter.js"></script>
+<script src="assets/mcp-servers.js"></script>
 <script src="assets/connect.js"></script>
 </body>
 </html>

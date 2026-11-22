@@ -65,7 +65,14 @@ async function runImageModel(env, prompt, size) {
   } catch (e) {
     console.error('flux-2-klein failed', e && e.message);
   }
-  const out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 6 });
+  let out;
+  try {
+    out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 6 });
+  } catch (e) {
+    // Gói Workers Free: hết 10.000 neurons/ngày thì Workers AI báo lỗi tới 7 giờ sáng (00:00 UTC).
+    if (/neuron|4006|daily free allocation/i.test(String(e && e.message))) throw new Error('Hôm nay đã hết hạn mức tạo ảnh của máy chủ, thử lại sau 7 giờ sáng mai.');
+    throw e;
+  }
   if (!out || !out.image) throw new Error('Mô hình ảnh không trả về ảnh');
   return { bytes: b64ToBytes(out.image), model: 'flux-1-schnell' };
 }
@@ -85,6 +92,15 @@ export async function createImage(env, uid, origin, args) {
   await env.KV.put(capKey, String(used + 1), { expirationTtl: 2 * 86400 });
   const url = `${origin}/api/img/${id}.jpg`;
   return { data: { url, kho: size.label, ghi_chu: 'Ảnh lưu 90 ngày. Dùng link này để đăng bài hoặc tải lên Canva/Drive. Hiện ảnh cho khách bằng cú pháp ![ảnh](link).' }, image: url };
+}
+
+// Lưu ảnh (base64) do công cụ khác trả về thành link công khai /api/img/<id>.jpg (90 ngày).
+export async function storeImageBytes(env, uid, origin, base64, mimeType) {
+  const bytes = b64ToBytes(base64);
+  if (bytes.length > 5 * 1024 * 1024) throw new Error('Ảnh quá lớn');
+  const id = newId();
+  await env.KV.put('img:' + id, bytes, { expirationTtl: IMAGE_TTL, metadata: { ct: /^image\/(png|jpeg|webp|gif)$/.test(mimeType) ? mimeType : 'image/png', uid, model: 'mcp' } });
+  return `${origin}/api/img/${id}.jpg`;
 }
 
 export async function readBrain(env, uid, connectedNames) {

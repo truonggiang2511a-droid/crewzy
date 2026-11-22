@@ -17,6 +17,7 @@
   var detailEl = $('[data-view="detail"]');
   var appsView = $('[data-view="apps"]');
   var aiView = $('[data-view="ai"]');
+  var mcpView = $('[data-view="mcp"]');
   var msgEl = $('[data-apps-msg]');
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -142,7 +143,10 @@
     appsView.hidden = view !== 'apps';
     detailEl.hidden = view !== 'detail';
     aiView.hidden = view !== 'ai';
-    document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tab') === (view === 'ai' ? 'ai' : 'apps'))); });
+    mcpView.hidden = view !== 'mcp';
+    var tabName = view === 'ai' || view === 'mcp' ? view : 'apps';
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tab') === tabName)); });
+    if (view === 'mcp' && window.crewzyMcp) window.crewzyMcp.show();
     if (view === 'detail') { renderDetail(slug, notice); window.scrollTo(0, 0); }
   }
 
@@ -150,6 +154,7 @@
     var p = new URLSearchParams(location.search);
     if (p.get('app')) showView('detail', p.get('app'), notice);
     else if (p.get('tab') === 'ai') showView('ai');
+    else if (p.get('tab') === 'mcp') showView('mcp');
     else showView('apps');
   }
 
@@ -183,7 +188,7 @@
       renderList(); return;
     }
     var tab = t.closest('[data-tab]');
-    if (tab) { go(tab.getAttribute('data-tab') === 'ai' ? '?tab=ai' : ''); return; }
+    if (tab) { var tn = tab.getAttribute('data-tab'); go(tn === 'apps' ? '' : '?tab=' + tn); return; }
     if (t.closest('[data-back]')) { e.preventDefault(); go(''); return; }
     var a = t.closest('[data-app]');
     if (a) go('?app=' + a.getAttribute('data-app'));

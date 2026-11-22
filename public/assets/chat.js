@@ -109,10 +109,17 @@
   }
 
   function keyName(mode) { return 'vpai.key.' + mode; }
+  // Chỗ lấy khoá API của từng AI (khoá tính tiền theo lượt dùng, khác gói tháng Claude Pro / ChatGPT Plus).
+  var KEY_HINTS = {
+    claude: 'Khoá Claude (console.anthropic.com), bắt đầu bằng sk-ant-',
+    openai: 'Khoá ChatGPT (platform.openai.com), bắt đầu bằng sk-',
+    gemini: 'Khoá Gemini (aistudio.google.com → Get API key)',
+    grok: 'Khoá Grok (console.x.ai), bắt đầu bằng xai-'
+  };
 
   function renderMode() {
     var mode = modeSel.value;
-    var needsKey = mode === 'claude' || mode === 'openai';
+    var needsKey = !!KEY_HINTS[mode];
     keyBox.style.display = needsKey ? 'flex' : 'none';
     orBox.style.display = mode === 'openrouter' ? 'flex' : 'none';
     if (mode === 'openrouter') {
@@ -125,7 +132,7 @@
         : 'Bấm Đăng nhập OpenRouter, đồng ý trên trang OpenRouter rồi quay lại đây.';
     } else if (needsKey) {
       keyInput.value = store(keyName(mode)) || '';
-      keyInput.placeholder = mode === 'claude' ? 'Khoá Claude (console.anthropic.com), bắt đầu bằng sk-ant-' : 'Khoá ChatGPT (platform.openai.com), bắt đầu bằng sk-';
+      keyInput.placeholder = KEY_HINTS[mode];
       modeNote.textContent = 'Khoá chỉ lưu trên trình duyệt này và gửi kèm mỗi lần chat, máy chủ không lưu. Tiền AI tính vào tài khoản của bạn.';
     } else {
       modeNote.textContent = appMode ? 'Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.' : 'Chế độ credit của app chưa bật, hãy chọn khoá API riêng.';

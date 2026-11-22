@@ -151,6 +151,27 @@ export async function verifyGoogleIdToken(idToken, clientId, getKeys = googleKey
   return claims;
 }
 
+// ---------- Mã hoá bí mật lưu KV (token MCP ngoài) ----------
+// AES-GCM, khoá suy ra từ SESSION_SECRET (chưa đặt thì từ COMPOSIO_API_KEY). Đổi khoá → token cũ không giải được, khách nối lại.
+async function boxKey(env) {
+  const raw = await crypto.subtle.digest('SHA-256', enc.encode('crewzy-box|' + sessionSecret(env)));
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+export async function sealText(env, text) {
+  if (!text) return '';
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await boxKey(env), enc.encode(String(text)));
+  return toB64Url(iv) + '.' + toB64Url(ct);
+}
+export async function openText(env, sealed) {
+  if (!sealed) return '';
+  try {
+    const [iv, ct] = String(sealed).split('.');
+    const out = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64Url(iv) }, await boxKey(env), fromB64Url(ct));
+    return new TextDecoder().decode(out);
+  } catch (e) { return ''; }
+}
+
 // ---------- KV (thay Netlify Blobs) ----------
 // Khoá: user:<google sub> · uid:<uid> · brand:<uid> · usage:<ngày>:<uid|all>
 export const kvGetJson = (env, key) => env.KV.get(key, { type: 'json' });
