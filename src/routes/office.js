@@ -15,7 +15,8 @@ import { appBySlug } from '../lib/catalog.js';
 // Sửa ở đây khi muốn đổi app của nhánh; slug phải có trong catalog (scripts/officetest.mjs kiểm).
 export const BRANCH_APPS = {
   thuong_hieu: [['googledrive', 'Logo, ảnh, tư liệu'], ['canva', 'Bộ nhận diện'], ['notion', 'Sổ tay thương hiệu']],
-  doi_thu: [['apify', 'Soi Reels, TikTok đối thủ'], ['firecrawl', 'Đọc website đối thủ'], ['semrush', 'Từ khoá, lưu lượng'], ['serpapi', 'Kết quả Google'], ['perplexityai', 'Nghiên cứu thị trường'], ['vidiq_mcp', 'Xu hướng YouTube'], ['tavily', 'Tìm tin mới']],
+  doi_thu: [['apify', 'Soi Reels, TikTok đối thủ'], ['firecrawl', 'Đọc website, bảng giá'], ['semrush', 'Lưu lượng, từ khoá đối thủ'], ['vidiq_mcp', 'Kênh YouTube đối thủ'], ['metaads', 'Thư viện quảng cáo']],
+  chien_luoc: [['perplexityai', 'Nghiên cứu thị trường'], ['tavily', 'Tin tức ngành'], ['serpapi', 'Từ khoá Google'], ['notion', 'Kế hoạch chiến lược'], ['googleslides', 'Trình bày kế hoạch']],
   noi_dung: [['canva', 'Thiết kế ảnh'], ['heygen', 'Video người dẫn AI'], ['elevenlabs', 'Giọng đọc'], ['descript_mcp', 'Dựng, cắt video'], ['captions', 'Phụ đề'], ['luma_labs', 'Video từ ảnh']],
   phan_phoi: [['facebook', 'Fanpage'], ['instagram', 'Bài, Reels'], ['youtube', 'Video, Shorts'], ['tiktok', 'Video ngắn'], ['linkedin', 'Bài doanh nghiệp'], ['threads', 'Bài ngắn'], ['pinterest', 'Ghim ảnh']],
   quang_cao: [['metaads', 'Quảng cáo Facebook, Instagram'], ['googleads', 'Quảng cáo Google, YouTube'], ['tiktok_ads', 'Quảng cáo TikTok'], ['google_analytics', 'Đo lường website'], ['google_search_console', 'Hiệu quả tìm kiếm'], ['ahrefs', 'Phân tích SEO'], ['mixpanel', 'Hành vi khách']],

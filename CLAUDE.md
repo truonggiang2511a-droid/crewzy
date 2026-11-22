@@ -40,9 +40,9 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 public/                 Trang tĩnh (Workers static assets, binding ASSETS, html_handling "none" → giữ đuôi .html); CLAUDE.md, README không lên mạng
 public/_headers          X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục) + header an toàn · public/404.html
 public/index.html        Màn 1 · TRUNG TÂM ĐIỀU HÀNH (đổi tên từ Văn phòng 23/11; thanh dưới điện thoại ghi "Điều hành"): việc gấp (chờ duyệt), Việc nên làm tiếp (5 bước thiết lập), 5 số liệu, sơ đồ phòng, chi tiết, hoạt động
-public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở). Máy tính: CÂY VẬN HÀNH SVG 1000×800 — rễ (Thương hiệu, Kho & dữ liệu)
-                         → thân (Bộ não AI) → 8 nhánh phòng ban (6 trên + 2 dưới LOW: Sản xuất & Phân phối, Nghiên cứu & Chiến lược; COLOR, BRANCH) → lá = ứng dụng
-                         (room.leaves từ BRANCH_APPS trong src/routes/office.js: bộ app đúng chuyên môn mỗi nhánh + nhiệm vụ, ≤7, đã nối viền liền, chưa nối mờ + dấu +, bấm lá → ket-noi.html?app=); hạt sáng CHỈ chạy khi có việc thật; điện thoại: lưới ô phòng. Trạng thái phòng: work/wait/queue/done/setup/idle
+public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở). Máy tính: CÂY VẬN HÀNH SVG 1000×800 — rễ (Thương hiệu, Phân tích đối thủ, Kho & dữ liệu)
+                         → thân (Bộ não AI) → 8 nhánh phòng ban (6 trên + 2 dưới: Sản xuất & Phân phối, Nghiên cứu & Chiến lược; LAYOUT.desk/LAYOUT.mob) → lá = ứng dụng
+                         (room.leaves từ BRANCH_APPS trong src/routes/office.js: bộ app đúng chuyên môn mỗi nhánh + nhiệm vụ, ≤7, đã nối viền liền, chưa nối mờ + dấu +, bấm lá → ket-noi.html?app=); hạt sáng CHỈ chạy khi có việc thật; điện thoại: cùng cây (LAYOUT.mob 400×640, tên ngắn MSHORT, ≤3 lá) + lưới ô phòng bên dưới. Trạng thái phòng: work/wait/queue/done/setup/idle
 src/routes/office.js     GET /api/office: phòng (phiếu theo quy_trinh→phong, loai→phòng), app đã nối/nên nối, lịch, sự kiện (lich_su),
                          bộ não (aiseen:<uid> do cổng MCP ghi lúc initialize + Trợ lý app), setup. dang_lam quá 3 giờ coi như cho_lam
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ 22/11, script assets/jobs.js): Giao việc mới (mẫu, Giao cho AI của tôi /
@@ -117,7 +117,7 @@ src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của
                           (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM (id = đọc đủ nội dung một phiếu cũ, chỉ đọc), CREWZY_NOP_KET_QUA
                           (tự lưu ảnh/video về /api/media); MCP_PROMPTS
 src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
-src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (9 phòng: Thương hiệu, Nghiên cứu & Chiến lược, Nội dung & Video, Sản xuất & Phân phối, Marketing & Phân tích, Bán hàng, CSKH, Báo cáo, Hằng ngày), WORKFLOWS (20 quy trình: bước,
+src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (10 phòng: Thương hiệu, Phân tích đối thủ, Nghiên cứu & Chiến lược, Nội dung & Video, Sản xuất & Phân phối, Marketing & Phân tích, Bán hàng, CSKH, Báo cáo, Hằng ngày), WORKFLOWS (20 quy trình: bước,
                           lịch gợi ý, loại kết quả), CHANNELS (12 kênh/nền tảng), nhóm công cụ G + TOOLSETS (mỗi quy trình: kenh + cong_cu = các vai trò,
                           mỗi vai trò nhiều app thay thế, bat_buoc/san_co/san_co_mcp), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES,
                           APP_ONLY_TOOLS + forMcp (viết lại câu nhắc công cụ chỉ có trong app cho AI ngoài). Sửa/thêm CHỈ ở đây
@@ -526,6 +526,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   DEPARTMENTS thêm phan_phoi; GIỮ id cũ (doi_thu = Nghiên cứu & Chiến lược, quang_cao = Marketing & Phân tích) để link ?phong= cũ không hỏng.
   Chuyển quy trình: mot_noi_dung_nhieu_kenh + dang_bai_da_duyet → phan_phoi; de_xuat_chien_luoc → doi_thu; phiếu loai bai_dang → phan_phoi.
   Lá cây giờ lấy từ BRANCH_APPS (danh sách tay, không suy từ quy trình nữa vì từng lẫn Google Sheets vào Nội dung). Test: scripts/officetest.mjs.
+- 22/11/2026 (đêm, lần 2): Giang muốn trả lại rễ Phân tích đối thủ, vẽ cây đẹp hơn, có cây trên điện thoại, luồng sáng/chuyển động khi có việc thật.
+  doi_thu = Phân tích đối thủ (rễ, 3 quy trình soi đối thủ); id mới chien_luoc = Nghiên cứu & Chiến lược (nhánh: de_xuat_chien_luoc + quy trình mới
+  nghien_cuu_thi_truong). office.js: 1 hàm vẽ cho 2 bố cục (LAYOUT), nhánh gradient từ thân, thân có vân, đất, sao; phòng có việc thật → quầng sáng,
+  vòng xoay, xung, lá đã nối sáng nhấp nháy, vạch chảy + hạt chạy trên nhánh/rễ, nhựa chạy trong thân; phòng rảnh thì tối dịu. Tôn trọng prefers-reduced-motion.
 
 ## 6. Việc tiếp theo
 

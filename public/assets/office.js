@@ -15,10 +15,11 @@
     setup: { label: 'Cần nối app', color: '#F87171' },
     idle: { label: 'Rảnh', color: '#7C8597' }
   };
-  var SHORT = { thuong_hieu: 'Thương hiệu', doi_thu: 'Nghiên cứu & Chiến lược', noi_dung: 'Nội dung & Video', phan_phoi: 'Sản xuất & Phân phối', quang_cao: 'Marketing & Phân tích', ban_hang: 'Bán hàng', cham_soc: 'CSKH', bao_cao: 'Báo cáo', hang_ngay: 'Hằng ngày' };
+  var SHORT = { thuong_hieu: 'Thương hiệu', doi_thu: 'Phân tích đối thủ', chien_luoc: 'Nghiên cứu & Chiến lược', noi_dung: 'Nội dung & Video', phan_phoi: 'Sản xuất & Phân phối', quang_cao: 'Marketing & Phân tích', ban_hang: 'Bán hàng', cham_soc: 'CSKH', bao_cao: 'Báo cáo', hang_ngay: 'Hằng ngày' };
   var ICON = {
     thuong_hieu: 'M12 3l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 15.3 7 18l1.2-5.6L4 8.6 9.6 8z',
     doi_thu: 'M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.5 15.5 20 20',
+    chien_luoc: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 11v2M12 12l7-7',
     noi_dung: 'M4 6h16v12H4zM10 9.5v5l4-2.5z',
     phan_phoi: 'M21 3 3 10.5l7 2.5 2.5 7.5zM10 13l11-10',
     quang_cao: 'M4 19h16M6 16l4-5 3 3 5-7M15 7h3v3',
@@ -30,7 +31,7 @@
   // Đường chuyển việc giữa các phòng (luồng chuẩn của doanh nghiệp). Hạt sáng chỉ chạy khi có việc thật ở 2 đầu.
   var EDGES = [
     ['hang_ngay', 'noi_dung'], ['noi_dung', 'phan_phoi'], ['noi_dung', 'quang_cao'], ['phan_phoi', 'quang_cao'],
-    ['quang_cao', 'cham_soc'], ['cham_soc', 'ban_hang'], ['ban_hang', 'bao_cao'], ['bao_cao', 'doi_thu'], ['doi_thu', 'noi_dung']
+    ['quang_cao', 'cham_soc'], ['cham_soc', 'ban_hang'], ['ban_hang', 'bao_cao'], ['bao_cao', 'chien_luoc'], ['chien_luoc', 'noi_dung']
   ];
 
   var graphBox = document.querySelector('[data-graph]');
@@ -69,180 +70,253 @@
     return state.kpis.ai_lam > 0 || (ai && Date.now() - Date.parse(ai.luc) < 15 * 60000);
   }
 
-  // ---------- CÂY VẬN HÀNH (máy tính) ----------
-  // Rễ = nguồn nuôi (Thương hiệu, Kho & dữ liệu) · Thân = Bộ não AI điều phối · Cành = phòng ban (mỗi phòng một màu)
-  // · Lá = ứng dụng, mỗi app một nhiệm vụ (vai trò trong quy trình). Đường sáng + hạt chạy CHỈ khi có việc thật (nhựa sống chảy từ rễ lên lá).
-  var COLOR = { thuong_hieu: '#A3E635', doi_thu: '#4ADE80', noi_dung: '#F472B6', phan_phoi: '#E879F9', quang_cao: '#FBBF24', ban_hang: '#FB923C', cham_soc: '#2DD4BF', bao_cao: '#A78BFA', hang_ngay: '#38BDF8', kho: '#FDE68A', brain: '#6D7BFF' };
-  var BRANCH = { hang_ngay: [110, 330], noi_dung: [255, 205], quang_cao: [420, 130], cham_soc: [580, 130], ban_hang: [745, 205], bao_cao: [890, 330], phan_phoi: [150, 510], doi_thu: [850, 510] };
-  var LOW = { phan_phoi: 122, doi_thu: 58 }; // 2 nhánh dưới: tên đặt TRÊN nút, lá toả xuống chéo ra ngoài (độ)
-  var ROOTS = { thuong_hieu: [330, 695], kho: [670, 700] };
-  var TRUNK = { x: 500, top: 372, base: 612 };
+  // ---------- CÂY VẬN HÀNH (máy tính + điện thoại) ----------
+  // Rễ = nguồn nuôi (Thương hiệu, Phân tích đối thủ, Kho & dữ liệu) · Thân = Bộ não AI điều phối · 8 nhánh = phòng ban (mỗi phòng một màu)
+  // · Lá = ứng dụng, mỗi app một nhiệm vụ. Bình thường cây tối dịu; phòng có việc THẬT thì cả nhánh, lá đã nối và luồng tới thân sáng lên + hạt chạy.
+  var COLOR = { thuong_hieu: '#A3E635', doi_thu: '#4ADE80', chien_luoc: '#34D399', noi_dung: '#F472B6', phan_phoi: '#E879F9', quang_cao: '#FBBF24', ban_hang: '#FB923C', cham_soc: '#2DD4BF', bao_cao: '#A78BFA', hang_ngay: '#38BDF8', kho: '#FDE68A', brain: '#6D7BFF' };
+  var MSHORT = { thuong_hieu: 'Thương hiệu', doi_thu: 'Đối thủ', chien_luoc: 'Chiến lược', noi_dung: 'Nội dung', phan_phoi: 'Phân phối', quang_cao: 'Marketing', ban_hang: 'Bán hàng', cham_soc: 'CSKH', bao_cao: 'Báo cáo', hang_ngay: 'Hằng ngày' };
+  // Bố cục: node [x, y, hướng lá (độ, bỏ trống = toả ra xa thân), nhãn ở trên?]
+  var LAYOUT = {
+    desk: { W: 1000, H: 830, R: 28, RR: 24, BR: 38, leafR: 19, logo: 18, dist: 80, alt: 14, maxLeaf: 7, font: 13.5, sub: 11, names: SHORT,
+      trunk: { x: 500, top: 360, base: 600, w: 30 }, brain: [500, 455], ground: 'MẶT ĐẤT',
+      branch: { hang_ngay: [110, 320], noi_dung: [255, 195], quang_cao: [420, 120], cham_soc: [580, 120], ban_hang: [745, 195], bao_cao: [890, 320], phan_phoi: [150, 500, 122, 1], chien_luoc: [850, 500, 58, 1] },
+      roots: { thuong_hieu: [235, 690, [150, 185, 215]], doi_thu: [500, 705, [28, 62, 90, 118, 152]], kho: [765, 690] } },
+    mob: { W: 400, H: 640, R: 17, RR: 15, BR: 27, leafR: 10.5, logo: 11, dist: 40, alt: 7, maxLeaf: 3, font: 10.5, sub: 8.5, names: MSHORT,
+      trunk: { x: 200, top: 268, base: 470, w: 16 }, brain: [200, 335], ground: '',
+      branch: { hang_ngay: [44, 262, -112], noi_dung: [96, 158], quang_cao: [162, 86], cham_soc: [238, 86], ban_hang: [304, 158], bao_cao: [356, 262, -68], phan_phoi: [60, 405, 112, 1], chien_luoc: [340, 405, 68, 1] },
+      roots: { thuong_hieu: [84, 556, [158, 202]], doi_thu: [200, 584, [12, 168]], kho: [316, 560] } }
+  };
+  var L = LAYOUT.desk;
   function roomBusy(r) { return r && (r.counts.lam || r.counts.cho || r.counts.duyet || r.counts.xong_24h); }
   function cubic(x1, y1, x2, y2, c1x, c1y, c2x, c2y) { return 'M' + x1 + ' ' + y1 + ' C' + c1x + ' ' + c1y + ' ' + c2x + ' ' + c2y + ' ' + x2 + ' ' + y2; }
   var pathN = 0;
-  function flowPath(parent, d, color, on, w, dur) {
+  var defsEl = null;
+  function grad(c1, c2, x1, y1, x2, y2) {
+    var id = 'g' + (pathN++);
+    var g = el('linearGradient', { id: id, gradientUnits: 'userSpaceOnUse', x1: x1, y1: y1, x2: x2, y2: y2 }, defsEl);
+    el('stop', { offset: '0%', 'stop-color': c1 }, g); el('stop', { offset: '100%', 'stop-color': c2 }, g);
+    return 'url(#' + id + ')';
+  }
+  // Một luồng: tắt = mảnh, mờ. Bật = quầng sáng + lõi gradient + vạch chảy + hạt sáng chạy dọc.
+  function flowPath(parent, d, color, on, w, dur, from) {
     var id = 'fp' + (pathN++);
-    el('path', { id: id, d: d, fill: 'none', stroke: color, 'stroke-opacity': on ? 0.95 : 0.22, 'stroke-width': on ? w : Math.max(1.2, w * 0.45), 'stroke-linecap': 'round' }, parent);
+    var stroke = from ? grad(from[2], color, from[0], from[1], from[3], from[4]) : color;
+    if (on) el('path', { d: d, fill: 'none', stroke: color, 'stroke-opacity': 0.28, 'stroke-width': w * 2.6, 'stroke-linecap': 'round', filter: 'url(#soft)' }, parent);
+    el('path', { id: id, d: d, fill: 'none', stroke: stroke, 'stroke-opacity': on ? 1 : 0.2, 'stroke-width': on ? w : Math.max(1.1, w * 0.42), 'stroke-linecap': 'round' }, parent);
     if (on && !reduceMotion) {
+      var dash = el('path', { d: d, fill: 'none', stroke: '#FFFFFF', 'stroke-opacity': 0.55, 'stroke-width': Math.max(1, w * 0.32), 'stroke-linecap': 'round', 'stroke-dasharray': '1.5 16' }, parent);
+      el('animate', { attributeName: 'stroke-dashoffset', from: '0', to: '-35', dur: '1.1s', repeatCount: 'indefinite' }, dash);
       for (var k = 0; k < 2; k++) {
-        var dot = el('circle', { r: 3.2, fill: '#FFFFFF', filter: 'url(#glow)' }, parent);
+        var dot = el('circle', { r: Math.max(2.2, w * 0.45), fill: '#FFFFFF', filter: 'url(#glow)' }, parent);
         var an = el('animateMotion', { dur: dur + 's', repeatCount: 'indefinite', begin: (-k * dur / 2 - pathN * 0.37) + 's' }, dot);
         el('mpath', { href: '#' + id }, an);
       }
     }
   }
-  function leafRing(parent, x, y, leaf, color) {
-    var g = el('g', { 'data-leaf': leaf.slug, style: 'cursor:pointer' }, parent);
+  function leafRing(parent, x, y, leaf, color, lit) {
+    var r = L.leafR, g = el('g', { 'data-leaf': leaf.slug, class: 'oleaf', style: 'cursor:pointer' }, parent);
     el('title', {}, g).textContent = leaf.name + ' · ' + leaf.vai + (leaf.on ? ' (đã nối)' : ' (chưa nối, bấm để nối)');
-    el('circle', { cx: x, cy: y, r: 19, fill: '#151515', stroke: color, 'stroke-width': leaf.on ? 2.2 : 1.4, 'stroke-dasharray': leaf.on ? '3 2.2' : '2 4', opacity: leaf.on ? 1 : 0.55 }, g);
-    el('circle', { cx: x, cy: y, r: 13, fill: '#FFFFFF', opacity: leaf.on ? 1 : 0.35 }, g);
-    var img = el('image', { href: 'https://logos.composio.dev/api/' + leaf.slug, x: x - 9, y: y - 9, width: 18, height: 18 }, g);
-    if (!leaf.on) img.setAttribute('opacity', '0.45');
-    if (!leaf.on) { el('circle', { cx: x + 13, cy: y - 13, r: 6.5, fill: color }, g); var pt = el('text', { x: x + 13, y: y - 10.3, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#0B0B0B' }, g); pt.textContent = '+'; }
+    if (lit && leaf.on) {
+      var gl = el('circle', { cx: x, cy: y, r: r + 4, fill: color, opacity: 0.35, filter: 'url(#soft)' }, g);
+      if (!reduceMotion) el('animate', { attributeName: 'opacity', values: '0.15;0.5;0.15', dur: '2s', repeatCount: 'indefinite' }, gl);
+    }
+    el('circle', { cx: x, cy: y, r: r, fill: '#141414', stroke: color, 'stroke-width': leaf.on ? 2 : 1.2, 'stroke-dasharray': leaf.on ? '' : '2 3.5', opacity: leaf.on ? 1 : 0.55 }, g);
+    el('circle', { cx: x, cy: y, r: r * 0.7, fill: '#FFFFFF', opacity: leaf.on ? 1 : 0.3 }, g);
+    var img = el('image', { href: 'https://logos.composio.dev/api/' + leaf.slug, x: x - L.logo / 2, y: y - L.logo / 2, width: L.logo, height: L.logo }, g);
+    if (!leaf.on) {
+      img.setAttribute('opacity', '0.45');
+      var br = r * 0.36;
+      el('circle', { cx: x + r * 0.7, cy: y - r * 0.7, r: br, fill: color }, g);
+      var pt = el('text', { x: x + r * 0.7, y: y - r * 0.7 + br * 0.42, 'text-anchor': 'middle', 'font-size': br * 1.5, 'font-weight': 700, fill: '#0B0B0B' }, g); pt.textContent = '+';
+    }
+  }
+  function label(g, x, y, text, size, color, weight) {
+    var w = text.length * size * 0.56 + 10;
+    el('rect', { x: x - w / 2, y: y - size * 0.95, width: w, height: size * 1.35, rx: size * 0.5, fill: 'rgba(10,10,10,0.72)' }, g);
+    var t = el('text', { x: x, y: y, 'text-anchor': 'middle', fill: color, 'font-size': size, 'font-weight': weight || 600 }, g); t.textContent = text;
+  }
+  function leafSpots(p, n, angles, dir, mult) {
+    var out = [];
+    var step = n > 5 ? 0.4 : n > 3 ? 0.52 : 0.62;
+    for (var j = 0; j < n; j++) {
+      var ang = angles ? angles[j] * Math.PI / 180 : dir + (j - (n - 1) / 2) * step;
+      var dist = L.dist * (mult || 1) + (angles ? (j % 2) * L.alt * 0.6 : (j % 2) * L.alt);
+      out.push([Math.max(L.leafR + 4, Math.min(L.W - L.leafR - 4, p[0] + Math.cos(ang) * dist)), Math.max(L.leafR + 4, p[1] + Math.sin(ang) * dist)]);
+    }
+    return out;
   }
   function renderGraph() {
-    if (!state || isMobile()) { graphBox.innerHTML = ''; return; }
-    var W = 1000, H = 800;
+    if (!state) { graphBox.innerHTML = ''; return; }
+    L = isMobile() ? LAYOUT.mob : LAYOUT.desk;
+    var W = L.W, H = L.H, T = L.trunk, B = L.brain;
     pathN = 0; nodes = {};
     graphBox.innerHTML = '';
-    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cây vận hành: rễ là thương hiệu và dữ liệu, thân là bộ não AI, nhánh là phòng ban, lá là ứng dụng', style: 'width:100%;height:auto;display:block' }, graphBox);
-    var defs = el('defs', {}, svg);
-    var glow = el('filter', { id: 'glow', x: '-80%', y: '-80%', width: '260%', height: '260%' }, defs);
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cây vận hành: rễ là thương hiệu, đối thủ và dữ liệu, thân là bộ não AI, nhánh là phòng ban, lá là ứng dụng', style: 'width:100%;height:auto;display:block' }, graphBox);
+    defsEl = el('defs', {}, svg);
+    var glow = el('filter', { id: 'glow', x: '-80%', y: '-80%', width: '260%', height: '260%' }, defsEl);
     el('feGaussianBlur', { stdDeviation: '2.6', result: 'b' }, glow);
     var mg = el('feMerge', {}, glow); el('feMergeNode', { in: 'b' }, mg); el('feMergeNode', { in: 'SourceGraphic' }, mg);
-    var tg = el('linearGradient', { id: 'trunkG', x1: '0', y1: '1', x2: '0', y2: '0' }, defs);
-    el('stop', { offset: '0%', 'stop-color': '#2A2A2A' }, tg); el('stop', { offset: '55%', 'stop-color': '#2B3270' }, tg); el('stop', { offset: '100%', 'stop-color': '#4652FF' }, tg);
-    var halo = el('radialGradient', { id: 'halo' }, defs);
-    el('stop', { offset: '0%', 'stop-color': '#4652FF', 'stop-opacity': brainActive() ? 0.45 : 0.22 }, halo); el('stop', { offset: '100%', 'stop-color': '#4652FF', 'stop-opacity': 0 }, halo);
-
-    // Mặt đất + tán lá mờ
-    el('ellipse', { cx: 500, cy: 300, rx: 470, ry: 250, fill: 'url(#halo)' }, svg);
-    el('line', { x1: 60, y1: TRUNK.base, x2: 940, y2: TRUNK.base, stroke: 'rgba(255,255,255,0.10)', 'stroke-dasharray': '2 7' }, svg);
-    var gl = el('text', { x: 222, y: TRUNK.base - 8, fill: '#5C5C5C', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', 'letter-spacing': '1.5' }, svg); gl.textContent = 'MẶT ĐẤT';
-
-    var flows = el('g', {}, svg), layer = el('g', {}, svg);
+    var soft = el('filter', { id: 'soft', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defsEl); el('feGaussianBlur', { stdDeviation: isMobile() ? 2.5 : 4 }, soft);
+    var tg = el('linearGradient', { id: 'trunkG', x1: '0', y1: '1', x2: '0', y2: '0' }, defsEl);
+    el('stop', { offset: '0%', 'stop-color': '#3A2E22' }, tg); el('stop', { offset: '45%', 'stop-color': '#2B3270' }, tg); el('stop', { offset: '100%', 'stop-color': '#4652FF' }, tg);
     var brainOn = brainActive();
     var anyBusy = state.rooms.some(roomBusy);
+    var halo = el('radialGradient', { id: 'halo' }, defsEl);
+    el('stop', { offset: '0%', 'stop-color': '#4652FF', 'stop-opacity': brainOn || anyBusy ? 0.42 : 0.2 }, halo); el('stop', { offset: '100%', 'stop-color': '#4652FF', 'stop-opacity': 0 }, halo);
+    var soil = el('linearGradient', { id: 'soil', x1: '0', y1: '0', x2: '0', y2: '1' }, defsEl);
+    el('stop', { offset: '0%', 'stop-color': '#2A2118', 'stop-opacity': 0.55 }, soil); el('stop', { offset: '100%', 'stop-color': '#0F0F0F', 'stop-opacity': 0 }, soil);
 
-    // RỄ → thân
-    Object.keys(ROOTS).forEach(function (id, i) {
-      var p = ROOTS[id], r = room(id);
-      var on = id === 'kho' ? brainOn : !!roomBusy(r) || (brainOn && id === 'thuong_hieu');
-      var side = p[0] < 500 ? -1 : 1;
-      flowPath(flows, cubic(p[0], p[1] - 22, TRUNK.x + side * 14, TRUNK.base - 4, p[0], p[1] - 90, TRUNK.x + side * 40, TRUNK.base + 40), COLOR[id], on || anyBusy, 5, 2.6);
-    });
-    // Thân cây
-    el('path', { d: 'M' + (TRUNK.x - 30) + ' ' + TRUNK.base + ' C' + (TRUNK.x - 18) + ' 520 ' + (TRUNK.x - 14) + ' 430 ' + (TRUNK.x - 22) + ' ' + TRUNK.top +
-      ' L' + (TRUNK.x + 22) + ' ' + TRUNK.top + ' C' + (TRUNK.x + 14) + ' 430 ' + (TRUNK.x + 18) + ' 520 ' + (TRUNK.x + 30) + ' ' + TRUNK.base + ' Z', fill: 'url(#trunkG)', stroke: 'rgba(255,255,255,0.12)' }, flows);
-    if (brainOn && !reduceMotion) {
-      var sap = el('path', { id: 'sap', d: 'M' + TRUNK.x + ' ' + TRUNK.base + ' L' + TRUNK.x + ' ' + TRUNK.top, stroke: 'none', fill: 'none' }, flows);
-      for (var q = 0; q < 3; q++) { var sd = el('circle', { r: 3.5, fill: '#C7CDFF', filter: 'url(#glow)' }, flows); var sa = el('animateMotion', { dur: '2.2s', repeatCount: 'indefinite', begin: (-q * 0.73) + 's' }, sd); el('mpath', { href: '#sap' }, sa); }
+    // Nền: tán sáng, sao lấp lánh, đất dưới mặt đất
+    var canopy = el('ellipse', { cx: W / 2, cy: T.top - H * 0.08, rx: W * 0.48, ry: H * 0.33, fill: 'url(#halo)' }, svg);
+    if ((brainOn || anyBusy) && !reduceMotion) el('animate', { attributeName: 'opacity', values: '0.75;1;0.75', dur: '4s', repeatCount: 'indefinite' }, canopy);
+    for (var si = 0; si < 26; si++) {
+      var sx0 = (si * 137.5 % W), sy0 = (si * 71.3 % (T.base - 40)) + 10;
+      var star = el('circle', { cx: sx0, cy: sy0, r: si % 3 ? 0.9 : 1.4, fill: '#FFFFFF', opacity: 0.18 }, svg);
+      if (!reduceMotion && si % 4 === 0) el('animate', { attributeName: 'opacity', values: '0.05;0.4;0.05', dur: (3 + si % 5) + 's', repeatCount: 'indefinite' }, star);
     }
-    // CÀNH: thân → phòng ban
-    Object.keys(BRANCH).forEach(function (id, i) {
-      var p = BRANCH[id], r = room(id); if (!r) return;
-      var on = !!roomBusy(r);
-      var sx = TRUNK.x + (p[0] < 500 ? -8 : 8), sy = TRUNK.top + 18 + Math.abs(p[0] - 500) / 20;
-      if (LOW[id] != null) { sx = TRUNK.x + (p[0] < 500 ? -16 : 16); sy = 540; }
-      // Cành đi vào bên hông nút (phía thân cây) để không đè lên tên phòng ở dưới nút.
+    el('rect', { x: 0, y: T.base, width: W, height: H - T.base, fill: 'url(#soil)' }, svg);
+    el('line', { x1: W * 0.04, y1: T.base, x2: W * 0.96, y2: T.base, stroke: 'rgba(255,255,255,0.12)', 'stroke-dasharray': '2 7' }, svg);
+    if (L.ground) { var gt = el('text', { x: W * 0.22, y: T.base - 8, fill: '#5C5C5C', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', 'letter-spacing': '1.5' }, svg); gt.textContent = L.ground; }
+
+    var flows = el('g', {}, svg), layer = el('g', {}, svg);
+
+    // RỄ → gốc thân (nhựa chảy lên khi rễ hoặc cả cây có việc)
+    Object.keys(L.roots).forEach(function (id) {
+      var p = L.roots[id], r = room(id);
+      var on = id === 'kho' ? (brainOn || anyBusy) : !!roomBusy(r) || ((brainOn || anyBusy) && id === 'thuong_hieu');
+      var side = p[0] < T.x - 5 ? -1 : p[0] > T.x + 5 ? 1 : 0;
+      var top = p[1] - L.RR - 4;
+      flowPath(flows, cubic(p[0], top, T.x + side * T.w * 0.45, T.base - 4, p[0], top - (T.base > 500 ? 60 : 34), T.x + side * T.w * 1.3, T.base + (T.base > 500 ? 40 : 24)), COLOR[id], on, isMobile() ? 3 : 5, 2.6, [T.x, T.base, '#3A2E22', p[0], p[1]]);
+    });
+    // Thân cây có vân
+    var tw = T.w;
+    el('path', { d: 'M' + (T.x - tw) + ' ' + T.base + ' C' + (T.x - tw * 0.6) + ' ' + (T.base - (T.base - T.top) * 0.35) + ' ' + (T.x - tw * 0.45) + ' ' + (T.top + (T.base - T.top) * 0.3) + ' ' + (T.x - tw * 0.72) + ' ' + T.top +
+      ' L' + (T.x + tw * 0.72) + ' ' + T.top + ' C' + (T.x + tw * 0.45) + ' ' + (T.top + (T.base - T.top) * 0.3) + ' ' + (T.x + tw * 0.6) + ' ' + (T.base - (T.base - T.top) * 0.35) + ' ' + (T.x + tw) + ' ' + T.base + ' Z', fill: 'url(#trunkG)', stroke: 'rgba(255,255,255,0.12)' }, flows);
+    [-0.32, 0.05, 0.38].forEach(function (k) { el('path', { d: 'M' + (T.x + k * tw) + ' ' + (T.base - 6) + ' Q' + (T.x + k * tw * 0.4) + ' ' + ((T.base + T.top) / 2) + ' ' + (T.x + k * tw * 0.7) + ' ' + (T.top + 8), stroke: 'rgba(255,255,255,0.07)', fill: 'none' }, flows); });
+    if ((brainOn || anyBusy) && !reduceMotion) {
+      el('path', { id: 'sap', d: 'M' + T.x + ' ' + T.base + ' L' + T.x + ' ' + T.top, stroke: 'none', fill: 'none' }, flows);
+      for (var q = 0; q < 3; q++) { var sd = el('circle', { r: isMobile() ? 2.4 : 3.5, fill: '#C7CDFF', filter: 'url(#glow)' }, flows); var sa = el('animateMotion', { dur: '2.2s', repeatCount: 'indefinite', begin: (-q * 0.73) + 's' }, sd); el('mpath', { href: '#sap' }, sa); }
+    }
+    // NHÁNH: thân → phòng ban (gradient từ màu thân sang màu phòng)
+    Object.keys(L.branch).forEach(function (id) {
+      var p = L.branch[id], r = room(id); if (!r) return;
+      var on = !!roomBusy(r), low = !!p[3], left = p[0] < T.x;
+      var sx = T.x + (left ? -1 : 1) * (low ? T.w * 0.5 : T.w * 0.25);
+      var sy = low ? T.base - (T.base - T.top) * 0.32 : T.top + 14 + Math.abs(p[0] - T.x) / 20;
       var vx = sx - p[0], vy = sy - p[1], vl = Math.sqrt(vx * vx + vy * vy) || 1;
-      var ex = p[0] + vx / vl * 34, ey = p[1] + vy / vl * 34;
-      if (Math.abs(p[0] - 500) < 120) { ex = p[0] + (p[0] < 500 ? 30 : -30); ey = p[1] + 14; }
-      if (LOW[id] != null) flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.3, sy + 10, ex + (sx - ex) * 0.4, ey + 10), COLOR[id], on, 7, 2.4);
-      else flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.2, sy - 60, ex + (sx - ex) * 0.35, ey + 20), COLOR[id], on, 7, 2.4);
+      var ex = p[0] + vx / vl * (L.R + 6), ey = p[1] + vy / vl * (L.R + 6);
+      if (Math.abs(p[0] - T.x) < W * 0.12) { ex = p[0] + (left ? 1 : -1) * (L.R + 2); ey = p[1] + L.R * 0.5; }
+      var d = low ? cubic(sx, sy, ex, ey, sx + (p[0] - T.x) * 0.3, sy + 10, ex + (sx - ex) * 0.4, ey + 10)
+        : cubic(sx, sy, ex, ey, sx + (p[0] - T.x) * 0.2, sy - H * 0.075, ex + (sx - ex) * 0.35, ey + H * 0.025);
+      flowPath(flows, d, COLOR[id], on, isMobile() ? 4 : 7, 2.4, [sx, sy, '#5560FF', ex, ey]);
     });
     // Luồng chuyển việc giữa các phòng (vòng cung mảnh trong tán)
     EDGES.forEach(function (e) {
-      if (!BRANCH[e[0]] || !BRANCH[e[1]]) return; // chỉ vẽ luồng giữa các cành (rễ đã nuôi qua thân)
-      var a = BRANCH[e[0]], b2 = BRANCH[e[1]];
+      var a = L.branch[e[0]], b2 = L.branch[e[1]]; if (!a || !b2) return;
       var on = edgeActive(e);
-      var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - 60, ay = a[1] - 30, by = b2[1] - 30;
-      if (Math.abs(a[1] - b2[1]) > 150) { mx = (a[0] + b2[0]) / 2 + (mx < 500 ? 70 : -70); my = (a[1] + b2[1]) / 2; ay = a[1]; by = b2[1]; } // nối nhánh trên ↔ nhánh dưới: vòng phía trong
+      if (!on && isMobile()) return; // điện thoại: chỉ vẽ luồng đang chạy cho gọn
+      var off = L.R + 2;
+      var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - H * 0.07, ay = a[1] - off, by = b2[1] - off;
+      if (Math.abs(a[1] - b2[1]) > H * 0.18) { mx = (a[0] + b2[0]) / 2 + (mx < T.x ? W * 0.07 : -W * 0.07); my = (a[1] + b2[1]) / 2; ay = a[1]; by = b2[1]; }
       var id = 'x' + (pathN++);
-      el('path', { id: id, d: 'M' + a[0] + ' ' + ay + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + by, fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.8 : 0.12, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '' : '3 5' }, flows);
-      if (on && !reduceMotion) { var dd = el('circle', { r: 2.6, fill: COLOR[e[1]], filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3.4s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa); }
+      el('path', { id: id, d: 'M' + a[0] + ' ' + ay + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + by, fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.85 : 0.1, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '4 4' : '3 6' }, flows);
+      if (on && !reduceMotion) {
+        el('animate', { attributeName: 'stroke-dashoffset', from: '0', to: '-16', dur: '0.8s', repeatCount: 'indefinite' }, flows.lastChild);
+        var dd = el('circle', { r: 2.6, fill: COLOR[e[1]], filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3.4s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa);
+      }
     });
-    // LÁ: phòng ban → ứng dụng
-    Object.keys(BRANCH).forEach(function (id) {
-      var p = BRANCH[id], r = room(id); if (!r) return;
-      var leaves = (r.leaves || []).slice(0, 7);
-      var dir = LOW[id] != null ? LOW[id] * Math.PI / 180 : Math.atan2(p[1] - 470, p[0] - 500);
-      var step = leaves.length > 5 ? 0.4 : 0.52;
-      leaves.forEach(function (lf, j) {
-        var spread = (j - (leaves.length - 1) / 2) * step;
-        var ang = dir + spread, dist = 78 + (j % 2) * 14;
-        var lx = Math.max(24, Math.min(W - 24, p[0] + Math.cos(ang) * dist)), ly = Math.max(24, p[1] + Math.sin(ang) * dist);
-        el('line', { x1: p[0], y1: p[1], x2: lx, y2: ly, stroke: COLOR[id], 'stroke-opacity': lf.on ? 0.7 : 0.25, 'stroke-width': lf.on ? 1.6 : 1 }, flows);
-        leafRing(layer, lx, ly, lf, COLOR[id]);
+    // LÁ: phòng ban → ứng dụng (cuống cong; nhánh có việc thì lá đã nối sáng theo)
+    function grow(id, p, leaves, angles, dir, mult) {
+      var lit = !!roomBusy(room(id)) || (id === 'kho' && brainOn);
+      leafSpots(p, leaves.length, angles, dir, mult).forEach(function (pt, j) {
+        var lf = leaves[j];
+        var cx = (p[0] + pt[0]) / 2 + (pt[1] - p[1]) * 0.15, cy = (p[1] + pt[1]) / 2 - (pt[0] - p[0]) * 0.15;
+        el('path', { d: 'M' + p[0] + ' ' + p[1] + ' Q' + cx + ' ' + cy + ' ' + pt[0] + ' ' + pt[1], fill: 'none', stroke: COLOR[id], 'stroke-opacity': lf.on ? (lit ? 0.9 : 0.55) : 0.2, 'stroke-width': lf.on ? (lit ? 1.8 : 1.3) : 1 }, flows);
+        leafRing(layer, pt[0], pt[1], lf, COLOR[id], lit);
       });
+    }
+    Object.keys(L.branch).forEach(function (id) {
+      var p = L.branch[id], r = room(id); if (!r) return;
+      var dir = p[2] != null ? p[2] * Math.PI / 180 : Math.atan2(p[1] - B[1], p[0] - B[0]);
+      grow(id, p, (r.leaves || []).slice(0, L.maxLeaf), null, dir);
     });
-    // Rễ con: ứng dụng của Thương hiệu mọc xuống dưới
-    ['thuong_hieu'].forEach(function (id) {
-      var p = ROOTS[id], r = room(id); if (!r) return;
-      (r.leaves || []).slice(0, 3).forEach(function (lf, j) {
-        var lx = p[0] + (id === 'thuong_hieu' ? -1 : 1) * (95 + j * 4) * Math.cos(0.5 - j * 0.5), ly = p[1] + 10 + j * 30;
-        lx = Math.max(24, Math.min(W - 24, lx + (id === 'thuong_hieu' ? -j * 12 : j * 12)));
-        el('path', { d: 'M' + p[0] + ' ' + p[1] + ' Q' + ((p[0] + lx) / 2) + ' ' + (ly + 20) + ' ' + lx + ' ' + ly, fill: 'none', stroke: COLOR[id], 'stroke-opacity': lf.on ? 0.6 : 0.22 }, flows);
-        leafRing(layer, lx, ly, lf, COLOR[id]);
-      });
+    Object.keys(L.roots).forEach(function (id) {
+      var p = L.roots[id], r = room(id); if (!r || !p[2]) return;
+      grow(id, p, (r.leaves || []).slice(0, p[2].length), p[2], null, 1.25);
     });
 
     // Nút phòng ban + rễ
     state.rooms.forEach(function (r) {
-      var p = BRANCH[r.id] || ROOTS[r.id]; if (!p) return;
+      var p = L.branch[r.id] || L.roots[r.id]; if (!p) return;
       nodes[r.id] = { x: p[0], y: p[1] };
-      drawRoom(layer, nodes[r.id], r, !!ROOTS[r.id], LOW[r.id] != null);
+      drawRoom(layer, nodes[r.id], r, !!L.roots[r.id], !!(L.branch[r.id] && L.branch[r.id][3]));
     });
-    drawKho(layer, ROOTS.kho);
-    drawBrain(layer, { x: TRUNK.x, y: 470 });
+    drawKho(layer, L.roots.kho, brainOn || anyBusy);
+    drawBrain(layer, { x: B[0], y: B[1] });
     highlight(selected);
   }
   function drawRoom(layer, n, r, isRoot, labelTop) {
-    var st = STATUS[r.status], col = COLOR[r.id] || '#999';
+    var st = STATUS[r.status], col = COLOR[r.id] || '#999', busy = !!roomBusy(r);
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': r.name + ': ' + st.label, 'data-node': r.id, style: 'cursor:pointer' }, layer);
-    var R = isRoot ? 24 : 28;
-    if (r.status === 'work' && !reduceMotion) {
+    var R = isRoot ? L.RR : L.R;
+    if (busy) {
+      var aura = el('circle', { cx: n.x, cy: n.y, r: R + 10, fill: col, opacity: 0.28, filter: 'url(#soft)' }, g);
+      if (!reduceMotion) el('animate', { attributeName: 'opacity', values: '0.15;0.4;0.15', dur: '2.2s', repeatCount: 'indefinite' }, aura);
+    }
+    if (busy && !reduceMotion) {
       var pulse = el('circle', { cx: n.x, cy: n.y, r: R, fill: 'none', stroke: col, 'stroke-width': 2, opacity: 0.7 }, g);
-      el('animate', { attributeName: 'r', values: R + ';' + (R + 14), dur: '1.8s', repeatCount: 'indefinite' }, pulse);
+      el('animate', { attributeName: 'r', values: R + ';' + (R + R * 0.55), dur: '1.8s', repeatCount: 'indefinite' }, pulse);
       el('animate', { attributeName: 'opacity', values: '0.7;0', dur: '1.8s', repeatCount: 'indefinite' }, pulse);
     }
-    el('circle', { cx: n.x, cy: n.y, r: R + 5, fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-dasharray': '4 2.5' }, g);
-    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#181818', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
-    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12) + ' ' + (n.y - 12) + ')', fill: 'none', stroke: col, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
-    el('circle', { cx: n.x + R * 0.72, cy: n.y + R * 0.72, r: 5.5, fill: st.color, stroke: '#0F0F0F', 'stroke-width': 2 }, g);
+    var ring = el('circle', { cx: n.x, cy: n.y, r: R + R * 0.18, fill: 'none', stroke: col, 'stroke-width': busy ? 2.4 : 1.6, 'stroke-dasharray': busy ? '' : '4 2.5', opacity: busy ? 1 : 0.6 }, g);
+    if (busy && !reduceMotion) { ring.setAttribute('stroke-dasharray', '10 4'); el('animateTransform', { attributeName: 'transform', type: 'rotate', from: '0 ' + n.x + ' ' + n.y, to: '360 ' + n.x + ' ' + n.y, dur: '9s', repeatCount: 'indefinite' }, ring); }
+    el('circle', { cx: n.x, cy: n.y, r: R, fill: busy ? '#1D1D1D' : '#161616', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
+    var sc = R / 28;
+    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12 * sc) + ' ' + (n.y - 12 * sc) + ') scale(' + sc + ')', fill: 'none', stroke: col, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: busy ? 1 : 0.8 }, g);
+    el('circle', { cx: n.x + R * 0.72, cy: n.y + R * 0.72, r: Math.max(3.5, R * 0.2), fill: st.color, stroke: '#0F0F0F', 'stroke-width': 2 }, g);
     var badge = r.counts.duyet || r.counts.lam || r.counts.cho;
     if (badge) {
-      el('circle', { cx: n.x + R * 0.75, cy: n.y - R * 0.75, r: 10, fill: st.color }, g);
-      var bt = el('text', { x: n.x + R * 0.75, y: n.y - R * 0.75 + 4, 'text-anchor': 'middle', fill: '#0B1020', 'font-size': 11, 'font-weight': 700 }, g); bt.textContent = badge;
+      var bR = Math.max(7, R * 0.36);
+      el('circle', { cx: n.x + R * 0.75, cy: n.y - R * 0.75, r: bR, fill: st.color }, g);
+      var bt = el('text', { x: n.x + R * 0.75, y: n.y - R * 0.75 + bR * 0.4, 'text-anchor': 'middle', fill: '#0B1020', 'font-size': bR * 1.1, 'font-weight': 700 }, g); bt.textContent = badge;
     }
-    var ly = labelTop ? n.y - R - 24 : n.y + R + 20;
-    var name = el('text', { x: n.x, y: ly, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13.5, 'font-weight': 600 }, g); name.textContent = SHORT[r.id] || r.name;
-    var sub = el('text', { x: n.x, y: ly + 15, 'text-anchor': 'middle', fill: st.color, 'font-size': 11 }, g);
-    sub.textContent = st.label + (r.status === 'done' ? ' · ' + r.counts.xong_24h + ' việc' : '');
+    var ly = labelTop ? n.y - R - L.font * 1.9 : n.y + R + L.font * 1.45;
+    label(g, n.x, ly, L.names[r.id] || r.name, L.font, '#FFFFFF');
+    var t2 = el('text', { x: n.x, y: ly + L.sub * 1.4, 'text-anchor': 'middle', fill: st.color, 'font-size': L.sub }, g);
+    t2.textContent = isMobile() && r.status === 'idle' ? '' : st.label + (r.status === 'done' && !isMobile() ? ' · ' + r.counts.xong_24h + ' việc' : '');
   }
-  function drawKho(layer, p) {
+  function drawKho(layer, p, lit) {
+    var R = L.RR;
     var g = el('g', { class: 'onode', tabindex: '0', role: 'link', 'aria-label': 'Kho lưu trữ: ảnh, video, tài liệu của bạn', 'data-href': 'kho.html', style: 'cursor:pointer' }, layer);
-    el('circle', { cx: p[0], cy: p[1], r: 27, fill: 'none', stroke: COLOR.kho, 'stroke-width': 2, 'stroke-dasharray': '4 2.5' }, g);
-    el('circle', { cx: p[0], cy: p[1], r: 22, fill: '#181818', stroke: 'rgba(255,255,255,0.22)' }, g);
-    el('path', { d: 'M3 7h18v13H3zM3 7l2-4h14l2 4M9 11h6', transform: 'translate(' + (p[0] - 12) + ' ' + (p[1] - 12) + ')', fill: 'none', stroke: COLOR.kho, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
-    var t = el('text', { x: p[0], y: p[1] + 42, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13.5, 'font-weight': 600 }, g); t.textContent = 'Kho & dữ liệu';
-    var s = el('text', { x: p[0], y: p[1] + 57, 'text-anchor': 'middle', fill: '#8F8F8F', 'font-size': 11 }, g); s.textContent = 'ảnh, video, tài liệu';
+    if (lit) el('circle', { cx: p[0], cy: p[1], r: R + 9, fill: COLOR.kho, opacity: 0.22, filter: 'url(#soft)' }, g);
+    el('circle', { cx: p[0], cy: p[1], r: R + R * 0.2, fill: 'none', stroke: COLOR.kho, 'stroke-width': 2, 'stroke-dasharray': '4 2.5', opacity: lit ? 1 : 0.6 }, g);
+    el('circle', { cx: p[0], cy: p[1], r: R * 0.92, fill: '#181818', stroke: 'rgba(255,255,255,0.22)' }, g);
+    var sc = R / 24;
+    el('path', { d: 'M3 7h18v13H3zM3 7l2-4h14l2 4M9 11h6', transform: 'translate(' + (p[0] - 12 * sc) + ' ' + (p[1] - 12 * sc) + ') scale(' + sc + ')', fill: 'none', stroke: COLOR.kho, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    var ly = p[1] + R + L.font * 1.45;
+    label(g, p[0], ly, isMobile() ? 'Kho' : 'Kho & dữ liệu', L.font, '#FFFFFF');
+    var s2 = el('text', { x: p[0], y: ly + L.sub * 1.4, 'text-anchor': 'middle', fill: '#8F8F8F', 'font-size': L.sub }, g); s2.textContent = 'ảnh, video, tài liệu';
   }
   function drawBrain(layer, n) {
-    var on = brainActive();
+    var on = brainActive() || state.rooms.some(roomBusy);
+    var R = L.BR;
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': 'Bộ não AI điều phối', 'data-node': 'brain', style: 'cursor:pointer' }, layer);
+    var aura = el('circle', { cx: n.x, cy: n.y, r: R + 12, fill: '#4652FF', opacity: on ? 0.35 : 0.12, filter: 'url(#soft)' }, g);
+    if (!reduceMotion) el('animate', { attributeName: 'opacity', values: on ? '0.2;0.55;0.2' : '0.08;0.18;0.08', dur: on ? '2.4s' : '5s', repeatCount: 'indefinite' }, aura);
     if (on && !reduceMotion) {
-      var p = el('circle', { cx: n.x, cy: n.y, r: 40, fill: 'none', stroke: '#8B95FF', 'stroke-width': 2, opacity: 0.6 }, g);
-      el('animate', { attributeName: 'r', values: '40;58', dur: '2.4s', repeatCount: 'indefinite' }, p);
+      var p = el('circle', { cx: n.x, cy: n.y, r: R, fill: 'none', stroke: '#8B95FF', 'stroke-width': 2, opacity: 0.6 }, g);
+      el('animate', { attributeName: 'r', values: R + ';' + (R * 1.45), dur: '2.4s', repeatCount: 'indefinite' }, p);
       el('animate', { attributeName: 'opacity', values: '0.6;0', dur: '2.4s', repeatCount: 'indefinite' }, p);
     }
-    el('circle', { cx: n.x, cy: n.y, r: 42, fill: 'none', stroke: '#8B95FF', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g);
-    el('circle', { cx: n.x, cy: n.y, r: 37, fill: '#141633', stroke: 'rgba(255,255,255,0.25)', class: 'onode-core' }, g);
-    el('path', { d: 'M0 -12 L3.5 -3.5 L12 0 L3.5 3.5 L0 12 L-3.5 3.5 L-12 0 L-3.5 -3.5 Z', transform: 'translate(' + n.x + ' ' + (n.y - 9) + ')', fill: on ? '#D4FF4A' : '#9AA0C8' }, g);
-    var t = el('text', { x: n.x, y: n.y + 15, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11.5, 'font-weight': 700 }, g); t.textContent = 'Bộ não AI';
-    var s = el('text', { x: n.x, y: n.y + 28, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#9AA0C8', 'font-size': 9.5 }, g);
+    var ring = el('circle', { cx: n.x, cy: n.y, r: R + 5, fill: 'none', stroke: '#8B95FF', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g);
+    if (on && !reduceMotion) el('animateTransform', { attributeName: 'transform', type: 'rotate', from: '0 ' + n.x + ' ' + n.y, to: '-360 ' + n.x + ' ' + n.y, dur: '12s', repeatCount: 'indefinite' }, ring);
+    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#141633', stroke: 'rgba(255,255,255,0.25)', class: 'onode-core' }, g);
+    var sc = R / 38;
+    el('path', { d: 'M0 -12 L3.5 -3.5 L12 0 L3.5 3.5 L0 12 L-3.5 3.5 L-12 0 L-3.5 -3.5 Z', transform: 'translate(' + n.x + ' ' + (n.y - 9 * sc) + ') scale(' + sc + ')', fill: on ? '#D4FF4A' : '#9AA0C8' }, g);
+    var t = el('text', { x: n.x, y: n.y + 15 * sc, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11.5 * Math.max(sc, 0.85), 'font-weight': 700 }, g); t.textContent = 'Bộ não AI';
+    var s2 = el('text', { x: n.x, y: n.y + 28 * sc, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#9AA0C8', 'font-size': 9.5 * Math.max(sc, 0.85) }, g);
     var ai = state.brain.ai_ngoai;
-    s.textContent = on ? 'đang điều phối' : ai ? ai.ten.slice(0, 16) : state.brain.app_mode ? 'Trợ lý Crewzy' : 'chờ nối AI';
+    s2.textContent = on ? 'đang điều phối' : ai ? ai.ten.slice(0, isMobile() ? 10 : 16) : state.brain.app_mode ? (isMobile() ? 'Trợ lý' : 'Trợ lý Crewzy') : 'chờ nối AI';
   }
   function highlight(id) {
     document.querySelectorAll('[data-node]').forEach(function (g) {
@@ -298,7 +372,7 @@
     var primary = r.status === 'wait' ? '<a class="btn btn-primary" href="cho-duyet.html">Duyệt ' + r.counts.duyet + ' việc</a>'
       : r.status === 'setup' && r.suggest[0] ? '<a class="btn btn-primary" href="ket-noi.html?app=' + r.suggest[0].slug + '">Nối ' + esc(r.suggest[0].name) + ' để bắt đầu</a>'
       : '<a class="btn btn-primary" href="quy-trinh.html?phong=' + r.id + '">Chạy quy trình của phòng</a>';
-    detailEl.innerHTML = '<p class="od-kicker" style="color:' + (COLOR[r.id] || '#8F8F8F') + '">' + (ROOTS[r.id] ? 'Rễ · nguồn nuôi' : 'Nhánh · phòng ban') + '</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
+    detailEl.innerHTML = '<p class="od-kicker" style="color:' + (COLOR[r.id] || '#8F8F8F') + '">' + (LAYOUT.desk.roots[r.id] ? 'Rễ · nguồn nuôi' : 'Nhánh · phòng ban') + '</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
       '<p class="od-status" style="color:' + st.color + '"><span class="od-dot" style="background:' + st.color + '"></span>' + st.label + '</p>' +
       (cur ? '<a class="od-job" href="cho-duyet.html?id=' + cur.id + '"><b>' + esc(cur.tieu_de) + '</b><small>' + esc(cur.mo_ta) + (cur.nguoi_lam ? ' · ' + esc(cur.nguoi_lam) : '') + ' · ' + ago(cur.luc) + '</small></a>'
         : '<p class="od-text">' + (r.status === 'setup' ? 'Phòng chưa đủ app để chạy quy trình nào.' : 'Chưa có việc. Chạy một quy trình hoặc giao việc để phòng bắt đầu.') + '</p>') +
@@ -431,7 +505,7 @@
 
   var lastMobile = isMobile();
   var rt;
-  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (isMobile() !== lastMobile) { lastMobile = isMobile(); renderGraph(); renderTiles(); } else if (!isMobile()) renderGraph(); }, 150); });
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (isMobile() !== lastMobile) { lastMobile = isMobile(); renderGraph(); renderTiles(); } }, 150); });
 
   load();
   setInterval(function () { if (!document.hidden) load(); }, POLL_MS);

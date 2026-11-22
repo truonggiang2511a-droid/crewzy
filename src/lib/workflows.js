@@ -6,7 +6,8 @@
 
 export const DEPARTMENTS = [
   { id: 'thuong_hieu', name: 'Thương hiệu' },
-  { id: 'doi_thu', name: 'Nghiên cứu & Chiến lược' },
+  { id: 'doi_thu', name: 'Phân tích đối thủ' },
+  { id: 'chien_luoc', name: 'Nghiên cứu & Chiến lược' },
   { id: 'noi_dung', name: 'Nội dung & Video' },
   { id: 'phan_phoi', name: 'Sản xuất & Phân phối' },
   { id: 'quang_cao', name: 'Marketing & Phân tích' },
@@ -253,7 +254,7 @@ export const WORKFLOWS = [
       'Viết báo cáo: 5 số chính kèm % thay đổi, 3 điều tốt, 3 điều cần sửa, 3 việc tuần tới.',
       'Có nơi lưu tài liệu đã nối (Google Docs, Notion, OneDrive…) thì lưu báo cáo vào Docs; có kênh nhắn nội bộ đã nối (Telegram, Slack, Gmail…) thì gửi tóm tắt cho chủ. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong).',
     ] },
-  { id: 'de_xuat_chien_luoc', phong: 'doi_thu', ten: 'Đề xuất chiến lược tháng',
+  { id: 'de_xuat_chien_luoc', phong: 'chien_luoc', ten: 'Đề xuất chiến lược tháng',
     mo_ta: 'Từ báo cáo tuần, nghiên cứu đối thủ và Brain thương hiệu, đề xuất mục tiêu, kênh, nội dung chủ đạo, ngân sách quảng cáo và lịch việc cho tháng tới.',
     lich: 'Ngày 1 hằng tháng', loai: 'bao_cao',
     buoc: [
@@ -261,6 +262,17 @@ export const WORKFLOWS = [
       'Đề xuất: 1–3 mục tiêu đo được, kênh ưu tiên, 3 chủ đề nội dung chủ đạo, ngân sách quảng cáo gợi ý theo kênh, các quy trình nên hẹn giờ.',
       'Lập lịch việc 4 tuần (tuần nào làm gì).',
       'Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai cho_duyet) để chủ duyệt.',
+    ] },
+
+  { id: 'nghien_cuu_thi_truong', phong: 'chien_luoc', ten: 'Nghiên cứu thị trường và câu hỏi của khách',
+    mo_ta: 'Tìm xu hướng, từ khoá khách đang tìm, câu hỏi hay gặp và giá thị trường trong ngành của bạn; ra 10 ý tưởng nội dung và 3 cơ hội bán hàng.',
+    lich: 'Mỗi tháng 1 lần', loai: 'bao_cao',
+    hoi: 'Sản phẩm/khu vực muốn nghiên cứu (nếu khác Brain thương hiệu)',
+    buoc: [
+      'Đọc Brain thương hiệu (sản phẩm, khách hàng, khu vực).',
+      'Tìm trên web bằng công cụ nghiên cứu đã nối (Perplexity, Tavily, SerpApi) hoặc CREWZY_DOC_WEB: tin ngành 30 ngày qua, từ khoá và câu hỏi khách hay tìm, mức giá đang rao. Ghi nguồn cho từng ý.',
+      'Tổng hợp: 5 xu hướng, 10 câu hỏi khách hay hỏi, khoảng giá thị trường, 10 ý tưởng nội dung, 3 cơ hội bán hàng. Không bịa số liệu, chỗ nào chưa chắc thì ghi rõ.',
+      'Có nơi lưu tài liệu đã nối thì lưu vào Docs. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong) kèm nguồn trong lien_ket.',
     ] },
 
   // ---------- Việc hằng ngày ----------
@@ -364,6 +376,7 @@ const TOOLSETS = {
   cham_soc_sau_mua: { kenh: ['email', 'crm', 'zalo'], cong_cu: [req('crm'), req('email_mkt')] },
   bao_cao_tuan: { kenh: ['ads', 'website', 'facebook', 'crm', 'noi_bo'], cong_cu: [opt('do_luong'), opt('quang_cao'), opt('doanh_thu'), opt('crm'), opt('tai_lieu'), opt('nhan_noi_bo')] },
   de_xuat_chien_luoc: { kenh: ['noi_bo'], cong_cu: [opt('tai_lieu')] },
+  nghien_cuu_thi_truong: { kenh: ['website', 'noi_bo'], cong_cu: [opt('soi_web'), opt('tai_lieu')] },
   ban_tin_sang: { kenh: ['noi_bo', 'email'], cong_cu: [opt('lich'), opt('hop_thu'), opt('quang_cao'), opt('doanh_thu'), req('nhan_noi_bo')] },
 };
 for (const w of WORKFLOWS) Object.assign(w, TOOLSETS[w.id] || { kenh: [], cong_cu: [] });
@@ -379,6 +392,7 @@ const truocCan = (quy_trinh, thay = {}, bat_buoc = true) => ({ loai: 'truoc', qu
 const nguonCan = (nhom) => ({ loai: 'nguon', nhom, bat_buoc: true });
 const NEEDS = {
   doi_thu_website: [brainCan(BRAIN_MIN, false)],
+  nghien_cuu_thi_truong: [brainCan(BRAIN_MIN)],
   lich_noi_dung_tuan: [brainCan(BRAIN_MIN), truocCan('doi_thu_reels', {}, false)],
   mot_noi_dung_nhieu_kenh: [brainCan(BRAIN_MIN)],
   video_theo_phong_cach: [brainCan(BRAIN_MIN), truocCan('doi_thu_reels', { brain: 'video_style', mau: 'video_mau' })],
