@@ -2,7 +2,7 @@
 // POST /api/chat  { uid?, mode: 'app'|'claude'|'openai'|'openrouter', key?, model?, messages: [{ role: 'user'|'assistant', content }] }
 // Mã khách lấy từ phiên đăng nhập Google; uid trong body chỉ dùng khi chưa bật đăng nhập.
 // Trả về NDJSON, mỗi dòng một sự kiện: {type:'tool', label} · {type:'text', text} · {type:'done'} · {type:'error', message}
-// mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
+// mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'can_bang' = Sonnet 5.5, 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
 import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE } from '../lib/instant.js';
@@ -25,8 +25,8 @@ const MAX_TOOL_RESULT_CHARS = 12000;
 const MAX_OUTPUT_TOKENS = 6000;     // đủ cho báo cáo/7 bài đăng nộp qua CREWZY_NOP_KET_QUA (1500 bị cắt giữa chừng)
 // Bộ não Crewzy (chế độ app, khoá của Giang): mặc định Opus 5.5 để nội dung tốt và điều khiển app chuẩn; khách chọn "Tiết kiệm" = Haiku.
 // Đổi mặc định bằng biến APP_MODEL. Credit trừ theo giá thật từng model (billing.js AI_MODEL_PRICES).
-export const APP_BRAINS = { manh: 'claude-opus-5-5', tiet_kiem: 'claude-haiku-5-5' };
-const appModel = (env, brain) => (brain === 'tiet_kiem' ? APP_BRAINS.tiet_kiem : (env.APP_MODEL || APP_BRAINS.manh));
+export const APP_BRAINS = { manh: 'claude-opus-5-5', can_bang: 'claude-sonnet-5-5', tiet_kiem: 'claude-haiku-5-5' };
+const appModel = (env, brain) => (brain === 'tiet_kiem' || brain === 'can_bang' ? APP_BRAINS[brain] : (env.APP_MODEL || APP_BRAINS.manh));
 const MODELS = { app: 'claude-opus-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
 // Gemini và Grok gọi qua cổng tương thích OpenAI (đã tra tài liệu 22/11/2026).
 const OPENAI_COMPAT = {

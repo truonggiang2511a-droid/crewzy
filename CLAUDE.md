@@ -475,6 +475,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   ĐÃ thử thật trên trang (tài khoản Giang, admin nên không trừ credit): Opus 5.5 + Instant SERPAPI_SEARCH khi CHƯA nối SerpApi → trả 3 kết quả Google
   đúng (~0,025 USD/lần tìm, dùng 2 USD tặng của ví). Chưa xác nhận instantCharge có về để trừ credit khách (xem log/KV instusd:* khi có khách thật).
 
+- 22/11/2026 (tối): Thêm bộ não Cân bằng = Sonnet 5.5 (brain 'can_bang') vào ô Bộ não ở Trợ lý; lịch nội dung/báo cáo (cron) đổi từ Opus sang Sonnet
+  (tự trả lời bình luận vẫn Haiku) cho khớp số lượng trong mô tả gói. Gói có loi_ich (danh sách lợi ích + số lượng/tháng, pay.js vẽ dấu ✓):
+  mọi gói nối không giới hạn kênh; số bài/bình luận/video tính từ giá credit thật (công thức ở ghi chú trên DEFAULT_PLANS, đổi credit gói thì sửa số).
+  Không ghi Zalo/TikTok là kênh nối được (Composio không có Zalo, TikTok còn 'soon').
+
 ## 6. Việc tiếp theo
 
 - (Đã đưa MCP ngoài vào link nối AI và có công tắc 22/11.) Còn: ghi số lượt gọi MCP ngoài vào credit.

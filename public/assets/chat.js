@@ -35,7 +35,7 @@
   var orModel = document.getElementById('or-model');
   var brainSel = document.getElementById('ai-brain');
   var brainBox = document.querySelector('[data-brain-box]');
-  if (brainSel) { brainSel.value = store('vpai.brain') === 'tiet_kiem' ? 'tiet_kiem' : 'manh'; brainSel.addEventListener('change', function () { store('vpai.brain', brainSel.value); renderMode(); }); }
+  if (brainSel) { var sb = store('vpai.brain'); brainSel.value = sb === 'tiet_kiem' || sb === 'can_bang' ? sb : 'manh'; brainSel.addEventListener('change', function () { store('vpai.brain', brainSel.value); renderMode(); }); }
   var orLogin = orBox.querySelector('[data-or-login]');
   var OR = window.VPAIOpenRouter;
   var suggest = document.querySelector('[data-suggest]');
@@ -153,6 +153,7 @@
     } else {
       modeNote.textContent = !appMode ? 'Chế độ credit của app chưa bật, hãy chọn khoá API riêng.'
         : brainSel && brainSel.value === 'tiet_kiem' ? 'Haiku 5.5: nhanh, tốn ít credit, hợp việc đơn giản (tra cứu, trả lời ngắn).'
+        : brainSel && brainSel.value === 'can_bang' ? 'Sonnet 5.5: viết tốt, điều khiển app ổn, tốn khoảng một nửa credit so với Mạnh nhất. Hợp đăng bài hằng ngày.'
         : 'Opus 5.5: viết nội dung và điều khiển app tốt nhất, tốn credit hơn. Việc đơn giản chọn Tiết kiệm.';
     }
   }

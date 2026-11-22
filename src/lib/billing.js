@@ -11,10 +11,20 @@ import { listServers } from './mcpServers.js';
 
 const DAY = 86400 * 1000;
 
+// Mô tả gói: mọi gói đều nối KHÔNG GIỚI HẠN kênh/app (code không giới hạn theo gói) — gói khác nhau ở credit.
+// Số lượng ước tính theo giá credit thật (bộ não Cân bằng = Sonnet 5.5, có cache; Opus tốn ~gấp đôi, Haiku ~1/5):
+//   1 bài có ảnh đăng lên mọi kênh đã nối ≈ 55 credit (4 bước Sonnet ~48 + ảnh 3 + đăng ~1/kênh)
+//   1 trả lời bình luận/tin nhắn (lịch tự trả lời chạy Haiku) ≈ 6 · 1 báo cáo tuần ≈ 100 · 1 video AI 10 giây = 150 · 1 lần soi đối thủ ≈ 200
+//   Cơ bản 3.000 = 30×55 + 150×6 + 4×100 = 2.950 · Tăng trưởng 8.000 = 80×55 + 400×6 + 5×150 + 4×100 = 7.950
+//   Doanh nghiệp 20.000 = 180×55 + 1.000×6 + 15×150 + 8×100 + 4×200 = 19.750. Đổi credit gói thì sửa lại các số này.
+const ALL_CHANNELS = 'Nối không giới hạn kênh: Facebook, Instagram, YouTube, LinkedIn, Pinterest, Telegram, WhatsApp, Gmail… (176 app)';
 export const DEFAULT_PLANS = [
-  { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh: 1–2 kênh, lịch nội dung, trả lời bình luận.' },
-  { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ: nhiều kênh, video, quảng cáo, báo cáo tuần.', noi_bat: true },
-  { id: 'doanh_nghiep', ten: 'Doanh nghiệp', gia: 1490000, credits: 20000, ngay: 30, mo_ta: 'Nhiều phòng ban chạy cùng lúc, đăng hàng loạt, video thường xuyên.' },
+  { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh tự động hoá nội dung và chăm khách.',
+    loi_ich: [ALL_CHANNELS, '30 bài kèm ảnh mỗi tháng, mỗi bài đăng cùng lúc lên MỌI kênh (6 kênh = 180 lượt đăng)', '150 bình luận, tin nhắn được trả lời tự động', '4 báo cáo tuần: bài nào ra khách, kênh nào hiệu quả', '23 quy trình mẫu + Brain thương hiệu + hẹn giờ tự chạy'] },
+  { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ muốn có mặt hằng ngày trên mọi kênh.', noi_bat: true,
+    loi_ich: [ALL_CHANNELS, '80 bài kèm ảnh mỗi tháng (gần 3 bài/ngày), đăng cùng lúc mọi kênh: 6 kênh = 480 lượt đăng', '400 bình luận, tin nhắn được trả lời tự động', '5 video ngắn AI dọc 9:16 cho Reels, TikTok, Shorts', '4 báo cáo tuần + gợi ý nội dung tuần sau', 'Mỗi credit rẻ hơn 13% so với gói Cơ bản'] },
+  { id: 'doanh_nghiep', ten: 'Doanh nghiệp', gia: 1490000, credits: 20000, ngay: 30, mo_ta: 'Cả đội nhân viên AI: nhiều phòng, nhiều thương hiệu chạy cùng lúc.',
+    loi_ich: [ALL_CHANNELS, '180 bài kèm ảnh mỗi tháng (6 bài/ngày), mọi kênh: 6 kênh = 1.080 lượt đăng', '1.000 bình luận, tin nhắn được trả lời tự động', '15 video ngắn AI mỗi tháng', '8 báo cáo + 4 lần soi đối thủ (Reels, website, quảng cáo)', 'Tìm khách doanh nghiệp, báo giá, chăm khách vào CRM', 'Mỗi credit rẻ hơn 25% so với gói Cơ bản'] },
 ];
 export const DEFAULT_TOPUPS = [
   { id: 'nap_1000', ten: '1.000 credit', gia: 120000, credits: 1000 },
