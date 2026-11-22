@@ -283,14 +283,9 @@
   if (savedLink) showAiLink(savedLink);
 
   // ?ai=claude|chatgpt|gemini|grok (bấm từ Bộ não AI ở trang Văn phòng): làm nổi hướng dẫn tương ứng.
+  // (ai-prompts.js đã chọn đúng tab AI; ở đây chỉ cuộn tới nút tạo link.)
   var pickAi = new URLSearchParams(location.search).get('ai');
-  var guide = pickAi && document.querySelector('[data-ai-guide="' + pickAi + '"]');
-  if (guide) {
-    guide.style.borderColor = 'var(--accent)';
-    guide.style.background = '#FFFFFF';
-    guide.style.boxShadow = '0 0 0 3px rgba(0,7,205,.12)';
-    setTimeout(function () { aiCreate.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
-  }
+  if (pickAi) setTimeout(function () { aiCreate.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
   aiCreate.addEventListener('click', function () {
     var label = aiCreate.textContent;
     aiCreate.textContent = 'Đang tạo link…';

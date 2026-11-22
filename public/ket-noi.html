@@ -61,26 +61,45 @@
 
 <!-- ===== AI của bạn ===== -->
 <section data-view="ai" hidden style="display:flex;flex-direction:column;gap:18px">
-<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:16px">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
-<h2 style="margin:0;font-size:18px;font-weight:600">Nối AI bạn đang dùng: Claude, ChatGPT, Gemini, Grok</h2>
+<h2 style="margin:0;font-size:18px;font-weight:600">Nối Crewzy vào AI bạn đang dùng</h2>
 <span data-ai-badge class="pill">Chưa tạo link</span>
 </div>
-<p class="muted" style="margin:0;font-size:14px">Tạo link riêng rồi dán vào AI bạn đang dùng. AI đó sẽ đọc Brain thương hiệu, làm việc thật trên các app đã kết nối (đăng bài, đọc tin nhắn, ghi Sheet, tạo ảnh) và hỏi bạn trước khi đăng hay gửi.</p>
+<p class="muted" style="margin:0;font-size:14px;line-height:1.5">Ba bước, khoảng 1 phút. Xong rồi AI của bạn (Claude, ChatGPT, Gemini, Grok…) đọc được Brain thương hiệu, làm việc thật trên các app đã kết nối, tạo ảnh và luôn hỏi bạn trước khi đăng hay gửi.</p>
+
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+<p style="margin:2px 0 0;font-weight:600">Tạo link Crewzy của bạn</p>
 <button type="button" data-ai-create class="btn btn-primary" style="align-self:flex-start">Tạo link nối AI</button>
 <p data-ai-msg role="status" style="margin:0;font-size:13px;color:#8A2A12;display:none"></p>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
-<div id="ai-guide-claude" data-ai-guide="claude" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/claude" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Claude</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">claude.ai (gói Pro trở lên)</p><ol style="margin:0;padding-left:18px"><li>Mở claude.ai → Cài đặt (Settings) → Connectors.</li><li>Bấm <b>Add custom connector</b>, đặt tên Crewzy.</li><li>Dán link, bấm Add. Trong khung chat bật Crewzy ở nút "+" / công cụ.</li></ol></div>
-<div id="ai-guide-chatgpt" data-ai-guide="chatgpt" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/openai" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">ChatGPT</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">chatgpt.com (gói Plus trở lên)</p><ol style="margin:0;padding-left:18px"><li>Settings → Apps → Advanced settings, bật <b>Developer mode</b>.</li><li>Bấm <b>Create app</b>, đặt tên Crewzy, dán link.</li><li>Phần xác thực chọn <b>No authentication</b>, lưu. Khi chat chọn app Crewzy.</li></ol></div>
-<div id="ai-guide-gemini" data-ai-guide="gemini" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/gemini" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Gemini</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">gemini.google.com (web, giao diện tiếng Anh)</p><ol style="margin:0;padding-left:18px"><li>Settings → <b>Connected Apps</b> → Custom apps → <b>Add a custom app</b>.</li><li>Dán link, bấm Next, đồng ý kết nối.</li><li>Cần bật Keep Activity. Thêm xong dùng được cả trên app Gemini điện thoại.</li></ol></div>
-<div id="ai-guide-grok" data-ai-guide="grok" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/grok" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Grok</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">grok.com (gói trả phí)</p><ol style="margin:0;padding-left:18px"><li>Mở <b>grok.com/connectors</b>.</li><li>Bấm <b>New Connector</b> → <b>Custom</b>.</li><li>Đặt tên Crewzy, dán link, lưu. Khi chat bật connector Crewzy.</li></ol></div>
-</div>
-<div data-ai-box style="display:none;flex-direction:column;gap:10px">
-<label for="ai-link" style="font-size:13px;font-weight:600">Link nối AI của bạn</label>
-<div style="display:flex;flex-wrap:wrap;gap:8px"><input id="ai-link" type="text" readonly class="field" style="flex:1;min-width:220px;font-size:13px;background:#F6F6F6"><button type="button" data-ai-copy class="btn btn-ghost">Sao chép</button></div>
-<p style="margin:0;padding:10px 12px;border-radius:6px;background:var(--warn-soft);font-size:13px;color:var(--warn)">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
+<div data-ai-box style="display:none;flex-direction:column;gap:8px">
+<label for="ai-link" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Link nối AI của bạn</label>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><input id="ai-link" type="text" readonly class="field" style="flex:1;min-width:200px;font-size:13px;background:#F6F6F6;font-family:ui-monospace,Menlo,monospace"><button type="button" data-ai-copy class="btn btn-ghost">Sao chép</button></div>
+<p style="margin:0;padding:8px 10px;border-radius:6px;background:var(--warn-soft);font-size:12px;color:var(--warn)">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
+</div></div></div>
 
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">2</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
+<p style="margin:2px 0 0;font-weight:600">Thêm vào AI bạn dùng</p>
+<div class="seg" role="tablist" aria-label="Chọn AI" data-ai-clients style="flex-wrap:wrap;align-self:flex-start"></div>
+<div data-ai-panel style="padding:12px 14px;border-radius:8px;background:#F6F6F6;font-size:14px;line-height:1.6"></div>
+</div></div>
+
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">3</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+<p style="margin:2px 0 0;font-weight:600">Giao việc bằng tiếng Việt</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start">
+<p data-ai-sample style="margin:0;flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px dashed #D6D6D6;font-size:14px;line-height:1.5"></p>
+<button type="button" class="btn btn-ghost" data-copy-sample>Sao chép câu lệnh</button>
 </div>
+<p class="muted" style="margin:0;font-size:12px">Thêm câu lệnh mẫu ở phần bên dưới.</p>
+</div></div>
+</div>
+
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+<div><h2 style="margin:0 0 2px;font-size:18px;font-weight:600">Câu lệnh mẫu</h2><p class="muted" style="margin:0;font-size:13px">Bấm Thử trong Crewzy để chạy ngay bằng Trợ lý AI, hoặc sao chép dán vào AI của bạn.</p></div>
+<div class="seg" role="group" aria-label="Lọc câu lệnh" data-prompt-filters style="flex-wrap:wrap"></div>
+</div>
+<div data-prompt-grid style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px"></div>
 </div>
 
 <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
@@ -111,6 +130,14 @@
 <p class="muted" style="margin:0;font-size:12px">Có khoá API Claude, ChatGPT, Gemini hoặc Grok? Chọn trong trang <a href="chat.html">Trợ lý AI</a> rồi dán khoá. Khoá chỉ lưu trên trình duyệt này. Muốn nối MCP của app khác vào Crewzy: tab <a href="ket-noi.html?tab=mcp">MCP khác</a>.</p>
 </div>
 
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:600">Câu hỏi thường gặp</h2>
+<details class="faq"><summary>Nối AI của tôi vào Crewzy có tốn thêm tiền không?</summary><p>Phần AI tính vào gói AI bạn đang dùng (Claude Pro, ChatGPT Plus, Gemini, Grok trả phí). Công cụ của Crewzy và Composio đang miễn phí trong giai đoạn dùng thử; sau này tính theo credit của Crewzy.</p></details>
+<details class="faq"><summary>AI có tự đăng bài, gửi tin khi tôi chưa đồng ý không?</summary><p>Không. Việc ra bên ngoài như đăng bài, gửi email, trả lời khách, chi tiền quảng cáo luôn được tóm tắt để bạn đồng ý trước. Việc chỉ đọc (xem số liệu, đọc bình luận) thì AI làm luôn.</p></details>
+<details class="faq"><summary>Ảnh và video AI làm ra lưu ở đâu?</summary><p>Crewzy lưu thành link riêng trong 90 ngày, đăng Facebook, Instagram, YouTube hay tải về đều được. Ảnh/video từ app khác (như OpenArt) cũng được lưu lại như vậy.</p></details>
+<details class="faq"><summary>Khác gì dùng Trợ lý AI ngay trong Crewzy?</summary><p>Giống nhau về công cụ. Nối vào AI của bạn thì dùng luôn gói AI đang trả tiền và làm việc ngay trong ChatGPT/Claude quen thuộc; Trợ lý AI trong Crewzy thì không cần cài gì, có thêm các MCP khác bạn đã nối ở tab MCP khác.</p></details>
+<details class="faq"><summary>Lỡ gửi link cho người khác thì sao?</summary><p>Bấm Tạo link mới và dán link mới vào AI của bạn. Đừng gửi link cho ai, vì người có link dùng được các tài khoản bạn đã kết nối.</p></details>
+</div>
 </section>
 
 <!-- ===== Máy chủ MCP của app khác (giống Add custom connector của Claude) ===== -->
@@ -153,6 +180,7 @@
 </main>
 </div>
 <script src="assets/openrouter.js"></script>
+<script src="assets/ai-prompts.js"></script>
 <script src="assets/mcp-servers.js"></script>
 <script src="assets/connect.js"></script>
 </body>

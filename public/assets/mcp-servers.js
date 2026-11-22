@@ -4,6 +4,7 @@
   // Máy chủ MCP công khai hay dùng (đã thử nối qua Crewzy ngày 22/11/2026; xem CLAUDE.md).
   // Canva KHÔNG có ở đây: MCP của Canva chỉ nhận Claude/ChatGPT/localhost → khách dùng Canva ở tab Ứng dụng (Composio).
   var PICKS = [
+    { name: 'OpenArt', url: 'https://mcp.openart.ai/mcp', logo: '', letter: 'O', note: 'Ảnh + video AI' },
     { name: 'Notion', url: 'https://mcp.notion.com/mcp', logo: 'notion', note: 'Đăng nhập Notion' },
     { name: 'Linear', url: 'https://mcp.linear.app/mcp', logo: 'linear', note: 'Đăng nhập Linear' },
     { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', logo: 'github', note: 'Không cần đăng nhập' },
@@ -38,7 +39,7 @@
 
   $('[data-mcp-picks]').innerHTML = PICKS.map(function (p, i) {
     return '<button type="button" class="btn btn-ghost" data-mcp-pick="' + i + '" style="gap:8px">' +
-      '<img src="https://logos.composio.dev/api/' + p.logo + '" alt="" style="width:20px;height:20px;border-radius:4px">' + esc(p.name) +
+      (p.logo ? '<img src="https://logos.composio.dev/api/' + p.logo + '" alt="" style="width:20px;height:20px;border-radius:4px">' : '<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;background:#111;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">' + p.letter + '</span>') + esc(p.name) +
       '<span class="muted" style="font-size:12px;font-weight:400">' + esc(p.note) + '</span></button>';
   }).join('') +
     '<a class="btn btn-ghost" href="ket-noi.html?app=canva" style="gap:8px"><img src="https://logos.composio.dev/api/canva" alt="" style="width:20px;height:20px;border-radius:4px">Canva' +
