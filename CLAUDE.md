@@ -9,7 +9,7 @@ crewzy.ai còn trống, crewzy.com đã có người đăng ký). Tên hiển th
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
 **Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 176 app qua Composio + danh bạ 36 máy chủ MCP, 23 quy trình (có video trọn gói), Trợ lý AI, link nối AI (MCP),
-Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng và Việc chờ duyệt vẫn là dữ liệu mẫu.
+Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng chạy bằng số liệu thật (/api/office) từ 22/11.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
 Tên biến/hàm: tiếng Anh. Không tuyên bố "đã chạy được/đã build xong" nếu chưa thực sự chạy lệnh và thấy kết quả.
@@ -40,9 +40,11 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 ```
 public/                 Trang tĩnh (Workers static assets, binding ASSETS, html_handling "none" → giữ đuôi .html); CLAUDE.md, README không lên mạng
 public/_headers          X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục) + header an toàn · public/404.html
-public/index.html        Màn 1 · Văn phòng: số liệu, SƠ ĐỒ MẠNG phòng ban (office.js), chi tiết phòng, bảng tin phiếu việc chạy liên tục
-public/assets/office.js  Vẽ SVG: Bộ não AI ở tâm, 8 phòng trên elip, đường nhánh FLOWS có hạt sáng chạy (animateMotion), huy hiệu app
-                         (sáng khi đã kết nối, lấy thật từ /api/status); phòng ban + bảng tin là dữ liệu mẫu; tôn trọng prefers-reduced-motion
+public/index.html        Màn 1 · Văn phòng THẬT: việc gấp (chờ duyệt), Việc nên làm tiếp (5 bước thiết lập), 5 số liệu, sơ đồ phòng, chi tiết, hoạt động
+public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở). Máy tính: SVG Bộ não AI + 8 phòng (= DEPARTMENTS), hạt sáng CHỈ trên
+                         đường EDGES có việc thật 2 đầu; điện thoại: lưới ô phòng. Trạng thái phòng: work/wait/queue/done/setup/idle
+src/routes/office.js     GET /api/office: phòng (phiếu theo quy_trinh→phong, loai→phòng), app đã nối/nên nối, lịch, sự kiện (lich_su),
+                         bộ não (aiseen:<uid> do cổng MCP ghi lúc initialize + Trợ lý app), setup. dang_lam quá 3 giờ coi như cho_lam
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ 22/11, script assets/jobs.js): Giao việc mới (mẫu, Giao cho AI của tôi /
                          Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, Duyệt/Sửa/Làm lại/Từ chối/Đăng/Xoá, ?id= làm nổi
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
@@ -54,7 +56,8 @@ public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (re
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
 public/assets/style.css  Bộ màu (tham khảo Composio: --accent #0007CD, nền #FAFAFA, viền #E8E8E8, chữ #1A1A1A), menu .sb, .btn .card .pill .seg .field, điện thoại ≤760px
-public/assets/layout.js  Menu trái dùng chung: vẽ vào <nav data-sidebar>; sửa menu ở đây. Có window.vpaiUid()
+public/assets/layout.js  Menu trái dùng chung (máy tính) + điện thoại ≤760px: thanh trên .mtop (logo, Kết nối), thanh dưới .mbar 5 mục
+                         (Văn phòng, Duyệt có số, Trợ lý, Quy trình, Thêm) và bảng .msheet (Kết nối, Brain, Kết quả, Gói, tài khoản). Có window.vpaiUid()
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
 public/assets/favicon.svg
 public/assets/connect.js   Trang Kết nối: vẽ từ /api/catalog + /api/status, kết nối, chi tiết + Skill, OpenRouter, link nối AI
@@ -178,6 +181,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Remotion KHÔNG có MCP render trên mây (@remotion/mcp chỉ tra tài liệu, chạy máy) → dùng trong Claude Code/Codex của khách (npx skills add
   remotion-dev/skills, npx remotion render) rồi CREWZY_TAI_LEN. Giấy phép Remotion: miễn phí cá nhân/công ty ≤3 người, lớn hơn mua license.
   Vbee, FPT.AI: không có MCP/Composio → khách tải giọng mẫu vào Brain (giong_mau) hoặc ghi tên giọng; muốn đọc thẳng phải làm kết nối API riêng.
+- Giao diện điện thoại + Văn phòng thật (22/11, Giang: "mobile gọn, sạch, dễ dùng; văn phòng phải mô phỏng thật, hiệu quả công việc"):
+  bỏ menu cuộn ngang, thay bằng thanh dưới kiểu app + bảng Thêm; hàng lọc/chip (.hrow) một hàng cuộn ngang; mô tả trang cắt 2 dòng;
+  Trợ lý AI kiểu nhắn tin (khung chat chiếm phần còn lại, gợi ý cuộn ngang, ô nhập tròn sát thanh dưới). Văn phòng bỏ dữ liệu mẫu:
+  AI gọi CREWZY_VIEC_CAN_LAM → phiếu cho_lam chuyển dang_lam (nhan_luc, "<AI> nhận việc"); cron runAuto gọi markWorking trước khi chạy.
+  KV aiseen:<uid> chỉ ghi lúc initialize (gói KV Free 1.000 lượt ghi/ngày — đừng ghi mỗi tools/call).
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,
@@ -362,5 +370,5 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Trợ lý AI: trừ credit theo từng khách thay cho trần chung 150 lượt/ngày; nút "Duyệt" bấm được thay cho gõ "đồng ý"; trả lời chạy chữ dần (stream).
 - Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit" (đang để Sắp có trong menu).
 - Tạo auth config riêng trên Composio cho TikTok (app TikTok developer), Threads, Google Business; nối riêng Zalo OA, Shopee.
-- Trang Văn phòng và Chờ duyệt vẫn là dữ liệu mẫu; canvas Design chưa cập nhật theo giao diện mới.
+- Canvas Design chưa cập nhật theo giao diện mới (Văn phòng, Chờ duyệt đã dùng dữ liệu thật).
 - Kiểm chứng nhu cầu theo quy trình saas-startup-foundry trước khi làm backend.

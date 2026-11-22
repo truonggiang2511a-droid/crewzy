@@ -105,9 +105,30 @@ export const JOB_TOOL_DEFS = [
   },
 ];
 
-export async function jobsForAi(env, uid, all) {
+// AI nhận việc → "AI đang làm" (Văn phòng hiện đúng phòng đang làm). Quá 3 giờ chưa nộp thì /api/office coi như chưa làm.
+export async function markWorking(env, uid, id, who) {
+  const jobs = await listJobs(env, uid);
+  const j = jobs.find((x) => x.id === id);
+  if (!j || j.trang_thai !== 'cho_lam') return;
+  j.trang_thai = 'dang_lam'; j.nhan_luc = now(); j.cap_nhat = now(); j.nguoi_lam = clip(who, 40) || j.nguoi_lam || 'AI';
+  j.lich_su = [...(j.lich_su || []), { luc: now(), viec: `${j.nguoi_lam} nhận việc` }].slice(-20);
+  await saveJobs(env, uid, jobs);
+}
+
+export async function jobsForAi(env, uid, all, who) {
   const jobs = await listJobs(env, uid);
   const want = all ? jobs.slice(0, 30) : jobs.filter((j) => ['cho_lam', 'dang_lam', 'da_duyet'].includes(j.trang_thai));
+  if (!all) {
+    const todo = want.filter((j) => j.trang_thai === 'cho_lam');
+    if (todo.length) {
+      const t = now();
+      for (const j of todo) {
+        j.trang_thai = 'dang_lam'; j.nhan_luc = t; j.cap_nhat = t; j.nguoi_lam = clip(who, 40) || j.nguoi_lam || 'AI';
+        j.lich_su = [...(j.lich_su || []), { luc: t, viec: `${j.nguoi_lam} nhận việc` }].slice(-20);
+      }
+      await saveJobs(env, uid, jobs);
+    }
+  }
   return {
     data: {
       viec: want.map((j) => ({

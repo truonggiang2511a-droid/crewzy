@@ -243,7 +243,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
     const exec = async (name, args) => {
       if (isCrewzyTool(name)) {
-        const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs });
+        const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs, agent: 'Trợ lý Crewzy' });
         if (out && out.image) emit({ type: 'image', url: out.image });
         if (out && out.video) emit({ type: 'video', url: out.video });
         return out;

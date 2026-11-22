@@ -131,7 +131,7 @@
         '<a class="btn btn-ghost" href="quy-trinh.html?nganh=' + ind.id + '" style="min-height:34px;font-size:13px">Quy trình nên chạy (' + ind.workflows.length + ') ›</a>' +
         '<button type="button" class="btn btn-ghost" data-nganh="" style="min-height:34px;font-size:13px">Bỏ chọn</button></div>';
     }
-    box.innerHTML = head + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + chips + '</div>' + prog;
+    box.innerHTML = head + '<div class="hrow" style="display:flex;flex-wrap:wrap;gap:6px">' + chips + '</div>' + prog;
   }
 
   function renderList() {

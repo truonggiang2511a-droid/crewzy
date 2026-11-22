@@ -64,7 +64,20 @@ function rewriteRpc(text, contentType, id, fn) {
   try { return JSON.stringify(patch(JSON.parse(text))); } catch (e) { return text; }
 }
 
-export default async (request, env) => {
+// Tên thân thiện cho AI của khách từ clientInfo.name (claude-ai, claude-code, openai-mcp, codex-mcp-client, cursor…).
+function aiName(raw) {
+  const n = String(raw || '').toLowerCase();
+  if (n.includes('claude-code') || n.includes('claude code')) return 'Claude Code';
+  if (n.includes('claude')) return 'Claude';
+  if (n.includes('codex')) return 'Codex';
+  if (n.includes('openai') || n.includes('chatgpt')) return 'ChatGPT';
+  if (n.includes('gemini')) return 'Gemini';
+  if (n.includes('grok') || n.includes('xai')) return 'Grok';
+  if (n.includes('cursor')) return 'Cursor';
+  return raw ? String(raw).slice(0, 30) : 'AI của bạn';
+}
+
+export default async (request, env, ctx) => {
   const apiKey = getApiKey(env);
   if (!apiKey) return plain(500, 'Máy chủ chưa có khoá COMPOSIO_API_KEY.');
   const reqUrl = new URL(request.url);
@@ -98,7 +111,7 @@ export default async (request, env) => {
     const needApps = rpc.params.name === 'CREWZY_BRAIN' || rpc.params.name === 'CREWZY_QUY_TRINH';
     const slugs = needApps ? await connectedApps(env, uid) : [];
     const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
-    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names, connected: slugs });
+    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names, connected: slugs, agent: 'AI của bạn' });
     const text = out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data);
     const result = { content: [{ type: 'text', text }], isError: !!out.error };
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
@@ -147,6 +160,9 @@ export default async (request, env) => {
     const extTools = ext.defs.map((d) => ({ name: d.function.name, description: d.function.description, inputSchema: d.function.parameters }));
     patched = rewriteRpc(text, ct, rpc.id, (result) => { result.tools = [...(result.tools || []), ...MCP_TOOLS, ...extTools]; });
   } else {
+    // Ghi lại AI của khách vừa nối (Văn phòng → Bộ não hiện "Claude hoạt động 5 phút trước"). Chỉ ghi lúc initialize để đỡ tốn lượt ghi KV.
+    const ci = (rpc.params && rpc.params.clientInfo) || {};
+    ctx && ctx.waitUntil && ctx.waitUntil(env.KV.put('aiseen:' + uid, JSON.stringify({ ten: aiName(ci.name), luc: new Date().toISOString() }), { expirationTtl: 60 * 86400 }).catch(() => {}));
     const ins = await buildInstructions(env, uid);
     patched = rewriteRpc(text, ct, rpc.id, (result) => {
       result.instructions = [result.instructions, ins.text].filter(Boolean).join('\n\n');

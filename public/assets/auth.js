@@ -17,8 +17,11 @@
   function esc(t) { return String(t || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   function renderUser(user) {
-    var slot = document.querySelector('[data-user-slot]');
-    if (!slot) return;
+    // Máy tính: chân menu trái · điện thoại: bảng "Thêm" (layout.js vẽ [data-user-slot-m]).
+    document.querySelectorAll('[data-user-slot-m]').forEach(function (m) { if (!m.hasAttribute('data-user-slot')) m.setAttribute('data-user-slot', ''); });
+    document.querySelectorAll('[data-user-slot]').forEach(function (slot) { renderUserInto(slot, user); });
+  }
+  function renderUserInto(slot, user) {
     var initial = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
     var avatar = user.picture ? '<img src="' + esc(user.picture) + '" alt="" referrerpolicy="no-referrer">' : esc(initial);
     slot.innerHTML = '<div class="sb-user"><div class="sb-avatar">' + avatar + '</div><div class="sb-who" style="min-width:0;flex:1">' +

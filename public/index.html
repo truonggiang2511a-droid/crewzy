@@ -16,39 +16,48 @@
 <body>
 <div style="min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Điều hướng chính" data-sidebar></nav>
-<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
-<div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px">
-<div>
-<p class="muted" style="margin:0;font-size:13px"><span data-company>Doanh nghiệp của bạn</span> · <span data-clock>--:--</span> giờ Việt Nam</p>
-<h1 style="margin-top:4px">Văn phòng hôm nay</h1>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 20px; max-width: 1200px">
+<div class="page-head of-top">
+<div style="min-width:0">
+<p class="muted" style="margin:0;font-size:13px"><span data-company>Doanh nghiệp của bạn</span> · <span data-clock>--:--</span></p>
+<h1 style="margin-top:2px">Văn phòng hôm nay</h1>
 </div>
-<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-<span class="pill pill-ok live-pill"><span class="live-dot" aria-hidden="true"></span>Đang hoạt động 24/7</span>
-<span class="pill" title="Số liệu phòng ban và bảng tin là ví dụ cho tới khi bạn chạy quy trình thật">Dữ liệu mẫu</span>
+<div class="of-top-actions">
+<span class="pill live-pill" data-live><span class="live-dot" aria-hidden="true"></span><span data-live-text>Đang tải…</span></span>
 <a class="btn btn-ghost" href="quy-trinh.html">Chạy quy trình</a>
 <a class="btn btn-primary" href="chat.html">Giao việc</a>
 </div>
 </div>
 
+<a class="of-urgent" data-urgent href="cho-duyet.html" hidden><span class="of-urgent-n" data-urgent-n>0</span><span><b>việc đang chờ bạn duyệt</b><small>AI đã làm xong, bạn duyệt là đăng/gửi</small></span><span aria-hidden="true" class="of-urgent-go">Duyệt ›</span></a>
+
+<section class="card of-steps" data-steps hidden aria-labelledby="steps-h">
+<div class="of-steps-head"><h2 id="steps-h">Việc nên làm tiếp</h2><span class="pill" data-steps-progress>0/5</span></div>
+<div class="of-steps-bar"><div data-steps-bar></div></div>
+<ol class="of-steps-list" data-steps-list></ol>
+</section>
+
 <section aria-label="Số liệu" class="kpis">
-<div class="card kpi"><p class="kpi-label">Phòng đang làm</p><p class="kpi-num" data-kpi-work>0</p><p class="kpi-sub">trên 8 phòng</p></div>
-<a class="card kpi kpi-warn" href="cho-duyet.html"><p class="kpi-label">Chờ bạn duyệt</p><p class="kpi-num" data-kpi-wait>0</p><p class="kpi-sub">Bấm để duyệt</p></a>
-<div class="card kpi"><p class="kpi-label">Phiếu việc đã chuyển hôm nay</p><p class="kpi-num" data-kpi-done>42</p><p class="kpi-sub">tự cập nhật</p></div>
-<a class="card kpi" href="ket-noi.html"><p class="kpi-label">App đã kết nối</p><p class="kpi-num" data-kpi-apps>0</p><p class="kpi-sub">Kết nối thêm</p></a>
+<a class="card kpi kpi-warn" href="cho-duyet.html"><p class="kpi-label">Chờ bạn duyệt</p><p class="kpi-num" data-kpi="cho_duyet">–</p><p class="kpi-sub">Bấm để duyệt</p></a>
+<a class="card kpi" href="cho-duyet.html"><p class="kpi-label">Việc đang chạy</p><p class="kpi-num" data-kpi="dang_lam">–</p><p class="kpi-sub">đang làm + chờ AI nhận</p></a>
+<a class="card kpi" href="cho-duyet.html"><p class="kpi-label">Xong 7 ngày</p><p class="kpi-num" data-kpi="da_xong_7_ngay">–</p><p class="kpi-sub">đã đăng / hoàn thành</p></a>
+<a class="card kpi" href="quy-trinh.html"><p class="kpi-label">Lịch tự chạy</p><p class="kpi-num" data-kpi="lich_bat">–</p><p class="kpi-sub">đang bật</p></a>
+<a class="card kpi" href="ket-noi.html"><p class="kpi-label">App đã nối</p><p class="kpi-num" data-kpi="app">–</p><p class="kpi-sub" data-kpi-mcp>+ máy chủ MCP</p></a>
 </section>
 
 <section class="office" aria-labelledby="office-h">
 <div class="office-map">
 <div class="office-head">
-<div><h2 id="office-h">Sơ đồ văn phòng</h2><p>Bấm vào một phòng để xem việc. Đường sáng là phiếu việc đang chuyển giữa các phòng.</p></div>
-<div class="office-legend"><span><i style="background:#22C55E"></i>Đang làm</span><span><i style="background:#F5A524"></i>Chờ duyệt</span><span><i style="background:#7C8597"></i>Rảnh</span><span><i style="background:#22D3EE"></i>App đã nối</span></div>
+<div><h2 id="office-h">Sơ đồ văn phòng</h2><p data-office-sub>Số liệu thật từ phiếu việc, lịch và app đã nối. Tự cập nhật.</p></div>
+<div class="office-legend"><span><i style="background:#22C55E"></i>Đang làm</span><span><i style="background:#F5A524"></i>Chờ duyệt</span><span><i style="background:#60A5FA"></i>Chờ AI nhận</span><span><i style="background:#22D3EE"></i>Vừa xong</span><span><i style="background:#F87171"></i>Cần nối app</span><span><i style="background:#7C8597"></i>Rảnh</span></div>
 </div>
 <div data-graph class="office-graph"></div>
+<div data-tiles class="of-tiles"></div>
 </div>
 <aside class="office-side">
 <div class="office-detail" data-detail aria-live="polite"></div>
 <div class="office-feed">
-<p class="of-head"><span class="live-dot" aria-hidden="true"></span>Phiếu việc vừa chuyển</p>
+<p class="of-head"><span class="live-dot" aria-hidden="true"></span>Hoạt động gần đây</p>
 <ul data-feed class="of-list"></ul>
 </div>
 </aside>
