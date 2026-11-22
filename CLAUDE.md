@@ -16,19 +16,18 @@ Tên biến/hàm: tiếng Anh. Không tuyên bố "đã chạy được/đã bui
 
 ---
 
-## 0. Cách làm việc với Giang (lấy theo mục 0 CLAUDE.md của vi-tri-studio, áp dụng cho MỌI yêu cầu)
+## 0. Cách làm việc với Giang (áp dụng cho MỌI yêu cầu, sửa 22/11/2026 theo ý Giang)
 
-**Phản biện trước, làm sau.** Mỗi yêu cầu của Giang được xét theo mục tiêu thật (doanh nghiệp không rành công nghệ
-kết nối xong là chạy, ra khách và doanh thu thật, app có lãi trên credit) chứ không làm theo nguyên văn.
+**Gỡ rối và đề xuất ý tưởng, không bắt bẻ.** Mục tiêu là tìm ra hướng giải quyết tối ưu cho mục tiêu thật (doanh nghiệp
+không rành công nghệ kết nối xong là chạy, ra khách và doanh thu thật, app có lãi trên credit), không phải soi lỗi đề xuất của Giang.
 
 Mỗi lần nhận yêu cầu:
-1. Nêu ngắn mục tiêu thật đằng sau yêu cầu.
-2. Đối chiếu với repo và mục 3: cái gì đã có sẵn, cái gì xung đột với điều đã chốt, cái gì sai kỹ thuật/dữ liệu
-   (kiểm tra tài liệu thật, không tin tên API trong đề bài).
-3. Nói thẳng chỗ chưa ổn, chi phí và rủi ro (tiền API, giấy phép, duyệt app Meta/TikTok/Google), đề xuất cách tốt hơn,
-   chia giai đoạn nhỏ, có công tắc bật/tắt.
-4. Chỉ hỏi lại quyết định thật sự thuộc về Giang. Yêu cầu rõ và rẻ để làm lại thì làm luôn, ghi rõ đã chọn hướng nào.
-5. Giang vẫn chọn hướng của mình sau khi nghe phản biện → làm theo Giang, ghi quyết định vào nhật ký mục 5.
+1. Hiểu mục tiêu thật đằng sau yêu cầu (nói 1 câu nếu cần cho rõ).
+2. Tự tư duy ra cách làm, kể cả cách mới Giang chưa nghĩ tới; tận dụng cái repo đã có, kiểm tra tài liệu thật trước khi dùng một API.
+3. Đề xuất hướng tốt nhất (kèm 1–2 phương án khác thật ngắn nếu đáng cân nhắc), rồi làm luôn nếu yêu cầu rõ và dễ làm lại.
+4. Rủi ro thật (tốn tiền, mất dữ liệu, làm hỏng khách đang dùng/quảng cáo, bị nền tảng chặn) chỉ nêu 1–2 câu KÈM cách né.
+   Không liệt kê lỗi vụn, không phản biện từng chi tiết, không mở đầu bằng "chỗ chưa ổn".
+5. Chỉ hỏi lại quyết định thật sự thuộc về Giang. Giang chọn hướng nào thì làm hướng đó, ghi quyết định vào nhật ký mục 5.
 
 Giang cho phép tự bổ sung/sửa file này khi thấy chi tiết thiếu hoặc sai so với code thật, miễn là kiểm chứng trước khi ghi.
 Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, sự kiện đo chuyển đổi và khách đang dùng.
@@ -402,6 +401,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026: Giang chốt KHÔNG tự xin duyệt app Meta/Google cho Crewzy, dùng app quản lý chung của Composio làm trung gian (sau khi nghe
   phản biện: màn đồng ý hiện tên Composio; Meta hạn chế/thu hồi app chung thì mọi khách hỏng cùng lúc; Composio khuyên dùng app riêng khi chạy thật).
   Giữ 5 tài khoản/công cụ (Composio cho 2–10); 1 lần nối Facebook dùng được mọi Fanpage nick đó quản lý.
+- 22/11/2026: Giang dặn bớt phản biện, tập trung tự nghĩ cách làm mới, gợi ý gỡ rối và đề xuất ý tưởng → viết lại mục 0.
 
 ## 6. Việc tiếp theo
 
