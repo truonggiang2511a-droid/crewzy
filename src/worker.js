@@ -1,5 +1,6 @@
 // Crewzy · Cloudflare Worker: phục vụ trang tĩnh trong public/ (binding ASSETS) và các API.
 // /api/* và /mcp/* chạy Worker trước (wrangler.jsonc → assets.run_worker_first), còn lại trả file tĩnh.
+import upload from './routes/upload.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -33,6 +34,7 @@ export default {
       if (pathname.startsWith('/mcp/')) return await mcpGateway(request, env, ctx);
       if (pathname.startsWith('/api/img/')) return await serveImage(request, env);
       if (pathname.startsWith('/api/media/')) return await serveMedia(request, env);
+      if (pathname === '/api/upload' || pathname.startsWith('/api/upload/')) return await upload(request, env);
       const handler = ROUTES[pathname];
       if (handler) return await handler(request, env, ctx);
       if (pathname.startsWith('/api/')) return Response.json({ error: 'Không có API này.' }, { status: 404 });

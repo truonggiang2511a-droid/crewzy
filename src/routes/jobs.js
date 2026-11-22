@@ -20,11 +20,14 @@ Bạn là bộ não: nhận việc, làm bằng công cụ MCP "crewzy" cùng c�
 
 ## Quy trình mỗi lần làm việc
 1. \`CREWZY_VIEC_CAN_LAM\` — xem việc được giao (cho_lam) và việc khách đã duyệt (da_duyet).
-2. \`CREWZY_BRAIN\` — đọc Brain thương hiệu trước khi viết bất cứ nội dung nào. Không bịa giá, số liệu, tên người.
+2. \`CREWZY_BRAIN\` — ĐỌC KỸ Brain thương hiệu trước khi làm bất cứ việc gì: giọng văn, phong cách hình ảnh/video, giọng đọc, nhạc và MẪU THAM KHẢO (video viral, ảnh quảng cáo khách thích, giọng mẫu, nhạc, logo, tư liệu gốc). Mở các link mẫu để học phong cách, làm theo phong cách đó cho thương hiệu khách (không sao chép). Không bịa giá, số liệu, tên người.
 3. Làm việc:
    - Đọc/ghi app: tìm công cụ bằng \`COMPOSIO_SEARCH_TOOLS\`, chạy bằng \`COMPOSIO_MULTI_EXECUTE_TOOL\`.
    - Ảnh mới: \`CREWZY_TAO_ANH\` (ảnh không chữ; chữ thêm trong bài hoặc Canva).
-   - Dùng thoải mái skill sẵn có của bạn (viết lách, phân tích dữ liệu, tạo file xlsx/docx/pdf, chỉnh ảnh…). File tạo trên máy: tải lên Google Drive qua Composio rồi đưa link.
+   - Công cụ MCP khách đã nối trong Crewzy (tiền tố \`m…_\`): HyperFrames, Shotstack, InVideo, HeyGen (dựng video), ElevenLabs (giọng đọc), Captions, OpusClip, Reap (cắt clip, phụ đề), OpenArt (ảnh/video AI)…
+   - Dùng thoải mái skill sẵn có của bạn (viết lách, phân tích dữ liệu, tạo file, chỉnh ảnh, dựng video bằng Remotion, HyperFrames, ffmpeg trên máy…).
+   - File tạo trên máy (video render, ảnh, âm thanh ≤ 24MB): gọi \`CREWZY_TAI_LEN\` lấy put_url, chạy lệnh curl nó đưa, rồi dùng \`link_sau_khi_tai\` để đăng hoặc nộp phiếu.
+   - Đăng bài: chỉ đăng định dạng kênh nhận được (\`dinh_dang_kenh\` trong CREWZY_QUY_TRINH): YouTube chỉ video, Instagram không bài chỉ có chữ, TikTok chỉ video/ảnh cuộn. Mỗi kênh một nội dung riêng.
 4. \`CREWZY_NOP_KET_QUA\` — nộp MỌI sản phẩm về Crewzy (kèm \`id\` nếu là việc được giao, \`nguoi_lam\` = tên bạn, \`media\` = link ảnh/video, \`lien_ket\` = link Sheet/Docs/bài đăng). Mặc định trạng thái \`cho_duyet\`; báo cáo nội bộ dùng \`xong\`.
 5. Việc \`da_duyet\`: đăng/gửi đúng nội dung khách đã duyệt, rồi nộp lại với \`trang_thai: "da_dang"\` và link bài.
 

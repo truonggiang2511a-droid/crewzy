@@ -4,16 +4,16 @@
 // KV giới hạn 25 MiB mỗi giá trị → file lớn hơn giữ link gốc và báo AI biết link có thể hết hạn.
 
 const MEDIA_TTL = 90 * 86400;
-const MAX_BYTES = 24 * 1024 * 1024;
+export const MAX_BYTES = 24 * 1024 * 1024;
 const MAX_PER_CALL = 4;
-const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/mp4': 'm4a' };
+export const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/mp4': 'm4a' };
 const MEDIA_EXT = /\.(png|jpe?g|webp|gif|mp4|webm|mov|m4v|mp3|wav|m4a)(\?|#|$)/i;
 const MEDIA_KEY = /(image|img|video|media|output|result|asset|file|download|thumbnail|preview|url|uri|src)/i;
 
-function newId() {
+export function newId() {
   return Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => x.toString(16).padStart(2, '0')).join('');
 }
-const kindOf = (ct) => (ct.startsWith('video/') ? 'video' : ct.startsWith('audio/') ? 'audio' : 'image');
+export const kindOf = (ct) => (ct.startsWith('video/') ? 'video' : ct.startsWith('audio/') ? 'audio' : 'image');
 function b64ToBytes(b64) { const bin = atob(b64); return Uint8Array.from(bin, (c) => c.charCodeAt(0)); }
 
 function isPublicHttps(u) {
@@ -62,8 +62,8 @@ export function findMediaCandidates(result) {
   return out.slice(0, MAX_PER_CALL * 2);
 }
 
-async function putMedia(env, uid, origin, bytes, ct, src) {
-  const id = newId();
+export async function putMedia(env, uid, origin, bytes, ct, src, fixedId) {
+  const id = fixedId || newId();
   await env.KV.put('media:' + id, bytes, { expirationTtl: MEDIA_TTL, metadata: { ct, uid, src: (src || '').slice(0, 300) } });
   return `${origin}/api/media/${id}.${EXT[ct] || 'bin'}`;
 }

@@ -7,7 +7,9 @@ export default async (req, env) => {
   const url = new URL(req.url);
   const toolkit = url.searchParams.get('toolkit') || '';
 
-  if (!TOOLKITS.includes(toolkit)) {
+  // TẠM THỜI (gỡ ngay sau khi thử): chỉ cho thử đúng các slug video/giọng đọc mới.
+  const probe = url.searchParams.get('thu') === '1' && ['captions', 'cartesia', 'descript_mcp', 'fish_audio', 'luma_labs'].includes(toolkit);
+  if (!TOOLKITS.includes(toolkit) && !probe) {
     return Response.json({ error: 'Công cụ này chưa được mở kết nối thật.' }, { status: 400 });
   }
   const who = await resolveUid(req, env, url.searchParams.get('uid'));

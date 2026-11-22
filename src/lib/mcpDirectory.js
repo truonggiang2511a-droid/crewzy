@@ -3,12 +3,20 @@
 //   auth 'none'  = nối xong ngay, không đăng nhập · 'oauth' = Crewzy tự đăng ký app và ra trang đăng nhập đúng
 //   ngoai: true  = máy chủ chặn link quay về của Crewzy (chỉ nhận Claude/ChatGPT…) → khách thêm trong AI của họ
 // logo: slug ảnh ở logos.composio.dev (bỏ trống thì hiện chữ cái đầu trên nền bg).
-const M = (id, name, url, auth, cat, desc, extra = {}) => ({ id, name, url, host: new URL(url).hostname.replace(/^(mcp|ai|docs)\./, ''), auth, cat, desc, ...extra });
+// host: chuỗi để nhận ra máy chủ đã nối trong link khách lưu (HeyGen và HyperFrames chung tên miền → thêm đường dẫn).
+const M = (id, name, url, auth, cat, desc, extra = {}) => ({ id, name, url, host: new URL(url).hostname.replace(/^(mcp|ai|docs|api)\./, ''), auth, cat, desc, ...extra });
 
 export const MCP_DIRECTORY = [
   // Làm nội dung, ảnh, video
   M('openart', 'OpenArt', 'https://mcp.openart.ai/mcp', 'oauth', 'creative', 'Tạo ảnh và video AI, ảnh/video về thẳng khung chat để đăng.', { letter: 'O', bg: '#111111' }),
-  M('heygen', 'HeyGen', 'https://mcp.heygen.com/mcp', 'oauth', 'creative', 'Video người dẫn AI (avatar) đọc kịch bản.', { logo: 'heygen' }),
+  M('hyperframes', 'HyperFrames (HeyGen)', 'https://mcp.heygen.com/mcp/hyperframes', 'oauth', 'creative', 'Dựng và render video từ HTML: chữ động, slide, motion graphics, video quảng cáo theo mẫu.', { letter: 'H', bg: '#5B3DF5', host: 'heygen.com/mcp/hyperframes' }),
+  M('heygen', 'HeyGen', 'https://mcp.heygen.com/mcp/v1/', 'oauth', 'creative', 'Video người dẫn AI (avatar), giọng đọc, dịch video, nhép môi.', { logo: 'heygen', host: 'heygen.com/mcp/v1' }),
+  M('shotstack', 'Shotstack', 'https://mcp.shotstack.io/', 'oauth', 'creative', 'Dựng video tự động: ghép cảnh, chữ, nhạc, render trên mây.', { letter: 'S', bg: '#1B1F3B' }),
+  M('invideo', 'InVideo AI', 'https://mcp.invideo.io/mcp', 'oauth', 'creative', 'Làm video hoàn chỉnh từ kịch bản: cảnh, giọng, phụ đề, nhạc.', { letter: 'I', bg: '#7B2FF7' }),
+  M('elevenlabs', 'ElevenLabs', 'https://api.elevenlabs.io/v1/mcp', 'oauth', 'creative', 'Giọng đọc AI, nhân bản giọng của bạn, nhạc, hiệu ứng âm thanh.', { logo: 'elevenlabs' }),
+  M('captions', 'Captions', 'https://mcp.captions.ai/mcp', 'oauth', 'creative', 'Phụ đề tự động, cắt video, người dẫn AI.', { letter: 'C', bg: '#0F0F0F' }),
+  M('opus', 'OpusClip', 'https://mcp.opus.pro/mcp', 'oauth', 'creative', 'Cắt video dài thành clip ngắn viral, phụ đề, khổ 9:16.', { letter: 'O', bg: '#6C3BFF' }),
+  M('reap', 'Reap', 'https://mcp.reap.video/mcp', 'oauth', 'creative', 'Cắt clip, phụ đề, lồng tiếng, đổi khổ video.', { letter: 'R', bg: '#FF5A1F' }),
   M('metricool', 'Metricool', 'https://ai.metricool.com/mcp', 'oauth', 'social', 'Lên lịch đăng nhiều kênh (cả TikTok), số liệu, giờ đăng tốt nhất.', { letter: 'M', bg: '#1C6BF2' }),
   M('wix', 'Wix', 'https://mcp.wix.com/mcp', 'oauth', 'web', 'Sửa website Wix, blog, cửa hàng.', { logo: 'wix' }),
   M('webflow', 'Webflow', 'https://mcp.webflow.com/mcp', 'oauth', 'web', 'Sửa trang và CMS Webflow.', { logo: 'webflow' }),

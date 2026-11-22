@@ -72,6 +72,18 @@ export async function verifyUpstreamToken(token, apiKey) {
   } catch (e) { return null; }
 }
 
+// Mã ký dùng chung cho link có hạn (vd link tải file lên cho AI): base64url(JSON) + '.' + HMAC theo mục đích.
+export async function signData(env, purpose, data) {
+  const payload = b64UrlText(JSON.stringify(data));
+  return `${payload}.${await hmac('crewzy-' + purpose + '|' + sessionSecret(env), payload)}`;
+}
+export async function verifyData(env, purpose, token) {
+  const [payload, sig] = String(token || '').split('.');
+  if (!payload || !sig) return null;
+  if (!sameText(await hmac('crewzy-' + purpose + '|' + sessionSecret(env), payload), sig)) return null;
+  try { const d = JSON.parse(textFromB64Url(payload)); return d && (!d.e || d.e > Date.now()) ? d : null; } catch (e) { return null; }
+}
+
 // ---------- Phiên đăng nhập ----------
 // Cookie vpai_session = base64url(JSON) + '.' + HMAC. Khoá ký: SESSION_SECRET, chưa đặt thì suy ra từ COMPOSIO_API_KEY.
 export const SESSION_COOKIE = 'vpai_session';

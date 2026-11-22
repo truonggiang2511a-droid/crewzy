@@ -13,6 +13,7 @@
   var channel = new URLSearchParams(location.search).get('kenh') || 'all';
   // Ngành: ?nganh= hoặc lựa chọn đã lưu ở trang Kết nối (localStorage crewzy.nganh). Chọn ngành → chỉ hiện quy trình nên chạy, theo thứ tự ưu tiên.
   var industries = [];
+  var brandData = {};
   var nganh = new URLSearchParams(location.search).get('nganh') || (function () { try { return localStorage.getItem('crewzy.nganh') || 'all'; } catch (e) { return 'all'; } })();
   function saveNganh() { try { if (nganh === 'all') localStorage.removeItem('crewzy.nganh'); else localStorage.setItem('crewzy.nganh', nganh); } catch (e) {} }
   function chip(attr, id, label, on) {
@@ -126,6 +127,8 @@
         '<p class="muted" style="margin:0;font-size:13px;line-height:1.55">' + esc(w.mo_ta) + '</p>' +
         '<p style="margin:0;font-size:12px;color:#4A4A4A">Gợi ý lịch: ' + esc(w.lich) + '</p>' +
         (kenh ? '<div style="display:flex;gap:4px;flex-wrap:wrap">' + kenh + '</div>' : '') +
+        (w.media && !(brandData.video_style || brandData.visual || (brandData.refs || []).length) ? '<p style="margin:0;padding:8px 10px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.5">AI làm theo phong cách và mẫu bạn thích: thêm <a href="thuong-hieu.html#f-visual">phong cách hình ảnh/video, giọng đọc và video, ảnh mẫu</a> ở Brain thương hiệu để ra đúng gu.</p>' : '') +
+        (w.tu_dong ? '<p class="muted" style="margin:0;font-size:12px">Có chế độ tự trả lời: bấm Hẹn giờ → Mỗi giờ → bật "Cho AI tự trả lời câu thường".</p>' : '') +
         (groups ? '<details' + (ready ? '' : ' open') + '><summary style="cursor:pointer;font-size:13px;font-weight:600">Công cụ chạy quy trình (' + (w.cong_cu || []).length + ' vai trò, chọn app bạn dùng)</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">' + groups + '</div></details>' : '') +
         '<details><summary style="cursor:pointer;font-size:13px;font-weight:600">Các bước (' + w.buoc.length + ')</summary><ol style="margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.6">' + w.buoc.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol></details>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">' + (fix ||
@@ -148,7 +151,7 @@
     box.hidden = !sched.schedules.length;
     $('[data-sched-list]').innerHTML = sched.schedules.map(function (s) {
       return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line, #E8E8E8);border-radius:8px' + (s.bat ? '' : ';opacity:.55') + '">' +
-        '<div style="flex:1;min-width:200px"><p style="margin:0;font-weight:600;font-size:14px">' + esc(s.ten) + '</p><p class="muted" style="margin:2px 0 0;font-size:12px">' + esc(sched.days[s.ngay] || s.ngay) + ' lúc ' + esc(s.gio) + ' · ' + esc(sched.modes[s.che_do] || s.che_do) + (s.lan_cuoi ? ' · lần gần nhất ' + esc(s.lan_cuoi) : '') + '</p></div>' +
+        '<div style="flex:1;min-width:200px"><p style="margin:0;font-weight:600;font-size:14px">' + esc(s.ten) + '</p><p class="muted" style="margin:2px 0 0;font-size:12px">' + esc(sched.days[s.ngay] || s.ngay) + (s.lap === 'moi_gio' ? ' mỗi giờ ' + esc(s.gio) + '–' + esc(s.den || '22:00') : ' lúc ' + esc(s.gio)) + (s.tu_dong ? ' · tự trả lời câu thường' : '') + ' · ' + esc(sched.modes[s.che_do] || s.che_do) + (s.lan_cuoi ? ' · lần gần nhất ' + esc(s.lan_cuoi) : '') + '</p></div>' +
         '<button type="button" class="btn btn-ghost" data-sact="' + (s.bat ? 'tat' : 'bat') + '" data-sid="' + s.id + '">' + (s.bat ? 'Tạm dừng' : 'Bật lại') + '</button>' +
         '<button type="button" class="btn btn-ghost" data-sact="xoa" data-sid="' + s.id + '" style="color:#8A2A12">Xoá</button></div>';
     }).join('');
@@ -173,12 +176,28 @@
     var m = /(\d{1,2}):(\d{2})/.exec(w.lich || '');
     sform.gio.value = m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '08:00';
     $('[data-sched-msg]').style.display = 'none';
+    sform.lap.value = w.tu_dong ? 'moi_gio' : '';
+    var tw = $('[data-tudong-wrap]'); tw.hidden = !w.tu_dong; tw.style.display = w.tu_dong ? 'flex' : 'none';
+    sform.tu_dong.checked = false;
+    syncRepeat();
     if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
   }
   $('[data-sched-cancel]').addEventListener('click', function () { dialog.close(); });
+  // Lặp mỗi giờ: hiện ô "Tới", bắt buộc Trợ lý Crewzy tự làm; quy trình có tu_dong thì hiện ô cho tự trả lời.
+  function syncRepeat() {
+    var hourly = sform.lap.value === 'moi_gio';
+    $('[data-den-wrap]').hidden = !hourly;
+    $('[data-den-wrap]').style.display = hourly ? 'flex' : 'none';
+    $('[data-gio-label]').textContent = hourly ? 'Từ (giờ Việt Nam)' : 'Giờ (giờ Việt Nam)';
+    $('[data-lap-note]').hidden = !hourly;
+    if (hourly) sform.che_do.value = 'crewzy';
+    Array.prototype.forEach.call(sform.che_do.options, function (o) { o.disabled = hourly && o.value !== 'crewzy'; });
+  }
+  sform.lap.addEventListener('change', syncRepeat);
   sform.addEventListener('submit', function (e) {
     e.preventDefault();
-    post('/api/schedules', { action: 'tao', quy_trinh: schedFor.id, gio: sform.gio.value, ngay: sform.ngay.value, che_do: sform.che_do.value, ghi_chu: sform.ghi_chu.value }).then(function () {
+    post('/api/schedules', { action: 'tao', quy_trinh: schedFor.id, gio: sform.gio.value, ngay: sform.ngay.value, che_do: sform.che_do.value, ghi_chu: sform.ghi_chu.value,
+      lap: sform.lap.value, den: sform.den.value, tu_dong: !!(schedFor.tu_dong && sform.tu_dong.checked) }).then(function () {
       dialog.close(); sform.ghi_chu.value = '';
       say('Đã hẹn giờ "' + schedFor.ten + '". Tới giờ kết quả sẽ về Việc chờ duyệt.', true);
       loadSched();
@@ -228,6 +247,7 @@
     accounts = (r[2] && r[2].accounts) || {};
     mcpUrls = ((r[3] && r[3].servers) || []).map(function (s) { return s.url; });
     var b = (r[4] && r[4].brand) || {};
+    brandData = b;
     $('[data-brand-warn]').hidden = !!(b.name || b.products);
     render();
   }).catch(function (err) { listEl.innerHTML = ''; say(err.message); });

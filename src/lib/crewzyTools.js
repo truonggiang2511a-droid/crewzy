@@ -2,10 +2,11 @@
 // CREWZY_TAO_ANH: tạo ảnh thật bằng Workers AI, lưu KV, trả link công khai https://<site>/api/img/<id>.jpg
 //   (dùng được để đăng Facebook/Instagram, tải lên Canva/Drive). Canva API KHÔNG tạo ảnh từ chữ nên phải dùng công cụ này.
 // CREWZY_BRAIN: đọc Brain thương hiệu + danh sách app đã kết nối (cho AI bên ngoài như Claude/ChatGPT/Gemini/Grok).
-import { getBrand, brandText } from './brand.js';
+import { getBrand, brandText, brandPack } from './brand.js';
+import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl } from './media.js';
-import { WORKFLOWS, DEPARTMENTS, workflowById, missingFor, WORKFLOW_RULES } from './workflows.js';
+import { WORKFLOWS, DEPARTMENTS, workflowById, missingFor, WORKFLOW_RULES, formatsFor, MCP_HOSTS } from './workflows.js';
 import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
 
@@ -127,6 +128,16 @@ export async function createVideo(env, uid, origin, args) {
   };
 }
 
+// Link tải file lên cho AI chạy trên máy khách (Claude Code, Codex): video/ảnh vừa dựng bằng Remotion, HyperFrames, ffmpeg…
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_TAI_LEN',
+    description: 'Xin link tải 1 file (video, ảnh, âm thanh ≤ 24MB) từ máy của bạn lên Crewzy, dùng khi bạn là AI chạy trên máy (Claude Code, Codex) và vừa dựng/render file bằng Remotion, HyperFrames, ffmpeg… Trả put_url + lệnh curl; tải xong dùng link_sau_khi_tai để đăng bài hoặc nộp CREWZY_NOP_KET_QUA. Mỗi file xin 1 link.',
+    parameters: { type: 'object', properties: { loai_file: { type: 'string', enum: ['video/mp4', 'video/webm', 'video/quicktime', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/wav', 'audio/mp4'], description: 'Loại file, ví dụ video/mp4.' } }, required: ['loai_file'] },
+  },
+});
+
 // Quy trình chuẩn (src/lib/workflows.js): AI lấy đúng các bước + kiểm tra app thiếu trước khi chạy.
 CREWZY_TOOL_DEFS.push({
   type: 'function',
@@ -142,7 +153,8 @@ function mcpHint(groups) {
   return ids.length ? ' (' + ids.map((m) => `${m.name}: ${m.url}`).join(', ') + ')' : '';
 }
 async function workflowTool(env, uid, args, connected) {
-  const urls = (await listServers(env, uid).catch(() => [])).map((s) => s.url);
+  const servers = (await listServers(env, uid).catch(() => [])).filter((x) => !x.off);
+  const urls = servers.map((x) => x.url);
   const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
   const id = args && args.id;
   if (!id) {
@@ -154,7 +166,12 @@ async function workflowTool(env, uid, args, connected) {
   const w = workflowById(id);
   if (!w) return { error: 'Không có quy trình ' + id + '. Gọi CREWZY_QUY_TRINH không kèm id để xem danh sách.' };
   const miss = missingFor(w, connected, urls);
+  const brand = await getBrand(env, uid).catch(() => null);
+  const mcpIds = Object.keys(MCP_HOSTS).filter((k) => urls.some((u) => u.includes(MCP_HOSTS[k])));
   return { data: {
+    doc_truoc: 'BƯỚC 0: đọc kỹ thuong_hieu dưới đây (và mở các link mẫu tham khảo) trước khi làm bất cứ bước nào.',
+    thuong_hieu: brandPack(brand, !!w.media),
+    dinh_dang_kenh: formatsFor(connected, mcpIds),
     id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, can_hoi_khach: w.hoi || undefined,
     kenh: w.kenh, loai_ket_qua: w.loai,
     cong_cu: miss.groups, thieu_nhom: miss.nhom, san_sang: !miss.nhom.length,
@@ -237,7 +254,8 @@ export async function storeImageBytes(env, uid, origin, base64, mimeType) {
 export async function readBrain(env, uid, connectedNames) {
   const brand = await getBrand(env, uid);
   const text = brandText(brand);
-  return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', app_da_ket_noi: connectedNames || [] } };
+  const pack = brandPack(brand, true);
+  return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
 }
 
 export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected }) {
@@ -248,6 +266,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || []);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
+    if (name === 'CREWZY_TAI_LEN') return await createPutLink(env, origin, uid, args && args.loai_file);
     if (name === 'CREWZY_CHO') {
       const s = Math.min(30, Math.max(5, Number((args && args.giay) || 15)));
       await new Promise((r) => setTimeout(r, s * 1000));

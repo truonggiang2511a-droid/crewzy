@@ -40,8 +40,12 @@
 <form method="dialog" data-sched-form style="padding:18px;display:flex;flex-direction:column;gap:12px">
 <h2 style="margin:0;font-size:17px;font-weight:600" data-sched-title>Hẹn giờ chạy</h2>
 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ngày chạy<select class="field" name="ngay"></select></label>
-<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Giờ (giờ Việt Nam)<input class="field" name="gio" type="time" value="08:00" required></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Lặp lại<select class="field" name="lap"><option value="">Một lần mỗi ngày</option><option value="moi_gio">Mỗi giờ trong khung giờ</option></select></label>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;flex:1;min-width:140px"><span data-gio-label>Giờ (giờ Việt Nam)</span><input class="field" name="gio" type="time" value="08:00" required></label>
+<label data-den-wrap hidden style="flex-direction:column;gap:4px;font-size:13px;font-weight:600;flex:1;min-width:140px">Tới<input class="field" name="den" type="time" value="22:00"></label></div>
 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ai làm<select class="field" name="che_do"></select></label>
+<label data-tudong-wrap hidden style="gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;padding:10px;border-radius:8px;background:#F5F7FF"><input type="checkbox" name="tu_dong" style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Cho AI tự trả lời câu thường</b> (khen, hỏi giá → mời nhắn tin, câu có trong FAQ). Phàn nàn, đổi trả, câu nhạy cảm vẫn chờ bạn duyệt.</span></label>
+<p data-lap-note hidden class="muted" style="margin:0;font-size:12px;line-height:1.5">Mỗi lượt chạy dùng credit của Crewzy (tính vào 30 lượt/ngày của bạn). Khung 8:00–22:00 là 15 lượt mỗi ngày.</p>
 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ghi chú cho AI (không bắt buộc)<input class="field" name="ghi_chu" maxlength="500" placeholder="Ví dụ: đối thủ là @abc, @xyz"></label>
 <p data-sched-msg role="status" style="margin:0;display:none;font-size:13px;color:#8A2A12"></p>
 <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost" data-sched-cancel>Huỷ</button><button type="submit" class="btn btn-primary" value="ok">Lưu lịch</button></div>

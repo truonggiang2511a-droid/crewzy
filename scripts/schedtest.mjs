@@ -21,4 +21,15 @@ assert.equal(jobs.length, 2); assert.ok(jobs.every((j) => j.trang_thai === 'cho_
 const r2 = await runDueSchedules(env, { origin: 'https://x', now: new Date('2026-11-23T00:25:00Z'), runAuto: async () => {} });
 assert.equal(r2.created, 0);
 assert.equal(isDue({ bat: true, gio: '07:00', ngay: 'hang_ngay', lan_cuoi: '' }, vnNow(new Date('2026-11-23T03:30:00Z'))), false); // trễ quá 2 tiếng
+// Lịch mỗi giờ (chỉ chế độ crewzy), có tự trả lời
+assert.ok((await createSchedule(env, 'test-sched-0002', { quy_trinh: 'tra_loi_binh_luan', gio: '08:00', den: '22:00', ngay: 'hang_ngay', lap: 'moi_gio', che_do: 'ai_cua_toi' })).error);
+const h = await createSchedule(env, 'test-sched-0002', { quy_trinh: 'tra_loi_binh_luan', gio: '08:00', den: '22:00', ngay: 'hang_ngay', lap: 'moi_gio', che_do: 'crewzy', tu_dong: true });
+assert.equal(h.schedule.lap, 'moi_gio'); assert.equal(h.schedule.tu_dong, true);
+const prompts = [];
+const run = (iso) => runDueSchedules(env, { origin: 'https://x', now: new Date(iso), runAuto: async (u, job, p) => { if (u === 'test-sched-0002') prompts.push(p); } });
+await run('2026-11-23T02:05:00Z'); // 09:05 VN
+await run('2026-11-23T02:20:00Z'); // 09:20 VN — cùng giờ, không chạy lại
+await run('2026-11-23T03:05:00Z'); // 10:05 VN
+await run('2026-11-23T16:05:00Z'); // 23:05 VN — ngoài khung giờ
+assert.equal(prompts.length, 2); assert.ok(prompts[0].includes('TỰ TRẢ LỜI ĐÃ BẬT'));
 console.log('schedtest OK');

@@ -165,7 +165,7 @@ export async function submitResult(env, uid, origin, args) {
 // Câu lệnh mẫu dạng MCP prompts: hiện thành lệnh gạch chéo trong Claude Code (/mcp__crewzy__…) và mục Prompts ở các AI khác.
 export const MCP_PROMPTS = [
   { name: 'lam_viec_crewzy', title: 'Làm các việc Crewzy giao', description: 'Nhận phiếu việc từ Crewzy, làm bằng app đã kết nối, nộp kết quả để khách duyệt.',
-    text: 'Gọi CREWZY_VIEC_CAN_LAM. Với từng việc cần làm: đọc Brain thương hiệu (CREWZY_BRAIN), làm bằng các app đã kết nối và skill bạn có, rồi nộp bằng CREWZY_NOP_KET_QUA kèm id. Với việc đã duyệt: đăng/gửi đúng nội dung đã duyệt rồi nộp lại trạng thái da_dang kèm link. Cuối cùng tóm tắt cho tôi đã làm những gì.' },
+    text: 'Gọi CREWZY_VIEC_CAN_LAM. Với từng việc cần làm: đọc kỹ Brain thương hiệu và mẫu tham khảo (CREWZY_BRAIN), làm bằng các app đã kết nối và skill bạn có, rồi nộp bằng CREWZY_NOP_KET_QUA kèm id. Với việc đã duyệt: đăng/gửi đúng nội dung đã duyệt rồi nộp lại trạng thái da_dang kèm link. Cuối cùng tóm tắt cho tôi đã làm những gì.' },
   { name: 'len_lich_tuan', title: 'Lên 7 bài cho tuần', description: 'Kế hoạch 7 bài đăng theo Brain thương hiệu, nộp về Crewzy chờ duyệt.',
     text: 'Đọc Brain thương hiệu (CREWZY_BRAIN), lên 7 bài Facebook cho tuần này, mỗi bài một góc khác nhau (lợi ích, câu hỏi khách hay hỏi, hậu trường, ưu đãi, cảm nhận khách). Viết đầy đủ từng bài, rồi nộp về Crewzy bằng CREWZY_NOP_KET_QUA (loai bai_dang) để tôi duyệt. Chưa đăng.' },
   { name: 'bao_cao_tuan', title: 'Báo cáo tuần', description: 'Tổng hợp số liệu quảng cáo và kênh đã kết nối, nộp báo cáo về Crewzy.',
@@ -173,7 +173,7 @@ export const MCP_PROMPTS = [
   { name: 'tra_loi_binh_luan', title: 'Soạn trả lời bình luận', description: 'Đọc bình luận mới trên Fanpage, soạn câu trả lời theo giọng thương hiệu, nộp chờ duyệt.',
     text: 'Đọc 20 bình luận mới nhất trên các bài gần đây của Fanpage, soạn câu trả lời cho từng bình luận theo Brain thương hiệu (không đưa số điện thoại khách lên công khai). Nộp danh sách về Crewzy bằng CREWZY_NOP_KET_QUA (loai cham_soc) để tôi duyệt trước khi trả lời.' },
   { name: 'video_quang_cao', title: 'Video quảng cáo ngắn', description: 'Làm video dọc 9:16 bằng app tạo video đã nối (OpenArt…), nộp video + caption về Crewzy.',
-    text: 'Dùng app tạo video đã kết nối (ví dụ OpenArt) làm 1 video dọc 9:16 khoảng 15 giây giới thiệu sản phẩm chính theo Brain thương hiệu. Chờ tới khi video xong, viết caption kèm lời mời nhắn tin, rồi nộp về Crewzy bằng CREWZY_NOP_KET_QUA với link video trong media.' },
+    text: 'Chạy quy trình video_tron_goi của Crewzy: gọi CREWZY_QUY_TRINH id "video_tron_goi", đọc kỹ thuong_hieu (phong cách, giọng, nhạc, video/ảnh mẫu), làm đúng từng bước. Dựng bằng công cụ đã nối (HyperFrames, Shotstack, InVideo, HeyGen, OpenArt) hoặc Remotion/HyperFrames/ffmpeg trên máy rồi CREWZY_TAI_LEN. Nộp video + nội dung từng kênh bằng CREWZY_NOP_KET_QUA.' },
 ];
 
 // Mỗi quy trình chuẩn cũng là một lệnh nhanh: Claude Code gõ /mcp__crewzy__qt_<mã>.
