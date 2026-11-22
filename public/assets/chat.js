@@ -55,7 +55,11 @@
   function formatText(text) {
     var html = escapeHtml(text);
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    // Ảnh dạng markdown ![mô tả](link) → hiện ảnh luôn
+    html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, function (m, alt, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="' + alt + '" style="display:block;max-width:100%;width:320px;border-radius:8px;margin:6px 0;border:1px solid #E8E8E8"></a>';
+    });
+    html = html.replace(/(^|[^"'])(https?:\/\/[^\s<)"']+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     return html;
   }
 
@@ -67,6 +71,10 @@
     } else if (item.kind === 'assistant') {
       el.style.cssText = 'align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #F5F6F8; color: #1B2230; font-size: 15px; line-height: 1.55; white-space: pre-wrap; word-break: break-word';
       el.innerHTML = formatText(item.text);
+    } else if (item.kind === 'image') {
+      el.style.cssText = 'align-self: flex-start; display: flex; flex-direction: column; gap: 6px; max-width: 90%';
+      el.innerHTML = '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(item.text) + '" alt="Ảnh AI vừa tạo" style="display:block;width:320px;max-width:100%;border-radius:10px;border:1px solid #E8E8E8"></a>' +
+        '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener" download style="font-size:13px">Mở ảnh cỡ lớn / tải về</a>';
     } else if (item.kind === 'tool') {
       el.style.cssText = 'align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5B6472';
       el.innerHTML = '<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1E8E4A; flex-shrink: 0"></span><span>' + escapeHtml(item.text) + '</span>';
@@ -192,6 +200,7 @@
         if (thinking.parentNode) thinking.parentNode.removeChild(thinking);
         if (ev.type === 'tool') add({ kind: 'tool', text: ev.label });
         else if (ev.type === 'text') add({ kind: 'assistant', text: ev.text });
+        else if (ev.type === 'image') add({ kind: 'image', text: ev.url });
         else if (ev.type === 'error') add({ kind: 'error', text: ev.message });
       }
       function pump() {

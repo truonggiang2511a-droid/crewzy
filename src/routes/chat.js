@@ -11,6 +11,7 @@ import { Composio } from '@composio/core';
 import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
+import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 
 const APP_DAILY_CAP = 300;          // tổng lượt chat/ngày chế độ credit của app (cả app)
 const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit của app cho MỖI khách
@@ -34,7 +35,11 @@ Quy tắc bắt buộc:
 - Không đưa số điện thoại hay thông tin cá nhân của khách hàng lên bài đăng công khai.
 - Nếu ứng dụng chưa kết nối, nói người dùng vào trang Kết nối công cụ (ket-noi.html) để kết nối, hoặc đưa link kết nối từ COMPOSIO_MANAGE_CONNECTIONS.
 - Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.
-- Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.`;
+- Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.
+- Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
+  hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
+  rồi tạo design từ ảnh (CANVA_POST_DESIGNS) và gửi link chỉnh sửa. Đăng bài có ảnh thì dùng đúng link ảnh đã tạo.
+- Chỉ nói "không làm được" khi công cụ thật sự báo lỗi; nói rõ lỗi gì và cách khắc phục.`;
 
 // Lời dặn đầy đủ cho một lượt: lời dặn chung + Brain thương hiệu + Skill các app đã kết nối.
 async function buildSystem(env, composio, uid) {
@@ -53,12 +58,14 @@ async function buildSystem(env, composio, uid) {
   parts.push('# Ứng dụng đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa kết nối ứng dụng nào. Hướng dẫn người dùng vào trang Kết nối (ket-noi.html).'));
   const skills = skillText(connected);
   if (skills) parts.push('# Skill từng ứng dụng\n' + skills);
-  return parts.join('\n\n');
+  return { system: parts.join('\n\n'), names };
 }
 
 const encoder = new TextEncoder();
 
 function toolLabel(name, input) {
+  if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
+  if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
   if (name === 'COMPOSIO_SEARCH_TOOLS') return 'Tìm công cụ phù hợp';
   if (name === 'COMPOSIO_GET_TOOL_SCHEMAS') return 'Xem cách dùng công cụ';
   if (name === 'COMPOSIO_MANAGE_CONNECTIONS') return 'Kiểm tra kết nối ứng dụng';
@@ -103,7 +110,7 @@ async function takeAppQuota(env, uid) {
 }
 
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
-async function runClaude({ client, model, tools, session, messages, emit, deadline, system }) {
+async function runClaude({ client, model, tools, exec, messages, emit, deadline, system }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
@@ -120,7 +127,7 @@ async function runClaude({ client, model, tools, session, messages, emit, deadli
     for (const call of calls) {
       emit({ type: 'tool', label: toolLabel(call.name, call.input) });
       let out;
-      try { out = await session.execute(call.name, call.input || {}); } catch (e) { out = { error: safeDetail(e) }; }
+      out = await exec(call.name, call.input || {});
       results.push({ type: 'tool_result', tool_use_id: call.id, content: toolResultText(out), is_error: !!(out && out.error) });
     }
     convo.push({ role: 'user', content: results });
@@ -133,7 +140,7 @@ async function runClaude({ client, model, tools, session, messages, emit, deadli
 }
 
 // Vòng gọi công cụ với ChatGPT (OpenAI Chat Completions)
-async function runOpenAI({ client, model, tools, session, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
+async function runOpenAI({ client, model, tools, exec, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
   const convo = [{ role: 'system', content: system }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: 1500 });
@@ -147,7 +154,7 @@ async function runOpenAI({ client, model, tools, session, messages, emit, deadli
       try { args = JSON.parse(call.function.arguments || '{}'); } catch (e) {}
       emit({ type: 'tool', label: toolLabel(call.function.name, args) });
       let out;
-      try { out = await session.execute(call.function.name, args); } catch (e) { out = { error: safeDetail(e) }; }
+      out = await exec(call.function.name, args);
       convo.push({ role: 'tool', tool_call_id: call.id, content: toolResultText(out) });
     }
     if (Date.now() > deadline) {
@@ -199,7 +206,19 @@ export default async (req, env) => {
           toolkits: TOOLKITS,
           multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
         });
-        const [tools, system] = await Promise.all([session.tools(), buildSystem(env, composio, uid)]);
+        const [composioTools, built] = await Promise.all([session.tools(), buildSystem(env, composio, uid)]);
+        const tools = [...composioTools, ...CREWZY_TOOL_DEFS];
+        const system = built.system;
+        const origin = new URL(req.url).origin;
+        // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
+        const exec = async (name, args) => {
+          if (isCrewzyTool(name)) {
+            const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names });
+            if (out && out.image) emit({ type: 'image', url: out.image });
+            return out;
+          }
+          try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
+        };
         const model = mode === 'openrouter' ? orModel : MODELS[mode];
         if (mode === 'openrouter') {
           const client = new OpenAI({
@@ -207,13 +226,13 @@ export default async (req, env) => {
             baseURL: 'https://openrouter.ai/api/v1',
             defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': APP_NAME },
           });
-          await runOpenAI({ client, model, tools, session, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+          await runOpenAI({ client, model, tools, exec, messages, emit, deadline, system, tokenParam: 'max_tokens' });
         } else if (mode === 'openai') {
           const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-          await runOpenAI({ client, model, tools, session, messages, emit, deadline, system });
+          await runOpenAI({ client, model, tools, exec, messages, emit, deadline, system });
         } else {
           const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-          await runClaude({ client, model, tools, session, messages, emit, deadline, system });
+          await runClaude({ client, model, tools, exec, messages, emit, deadline, system });
         }
         emit({ type: 'done' });
       } catch (err) {

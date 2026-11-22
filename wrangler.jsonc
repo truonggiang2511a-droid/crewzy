@@ -11,6 +11,8 @@
     "not_found_handling": "404-page",
     "html_handling": "none"
   },
+  // Workers AI: tạo ảnh (flux-2-klein-4b, dự phòng flux-1-schnell) cho công cụ CREWZY_TAO_ANH.
+  "ai": { "binding": "AI" },
   "kv_namespaces": [
     { "binding": "KV", "id": "cefc3dfec3b248929a490ff8cd5cc216" }
   ],

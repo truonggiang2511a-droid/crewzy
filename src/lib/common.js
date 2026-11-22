@@ -49,16 +49,27 @@ async function hmac(secretText, payload) {
   return toB64Url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
 }
 
-// Link nối AI: token = base64url(link phiên Composio) + '.' + HMAC (khoá suy ra từ COMPOSIO_API_KEY). Cổng /mcp/* kiểm tra lại.
-export async function signUpstream(upstreamUrl, apiKey) {
-  const payload = b64UrlText(upstreamUrl);
+// Link nối AI: token = base64url(payload) + '.' + HMAC (khoá suy ra từ COMPOSIO_API_KEY). Cổng /mcp/* kiểm tra lại.
+// v2: payload = JSON {u: link phiên Composio, id: mã khách} (cổng biết khách là ai để thêm Brain, Skill, công cụ Crewzy).
+// v1 (link cũ): payload = link phiên Composio, vẫn chạy nhưng không có phần Crewzy.
+export async function signUpstream(upstreamUrl, apiKey, uid) {
+  const payload = b64UrlText(uid ? JSON.stringify({ u: upstreamUrl, id: uid }) : upstreamUrl);
   return `${payload}.${await hmac('vpai-mcp|' + apiKey, payload)}`;
 }
 export async function verifyUpstreamToken(token, apiKey) {
   const [payload, sig] = String(token || '').split('.');
   if (!payload || !sig) return null;
   if (!sameText(await hmac('vpai-mcp|' + apiKey, payload), sig)) return null;
-  try { return new URL(textFromB64Url(payload)); } catch (e) { return null; }
+  try {
+    const text = textFromB64Url(payload);
+    if (text.startsWith('{')) {
+      const j = JSON.parse(text);
+      const url = new URL(j.u);
+      url.crewzyUid = UID_PATTERN.test(j.id || '') ? j.id : null;
+      return url;
+    }
+    return new URL(text);
+  } catch (e) { return null; }
 }
 
 // ---------- Phiên đăng nhập ----------

@@ -192,10 +192,14 @@
     var d = deptById(id);
     if (id === 'brain') {
       var waiting = DEPTS.filter(function (x) { return x.status === 'wait'; });
-      detailEl.innerHTML = '<p class="od-kicker">Điều phối toàn văn phòng</p><h3 class="od-title">Ban giám đốc · Bộ não AI</h3>' +
-        '<p class="od-text">Nhận mục tiêu từ bạn, chia việc cho các phòng, gom báo cáo. Đang chờ bạn quyết ' + waiting.length + ' việc.</p>' +
-        '<ul class="od-list">' + waiting.map(function (x) { return '<li><span class="od-dot" style="background:#F5A524"></span>Phòng ' + esc(x.name) + ': ' + esc(x.task) + '</li>'; }).join('') + '</ul>' +
-        '<div class="od-actions"><a class="btn btn-primary" href="chat.html">Giao việc cho Bộ não AI</a><a class="btn btn-ghost od-ghost" href="cho-duyet.html">Xem việc chờ duyệt</a></div>';
+      var ais = [['claude', 'claude', 'Claude'], ['chatgpt', 'openai', 'ChatGPT'], ['gemini', 'gemini', 'Gemini'], ['grok', 'grok', 'Grok']];
+      detailEl.innerHTML = '<p class="od-kicker">Điều phối toàn văn phòng</p><h3 class="od-title">Bộ não AI</h3>' +
+        '<p class="od-text">Nối AI bạn đang dùng làm bộ não. AI đó đọc Brain thương hiệu, làm việc thật trên các app đã kết nối và hỏi bạn trước khi đăng hay gửi.</p>' +
+        '<div class="od-ai-grid">' + ais.map(function (a) {
+          return '<a class="od-ai" href="ket-noi.html?tab=ai&ai=' + a[0] + '"><img src="https://logos.composio.dev/api/' + a[1] + '" alt=""><span>' + a[2] + '</span></a>';
+        }).join('') + '</div>' +
+        '<div class="od-actions"><a class="btn btn-primary" href="chat.html">Dùng ngay trong Crewzy</a><a class="btn btn-ghost od-ghost" href="ket-noi.html?tab=ai">Đăng nhập OpenRouter</a></div>' +
+        (waiting.length ? '<p class="od-meta" style="margin-top:14px">Đang chờ bạn quyết ' + waiting.length + ' việc:</p><ul class="od-list">' + waiting.map(function (x) { return '<li><span class="od-dot" style="background:#F5A524"></span>' + esc(x.name) + ': ' + esc(x.task) + '</li>'; }).join('') + '</ul>' : '');
       return;
     }
     var st = STATUS[d.status];

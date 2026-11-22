@@ -33,3 +33,6 @@ assert(failed, 'ID token bị sửa nội dung → từ chối');
 const t = await c.signUpstream('https://backend.composio.dev/tool_router/abc/mcp', env.COMPOSIO_API_KEY);
 assert((await c.verifyUpstreamToken(t, env.COMPOSIO_API_KEY))?.hostname === 'backend.composio.dev', 'link MCP ký đúng → nhận');
 assert((await c.verifyUpstreamToken(t + 'x', env.COMPOSIO_API_KEY)) === null, 'link MCP bị sửa → từ chối');
+const t2 = await c.signUpstream('https://backend.composio.dev/tool_router/abc/mcp', env.COMPOSIO_API_KEY, 'g-123456789');
+const v2 = await c.verifyUpstreamToken(t2, env.COMPOSIO_API_KEY);
+assert(v2?.hostname === 'backend.composio.dev' && v2.crewzyUid === 'g-123456789', 'link MCP v2 mang mã khách');

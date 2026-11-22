@@ -9,6 +9,7 @@ import mcpLink from './routes/mcpLink.js';
 import openrouterKey from './routes/openrouterKey.js';
 import status from './routes/status.js';
 import mcpGateway from './routes/mcpGateway.js';
+import { serveImage } from './lib/crewzyTools.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
@@ -23,6 +24,7 @@ export default {
       // Trang tĩnh phục vụ đúng tên file .html (html_handling: none) → '/' trả về index.html.
       if (pathname === '/') return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
       if (pathname.startsWith('/mcp/')) return await mcpGateway(request, env, ctx);
+      if (pathname.startsWith('/api/img/')) return await serveImage(request, env);
       const handler = ROUTES[pathname];
       if (handler) return await handler(request, env, ctx);
       if (pathname.startsWith('/api/')) return Response.json({ error: 'Không có API này.' }, { status: 404 });

@@ -25,7 +25,7 @@ export default async (req, env) => {
     if (!upstream) {
       return Response.json({ error: 'Composio không trả về link MCP.' }, { status: 502 });
     }
-    const token = await signUpstream(upstream, apiKey);
+    const token = await signUpstream(upstream, apiKey, uid);
     return Response.json({ url: `${url.origin}/mcp/${token}` });
   } catch (err) {
     console.error('mcp-link failed', err && err.message);

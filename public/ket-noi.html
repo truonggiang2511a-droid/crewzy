@@ -62,7 +62,29 @@
 <section data-view="ai" hidden style="display:flex;flex-direction:column;gap:18px">
 <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
-<h2 style="margin:0;font-size:18px;font-weight:600">Bộ não cho Trợ lý AI</h2>
+<h2 style="margin:0;font-size:18px;font-weight:600">Nối AI bạn đang dùng: Claude, ChatGPT, Gemini, Grok</h2>
+<span data-ai-badge class="pill">Chưa tạo link</span>
+</div>
+<p class="muted" style="margin:0;font-size:14px">Tạo link riêng rồi dán vào AI bạn đang dùng. AI đó sẽ đọc Brain thương hiệu, làm việc thật trên các app đã kết nối (đăng bài, đọc tin nhắn, ghi Sheet, tạo ảnh) và hỏi bạn trước khi đăng hay gửi.</p>
+<button type="button" data-ai-create class="btn btn-primary" style="align-self:flex-start">Tạo link nối AI</button>
+<p data-ai-msg role="status" style="margin:0;font-size:13px;color:#8A2A12;display:none"></p>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+<div id="ai-guide-claude" data-ai-guide="claude" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/claude" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Claude</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">claude.ai (gói Pro trở lên)</p><ol style="margin:0;padding-left:18px"><li>Mở claude.ai → Cài đặt (Settings) → Connectors.</li><li>Bấm <b>Add custom connector</b>, đặt tên Crewzy.</li><li>Dán link, bấm Add. Trong khung chat bật Crewzy ở nút "+" / công cụ.</li></ol></div>
+<div id="ai-guide-chatgpt" data-ai-guide="chatgpt" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/openai" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">ChatGPT</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">chatgpt.com (gói Plus trở lên)</p><ol style="margin:0;padding-left:18px"><li>Settings → Apps → Advanced settings, bật <b>Developer mode</b>.</li><li>Bấm <b>Create app</b>, đặt tên Crewzy, dán link.</li><li>Phần xác thực chọn <b>No authentication</b>, lưu. Khi chat chọn app Crewzy.</li></ol></div>
+<div id="ai-guide-gemini" data-ai-guide="gemini" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/gemini" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Gemini</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">gemini.google.com (web, giao diện tiếng Anh)</p><ol style="margin:0;padding-left:18px"><li>Settings → <b>Connected Apps</b> → Custom apps → <b>Add a custom app</b>.</li><li>Dán link, bấm Next, đồng ý kết nối.</li><li>Cần bật Keep Activity. Thêm xong dùng được cả trên app Gemini điện thoại.</li></ol></div>
+<div id="ai-guide-grok" data-ai-guide="grok" style="padding:12px;border-radius:8px;background:#F6F6F6;border:1px solid transparent;font-size:13px;line-height:1.6"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><img src="https://logos.composio.dev/api/grok" alt="" style="width:22px;height:22px;border-radius:5px;background:#fff"><p style="margin:0;font-weight:600">Grok</p></div><p class="muted" style="margin:0 0 4px;font-size:12px">grok.com (gói trả phí)</p><ol style="margin:0;padding-left:18px"><li>Mở <b>grok.com/connectors</b>.</li><li>Bấm <b>New Connector</b> → <b>Custom</b>.</li><li>Đặt tên Crewzy, dán link, lưu. Khi chat bật connector Crewzy.</li></ol></div>
+</div>
+<div data-ai-box style="display:none;flex-direction:column;gap:10px">
+<label for="ai-link" style="font-size:13px;font-weight:600">Link nối AI của bạn</label>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><input id="ai-link" type="text" readonly class="field" style="flex:1;min-width:220px;font-size:13px;background:#F6F6F6"><button type="button" data-ai-copy class="btn btn-ghost">Sao chép</button></div>
+<p style="margin:0;padding:10px 12px;border-radius:6px;background:var(--warn-soft);font-size:13px;color:var(--warn)">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
+
+</div>
+</div>
+
+<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
+<h2 style="margin:0;font-size:18px;font-weight:600">Hoặc dùng AI ngay trong Crewzy</h2>
 <span data-brain-badge class="pill">Đang dùng credit của app</span>
 </div>
 <p class="muted" style="margin:0;font-size:14px">Đăng nhập tài khoản AI của bạn. Chưa đăng nhập thì app dùng credit của app.</p>
@@ -80,7 +102,7 @@
 <button type="button" class="btn btn-ghost" disabled>Đăng nhập ChatGPT</button>
 </div>
 <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:none">
-<div style="display:flex;align-items:center;gap:10px"><img class="app-logo" src="https://logos.composio.dev/api/anthropic" alt="" style="width:32px;height:32px"><p style="margin:0;font-weight:600;flex:1">Claude</p><span class="pill pill-warn">Sắp có</span></div>
+<div style="display:flex;align-items:center;gap:10px"><img class="app-logo" src="https://logos.composio.dev/api/claude" alt="" style="width:32px;height:32px"><p style="margin:0;font-weight:600;flex:1">Claude</p><span class="pill pill-warn">Sắp có</span></div>
 <p class="muted" style="margin:0;font-size:13px;line-height:1.5">Cho doanh nghiệp có tài khoản Claude Console (trả theo API). Gói Pro/Max không dùng được trong app khác.</p>
 <button type="button" class="btn btn-ghost" disabled>Liên kết Claude</button>
 </div>
@@ -88,24 +110,6 @@
 <p class="muted" style="margin:0;font-size:12px">Có khoá API Claude hoặc ChatGPT? Dán trong trang <a href="chat.html">Trợ lý AI</a>. Khoá và tài khoản AI chỉ lưu trên trình duyệt này.</p>
 </div>
 
-<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
-<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
-<h2 style="margin:0;font-size:18px;font-weight:600">Nối vào app Claude / ChatGPT bạn đang dùng</h2>
-<span data-ai-badge class="pill">Chưa tạo link</span>
-</div>
-<p class="muted" style="margin:0;font-size:14px">Tạo link riêng rồi dán vào Claude hoặc ChatGPT. AI của bạn sẽ dùng được mọi ứng dụng đã kết nối.</p>
-<button type="button" data-ai-create class="btn btn-primary" style="align-self:flex-start">Tạo link nối AI</button>
-<p data-ai-msg role="status" style="margin:0;font-size:13px;color:#8A2A12;display:none"></p>
-<div data-ai-box style="display:none;flex-direction:column;gap:10px">
-<label for="ai-link" style="font-size:13px;font-weight:600">Link nối AI của bạn</label>
-<div style="display:flex;flex-wrap:wrap;gap:8px"><input id="ai-link" type="text" readonly class="field" style="flex:1;min-width:220px;font-size:13px;background:#F6F6F6"><button type="button" data-ai-copy class="btn btn-ghost">Sao chép</button></div>
-<p style="margin:0;padding:10px 12px;border-radius:6px;background:var(--warn-soft);font-size:13px;color:var(--warn)">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
-<div style="padding:12px;border-radius:6px;background:#F6F6F6;font-size:13px;line-height:1.6"><p style="margin:0 0 4px;font-weight:600">Dán vào Claude</p><ol style="margin:0;padding-left:18px"><li>Mở claude.ai, vào Cài đặt → Connectors.</li><li>Bấm Add custom connector, đặt tên Crewzy.</li><li>Dán link, bấm Add.</li></ol></div>
-<div style="padding:12px;border-radius:6px;background:#F6F6F6;font-size:13px;line-height:1.6"><p style="margin:0 0 4px;font-weight:600">Dán vào ChatGPT</p><ol style="margin:0;padding-left:18px"><li>Settings → Apps → Advanced settings, bật Developer mode (gói Plus trở lên).</li><li>Bấm Create app, dán link.</li><li>Xác thực chọn No authentication, rồi lưu.</li></ol></div>
-</div>
-</div>
-</div>
 </section>
 </main>
 </div>

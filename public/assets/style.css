@@ -157,3 +157,7 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
   .office-legend { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .live-dot, .of-new { animation: none; } }
+.od-ai-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.od-ai { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 8px; border: 1px solid #2C3760; background: #111733; text-decoration: none; color: #E6E9FF; font-size: 12px; font-weight: 600; }
+.od-ai:hover { border-color: #6F7FFF; background: #151C3A; color: #FFFFFF; }
+.od-ai img { width: 28px; height: 28px; border-radius: 7px; background: #FFFFFF; padding: 3px; }

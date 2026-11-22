@@ -119,7 +119,10 @@ export const APPS = [
   // ---------- Thiết kế & video AI ----------
   { slug: 'canva', name: 'Canva', cat: 'creative', status: 'ready',
     desc: 'Tạo thiết kế từ mẫu, xuất ảnh đăng bài.',
-    can: ['Tìm thiết kế, tạo thiết kế mới', 'Xuất ảnh PNG/JPG'], try: ['Liệt kê thiết kế Canva gần đây của tôi'], rules: [] },
+    note: 'Canva API không tự tạo ảnh từ chữ. Trợ lý AI tạo ảnh bằng công cụ tạo ảnh của Crewzy rồi đưa vào Canva để bạn chỉnh.',
+    can: ['Đưa ảnh AI vừa tạo vào Canva thành thiết kế để chỉnh tiếp', 'Liệt kê, tìm thiết kế của bạn', 'Xuất thiết kế ra PNG/JPG/PDF', 'Đổi kích thước thiết kế (gói Pro)'],
+    try: ['Làm 1 ảnh quảng cáo dọc 4:5 cho sản phẩm chính rồi đưa vào Canva cho tôi chỉnh', 'Liệt kê thiết kế Canva gần đây của tôi'],
+    rules: ['Canva API KHÔNG tạo ảnh từ mô tả: làm ảnh mới thì dùng CREWZY_TAO_ANH, sau đó CANVA_CREATE_URL_ASSET_UPLOAD_JOB với link ảnh, chờ CANVA_GET_URL_ASSET_UPLOADS_JOBID xong rồi CANVA_POST_DESIGNS với asset_id, gửi link chỉnh sửa (edit_url)', 'Xuất ảnh: CANVA_POST_EXPORTS rồi CANVA_GET_DESIGN_EXPORT_JOB_RESULT; link tải hết hạn sau 24 giờ', 'Autofill mẫu thương hiệu chỉ có ở Canva Enterprise, đừng hứa với khách gói thường'] },
   { slug: 'heygen', name: 'HeyGen', cat: 'creative', status: 'ready',
     desc: 'Làm video người dẫn AI nói tiếng Việt.',
     note: 'Kết nối bằng khoá API HeyGen của bạn; tiền dựng video tính vào tài khoản HeyGen.',

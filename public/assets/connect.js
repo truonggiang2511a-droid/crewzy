@@ -268,7 +268,24 @@
     aiCreate.textContent = 'Tạo link mới';
     var b = $('[data-ai-badge]'); b.textContent = 'Đã có link'; b.className = 'pill pill-ok';
   }
-  if (store(AI_KEY)) showAiLink(store(AI_KEY));
+  // Link kiểu cũ (không có mã khách → thiếu Brain, Skill, tạo ảnh) thì bỏ, nhắc tạo link mới.
+  var savedLink = store(AI_KEY);
+  if (savedLink && /\/mcp\/aHR0c/.test(savedLink)) {
+    store(AI_KEY, null);
+    savedLink = null;
+    showMsg($('[data-ai-msg]'), 'Đã có bản link mới: AI đọc được Brain thương hiệu và tạo ảnh. Bấm Tạo link nối AI rồi dán lại vào AI của bạn.');
+  }
+  if (savedLink) showAiLink(savedLink);
+
+  // ?ai=claude|chatgpt|gemini|grok (bấm từ Bộ não AI ở trang Văn phòng): làm nổi hướng dẫn tương ứng.
+  var pickAi = new URLSearchParams(location.search).get('ai');
+  var guide = pickAi && document.querySelector('[data-ai-guide="' + pickAi + '"]');
+  if (guide) {
+    guide.style.borderColor = 'var(--accent)';
+    guide.style.background = '#FFFFFF';
+    guide.style.boxShadow = '0 0 0 3px rgba(0,7,205,.12)';
+    setTimeout(function () { aiCreate.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
+  }
   aiCreate.addEventListener('click', function () {
     var label = aiCreate.textContent;
     aiCreate.textContent = 'Đang tạo link…';
