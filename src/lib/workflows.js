@@ -17,6 +17,7 @@ export const DEPARTMENTS = [
 
 // mcp: tên máy chủ MCP ngoài khách cần nối ở Kết nối → MCP khác (khớp theo tên miền trong link).
 import { MCP_HOSTS, MCP_DIRECTORY } from './mcpDirectory.js';
+import { BRAND_FIELDS, REF_TYPES } from './brand.js';
 export { MCP_HOSTS };
 
 export const WORKFLOWS = [
@@ -27,7 +28,7 @@ export const WORKFLOWS = [
     hoi: 'Link website và tên Fanpage của doanh nghiệp',
     buoc: [
       'Hỏi người dùng link website/Fanpage nếu chưa có trong yêu cầu.',
-      'Đọc website bằng firecrawl_scrape (trang chủ, trang sản phẩm/dịch vụ, bảng giá, giới thiệu). Có Fanpage đã nối thì đọc 20 bài gần nhất để học giọng văn.',
+      'Đọc website bằng CREWZY_DOC_WEB (có sẵn trong Crewzy) hoặc công cụ đọc web của bạn (firecrawl_scrape nếu đã nối): trang chủ, rồi theo lien_ket đọc trang sản phẩm/dịch vụ, bảng giá, giới thiệu (3–6 trang). Fanpage cần đăng nhập: có Facebook đã nối thì đọc 20 bài gần nhất để học giọng văn, chưa nối thì bỏ qua hoặc nhờ khách dán vài bài.',
       'Điền các mục Brain (khoá tiếng Anh): name (tên doanh nghiệp), industry (ngành), products (sản phẩm, dịch vụ chính), customers (khách hàng mục tiêu), voice (giọng văn), dos (nên nói), donts (không được nói), offers (giá, ưu đãi, chính sách), faq (câu hỏi khách hay hỏi kèm trả lời), links (website, Fanpage, kênh), hashtags. Chỉ dùng thông tin thật đọc được; mục không có thông tin thì bỏ trống.',
       'Nộp bằng CREWZY_NOP_KET_QUA với loai "brain", noi_dung là bản tóm tắt dễ đọc, và trường brain là object các mục trên. Khi khách duyệt, Crewzy tự lưu vào Brain thương hiệu.',
     ] },
@@ -50,7 +51,7 @@ export const WORKFLOWS = [
     hoi: 'Link website 2–3 đối thủ',
     buoc: [
       'Hỏi link website đối thủ nếu chưa có.',
-      'Dùng firecrawl_scrape đọc trang chủ, trang sản phẩm, bảng giá, chính sách của từng đối thủ (firecrawl_search nếu chỉ có tên).',
+      'Đọc trang chủ, trang sản phẩm, bảng giá, chính sách của từng đối thủ bằng CREWZY_DOC_WEB (có sẵn) hoặc công cụ đọc web của bạn; chỉ có tên đối thủ thì tìm website bằng công cụ tìm kiếm của bạn (firecrawl_search, Tavily, Exa nếu đã nối).',
       'Lập bảng so sánh: sản phẩm chính, giá, ưu đãi, cam kết/bảo hành, khách hàng nhắm tới, điểm mạnh, điểm yếu, cách viết tiêu đề.',
       'So với Brain thương hiệu của mình: 3 khoảng trống nên chiếm, 3 điều cần sửa trên website/bài đăng của mình.',
       'Có nơi lưu đã nối (Google Sheets, Notion, Airtable…) thì ghi bảng so sánh vào Sheet. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong).',
@@ -329,12 +330,12 @@ const G = {
   giong_doc: { vai: 'Giọng đọc, lồng tiếng', apps: ['elevenlabs', 'cartesia', 'fish_audio', 'heygen', 'openai', 'gemini'], mcp: ['elevenlabs', 'heygen'], san_co: 'Giọng mẫu và mã giọng trong Brain thương hiệu' },
   cat_clip: { vai: 'Cắt clip ngắn, phụ đề tự động', apps: ['captions', 'descript_mcp', 'assemblyai', 'rev'], mcp: ['captions', 'opus', 'reap'] },
   soi_video: { vai: 'Soi video đối thủ (Reels, TikTok, YouTube)', apps: ['vidiq_mcp', 'apify', 'youtube'], mcp: ['apify', 'vidiq'] },
-  soi_web: { vai: 'Đọc website, SEO đối thủ', apps: ['firecrawl', 'semrush', 'ahrefs', 'dataforseo', 'moz', 'serpapi', 'tavily', 'perplexityai', 'google_maps'], mcp: ['firecrawl', 'exa'] },
+  soi_web: { vai: 'Đọc website, SEO đối thủ', apps: ['firecrawl', 'semrush', 'ahrefs', 'dataforseo', 'moz', 'serpapi', 'tavily', 'perplexityai', 'google_maps'], mcp: ['firecrawl', 'exa'], san_co: 'Crewzy có sẵn đọc website (CREWZY_DOC_WEB); AI của bạn tự đọc web cũng được. Nối Semrush, Ahrefs nếu cần số liệu SEO.' },
   soi_qc: { vai: 'Thư viện quảng cáo đối thủ', apps: ['apify'], mcp: ['apify'] },
-  doc_web_minh: { vai: 'Đọc website của mình', apps: ['firecrawl', 'tavily', 'webflow', 'wix', 'framer'], mcp: ['firecrawl'] },
+  doc_web_minh: { vai: 'Đọc website của mình', apps: ['firecrawl', 'tavily', 'webflow', 'wix', 'framer'], mcp: ['firecrawl'], san_co: 'Crewzy có sẵn đọc website (CREWZY_DOC_WEB); AI của bạn tự đọc web cũng được. Không cần nối thêm app.' },
 };
-const req = (g) => ({ ...G[g], bat_buoc: true });
-const opt = (g) => ({ ...G[g], bat_buoc: false });
+const req = (g) => ({ ...G[g], key: g, bat_buoc: true });
+const opt = (g) => ({ ...G[g], key: g, bat_buoc: false });
 
 const TOOLSETS = {
   brain_tu_website: { kenh: ['website', 'facebook'], cong_cu: [req('doc_web_minh'), opt('fanpage')] },
@@ -363,6 +364,36 @@ const TOOLSETS = {
 };
 for (const w of WORKFLOWS) Object.assign(w, TOOLSETS[w.id] || { kenh: [], cong_cu: [] });
 
+// ---------- Điều kiện DỮ LIỆU (ngoài app) để quy trình ra kết quả thật ----------
+// Đủ app chưa đủ: thiếu Brain, mẫu tham khảo, quy trình phải chạy trước hay nguồn số liệu thì AI làm ra kết quả rỗng.
+// brain: các mục Brain phải có · mau: ít nhất 1 mẫu tham khảo loại đó · truoc: quy trình phải có kết quả trước (thay: thứ thay thế được)
+// nguon: ít nhất 1 nhóm công cụ (theo key) đã nối. bat_buoc false = chỉ nhắc "nên có", không chặn.
+const BRAIN_MIN = ['name', 'products'];
+const brainCan = (truong, bat_buoc = true) => ({ loai: 'brain', truong, bat_buoc });
+const mauCan = (kieu, bat_buoc = true) => ({ loai: 'mau', kieu, bat_buoc });
+const truocCan = (quy_trinh, thay = {}, bat_buoc = true) => ({ loai: 'truoc', quy_trinh, thay, bat_buoc });
+const nguonCan = (nhom) => ({ loai: 'nguon', nhom, bat_buoc: true });
+const NEEDS = {
+  doi_thu_website: [brainCan(BRAIN_MIN, false)],
+  lich_noi_dung_tuan: [brainCan(BRAIN_MIN), truocCan('doi_thu_reels', {}, false)],
+  mot_noi_dung_nhieu_kenh: [brainCan(BRAIN_MIN)],
+  video_theo_phong_cach: [brainCan(BRAIN_MIN), truocCan('doi_thu_reels', { brain: 'video_style', mau: 'video_mau' })],
+  video_tron_goi: [brainCan(BRAIN_MIN), mauCan('video_mau', false)],
+  edit_video_co_san: [brainCan(BRAIN_MIN)],
+  anh_quang_cao_theo_mau: [brainCan(BRAIN_MIN), mauCan('anh_mau')],
+  mau_quang_cao_moi: [brainCan(BRAIN_MIN)],
+  lead_vao_crm: [brainCan(BRAIN_MIN)],
+  tim_khach_doanh_nghiep: [brainCan(BRAIN_MIN), brainCan(['customers'], false)],
+  bao_gia_sau_cuoc_goi: [brainCan(['offers'], false)],
+  nhac_cham_soc_deal: [brainCan(BRAIN_MIN)],
+  tra_loi_binh_luan: [brainCan(BRAIN_MIN), brainCan(['faq', 'voice'], false)],
+  tra_loi_email_khach: [brainCan([...BRAIN_MIN, 'faq'])],
+  cham_soc_sau_mua: [brainCan(BRAIN_MIN)],
+  bao_cao_tuan: [nguonCan(['do_luong', 'quang_cao', 'doanh_thu', 'crm'])],
+  de_xuat_chien_luoc: [brainCan(BRAIN_MIN), truocCan('bao_cao_tuan')],
+};
+for (const w of WORKFLOWS) w.can = NEEDS[w.id] || [];
+
 export const workflowById = (id) => WORKFLOWS.find((w) => w.id === id) || null;
 
 // Danh sách cho giao diện (không lộ gì nhạy cảm).
@@ -385,6 +416,56 @@ export function groupStatus(w, connected, mcpUrls) {
 export function missingFor(w, connected, mcpUrls) {
   const groups = groupStatus(w, connected, mcpUrls);
   return { nhom: groups.filter((g) => g.bat_buoc && !g.dat).map((g) => g.vai), groups };
+}
+
+// Phiếu có kết quả (kể cả đang chờ duyệt) = quy trình đó đã chạy ra sản phẩm dùng được cho quy trình sau.
+const RESULT_STATES = new Set(['cho_duyet', 'da_duyet', 'da_dang', 'xong']);
+export const doneFlows = (jobs) => new Set((jobs || []).filter((j) => j.quy_trinh && RESULT_STATES.has(j.trang_thai) && !/^Chưa chạy tự động/.test(j.noi_dung || '')).map((j) => j.quy_trinh));
+const filled = (b, k) => typeof b[k] === 'string' ? !!b[k].trim() : !!b[k];
+const hasRef = (b, kieu) => (b.refs || []).some((r) => r && r.loai === kieu);
+const anchor = (id) => { const x = workflowById(id); return 'quy-trinh.html?phong=' + (x ? x.phong : 'all') + '#wf-' + id; };
+
+function checkNeed(c, b, done, groups) {
+  if (c.loai === 'brain') {
+    const lack = c.truong.filter((k) => !filled(b, k));
+    if (!lack.length) return null;
+    const ten = lack.map((k) => BRAND_FIELDS[k] || k).join(', ');
+    return { loai: 'brain', ten: 'Brain thương hiệu còn trống: ' + ten,
+      cach: 'Chạy "Dựng Brain thương hiệu từ website, Fanpage" (AI tự điền, bạn duyệt) hoặc tự điền ở trang Brain thương hiệu.',
+      nut: 'Dựng Brain trước', link: anchor('brain_tu_website') };
+  }
+  if (c.loai === 'mau') {
+    if (hasRef(b, c.kieu)) return null;
+    return { loai: 'mau', ten: 'Chưa có ' + (REF_TYPES[c.kieu] || c.kieu).toLowerCase() + ' trong Brain',
+      cach: 'Thêm 2–3 mẫu ở Brain thương hiệu → Mẫu tham khảo (dán link hoặc tải lên).', nut: 'Thêm mẫu', link: 'thuong-hieu.html#mau-tham-khao' };
+  }
+  if (c.loai === 'truoc') {
+    if (done.has(c.quy_trinh) || (c.thay.brain && filled(b, c.thay.brain)) || (c.thay.mau && hasRef(b, c.thay.mau))) return null;
+    const x = workflowById(c.quy_trinh);
+    const alt = [c.thay.brain && 'điền "' + BRAND_FIELDS[c.thay.brain].split(' (')[0] + '" ở Brain', c.thay.mau && 'thêm ' + REF_TYPES[c.thay.mau].split(' (')[0].toLowerCase()].filter(Boolean);
+    return { loai: 'truoc', quy_trinh: c.quy_trinh, ten: 'Cần chạy trước: ' + x.ten,
+      cach: 'Chạy quy trình "' + x.ten + '" một lần để có kết quả dùng cho quy trình này' + (alt.length ? ', hoặc ' + alt.join(' hoặc ') : '') + '.',
+      nut: 'Chạy trước quy trình này', link: anchor(c.quy_trinh) };
+  }
+  if (c.loai === 'nguon') {
+    const gs = groups.filter((g) => c.nhom.includes(g.key));
+    if (gs.some((g) => g.da_noi.length)) return null;
+    const first = (gs[0] && gs[0].goi_y[0]) || '';
+    return { loai: 'nguon', ten: 'Chưa có nguồn số liệu nào (' + gs.map((g) => g.vai.toLowerCase()).join(', ') + ')',
+      cach: 'Nối ít nhất 1 app có số liệu (Google Analytics, Fanpage, Meta Ads, CRM…) thì báo cáo mới có số.', nut: 'Nối 1 nguồn số liệu', link: 'ket-noi.html' + (first ? '?app=' + first : '') };
+  }
+  return null;
+}
+
+// Sẵn sàng thật = đủ app bắt buộc + đủ điều kiện dữ liệu. ctx: { connected, mcpUrls, brand, jobs | done }.
+export function readiness(w, ctx) {
+  const miss = missingFor(w, ctx.connected, ctx.mcpUrls);
+  const b = ctx.brand || {};
+  const done = ctx.done || doneFlows(ctx.jobs);
+  const groups = miss.groups.map((g, i) => ({ ...g, key: (w.cong_cu[i] || {}).key }));
+  const thieu = [], nen = [];
+  for (const c of w.can || []) { const r = checkNeed(c, b, done, groups); if (r) (c.bat_buoc ? thieu : nen).push(r); }
+  return { san_sang: !miss.nhom.length && !thieu.length, thieu_nhom: miss.nhom, thieu_du_lieu: thieu, nen_co: nen, groups: miss.groups };
 }
 
 // Câu lệnh chạy một quy trình (Trợ lý trong app, phiếu việc, hẹn giờ, MCP prompt).

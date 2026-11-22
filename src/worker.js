@@ -24,7 +24,7 @@ import { markWorking } from './lib/jobs.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
+  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
 };
 
 export default {

@@ -1,10 +1,10 @@
 // Văn phòng thật: GET /api/office[?uid=] → mọi số liệu trang Văn phòng cần trong 1 lần gọi (điện thoại đỡ chờ).
 // Phòng = DEPARTMENTS của thư viện quy trình. Trạng thái phòng tính từ phiếu việc thật (jobs), lịch hẹn, app đã nối, máy chủ MCP.
 // Bảng tin = lịch sử thật của các phiếu (lich_su). Bộ não = AI của khách gần nhất gọi link nối AI (KV aiseen:<uid>) + Trợ lý trong app.
-import { Composio } from '@composio/core';
-import { resolveUid, getApiKey, userIdFor, kvGetJson } from '../lib/common.js';
+import { resolveUid, kvGetJson } from '../lib/common.js';
+import { connectedApps } from '../lib/connected.js';
 import { listJobs, STATUSES } from '../lib/jobs.js';
-import { DEPARTMENTS, WORKFLOWS, workflowById, missingFor } from '../lib/workflows.js';
+import { DEPARTMENTS, WORKFLOWS, workflowById, readiness, doneFlows } from '../lib/workflows.js';
 import { listSchedules } from '../lib/schedules.js';
 import { listServers } from '../lib/mcpServers.js';
 import { getBrand } from '../lib/brand.js';
@@ -15,16 +15,6 @@ const STALE_MS = 3 * 3600 * 1000; // AI nhận việc quá 3 giờ chưa nộp �
 const DAY_MS = 86400 * 1000;
 
 const roomOf = (j) => { const w = j.quy_trinh && workflowById(j.quy_trinh); return w ? w.phong : KIND_ROOM[j.loai] || 'hang_ngay'; };
-
-async function connectedApps(env, uid) {
-  try {
-    const composio = new Composio({ apiKey: getApiKey(env) });
-    const res = await composio.connectedAccounts.list({ userIds: [userIdFor(uid)], statuses: ['ACTIVE'], limit: 100 });
-    const out = {};
-    for (const i of res.items || []) { const s = i.toolkit && i.toolkit.slug; if (s) out[s] = (out[s] || 0) + 1; }
-    return out;
-  } catch (e) { console.error('office connected failed', e && e.message); return null; }
-}
 
 export default async (req, env) => {
   const url = new URL(req.url);
@@ -38,6 +28,7 @@ export default async (req, env) => {
   const now = Date.now();
   const connected = Object.keys(accounts || {});
   const mcpUrls = servers.filter((s) => !s.off).map((s) => s.url);
+  const rctx = { connected, mcpUrls, brand: brand || {}, done: doneFlows(jobs) };
   const effective = (j) => (j.trang_thai === 'dang_lam' && now - Date.parse(j.nhan_luc || j.cap_nhat) > STALE_MS ? 'cho_lam' : j.trang_thai);
 
   const rooms = DEPARTMENTS.map((d) => {
@@ -46,7 +37,7 @@ export default async (req, env) => {
     const working = by('dang_lam'), todo = by('cho_lam'), waiting = by('cho_duyet'), approved = by('da_duyet');
     const doneRecent = mine.filter((j) => ['da_dang', 'xong'].includes(j.trang_thai) && now - Date.parse(j.cap_nhat) < DAY_MS);
     const flows = WORKFLOWS.filter((w) => w.phong === d.id);
-    const ready = flows.filter((w) => !missingFor(w, connected, mcpUrls).nhom.length);
+    const ready = flows.filter((w) => readiness(w, rctx).san_sang);
     // App của phòng: app đã nối dùng được cho quy trình của phòng (đã nối trước), rồi app gợi ý đầu tiên của nhóm bắt buộc.
     const roomApps = [...new Set(flows.flatMap((w) => (w.cong_cu || []).flatMap((g) => g.apps)))];
     const apps = roomApps.filter((s) => connected.includes(s)).slice(0, 4);

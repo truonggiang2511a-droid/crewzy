@@ -14,6 +14,7 @@
   // Ngành: ?nganh= hoặc lựa chọn đã lưu ở trang Kết nối (localStorage crewzy.nganh). Chọn ngành → chỉ hiện quy trình nên chạy, theo thứ tự ưu tiên.
   var industries = [];
   var brandData = {};
+  var flowStatus = {}; // /api/workflows/status: đủ app + đủ dữ liệu (Brain, mẫu, quy trình chạy trước, nguồn số liệu)
   var nganh = new URLSearchParams(location.search).get('nganh') || (function () { try { return localStorage.getItem('crewzy.nganh') || 'all'; } catch (e) { return 'all'; } })();
   function saveNganh() { try { if (nganh === 'all') localStorage.removeItem('crewzy.nganh'); else localStorage.setItem('crewzy.nganh', nganh); } catch (e) {} }
   function chip(attr, id, label, on) {
@@ -98,6 +99,24 @@
     return { group: g, app: app };
   }
 
+  // Nút sửa điều kiện dữ liệu: quy trình khác trên trang này → nhảy tới thẻ đó; còn lại mở trang (Brain, Kết nối).
+  function needBtn(x, cls) {
+    var m = /^quy-trinh\.html\?phong=[a-z_]+#wf-([a-z_]+)$/.exec(x.link || '');
+    return m ? '<button type="button" class="' + cls + '" data-goto="' + m[1] + '">' + esc(x.nut) + '</button>' : '<a class="' + cls + '" href="' + esc(x.link) + '">' + esc(x.nut) + '</a>';
+  }
+  function goTo(id) {
+    var w = data.workflows.filter(function (x) { return x.id === id; })[0];
+    if (!w) return;
+    var cur = industries.filter(function (x) { return x.id === nganh; })[0];
+    if (cur && cur.workflows.indexOf(id) < 0) { nganh = 'all'; saveNganh(); }
+    dep = w.phong; channel = 'all'; syncUrl(); render();
+    var el = document.getElementById('wf-' + id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.style.transition = 'box-shadow .3s'; el.style.boxShadow = '0 0 0 3px var(--highlight, #D4FF4A)';
+    setTimeout(function () { el.style.boxShadow = ''; }, 2200);
+  }
+
   function renderDeps() {
     var deps = [{ id: 'all', name: 'Tất cả' }].concat(data.departments);
     $('[data-deps]').innerHTML = deps.map(function (d) {
@@ -116,17 +135,28 @@
     if (cur) list.sort(function (a, b) { return cur.workflows.indexOf(a.id) - cur.workflows.indexOf(b.id); });
     if (!list.length) { listEl.innerHTML = '<p class="muted" style="margin:0">Chưa có quy trình cho lựa chọn này.</p>'; return; }
     listEl.innerHTML = list.map(function (w) {
-      var ready = groupsReady(w);
+      var appsOk = groupsReady(w);
+      var st = flowStatus[w.id];
+      var lack = (st && st.thieu_du_lieu) || [];
+      var soft = (st && st.nen_co) || [];
+      var ready = appsOk && !lack.length;
       var miss = firstMissing(w);
       var kenh = (w.kenh || []).map(function (k) { return '<span class="pill" style="font-size:11px">' + esc((data.channels || {})[k] || k) + '</span>'; }).join('');
       var groups = (w.cong_cu || []).map(groupRow).join('');
       var fix = miss ? (miss.app ? '<a class="btn btn-primary" href="ket-noi.html?app=' + miss.app + '">Nối 1 app: ' + esc(miss.group.vai) + '</a>' : '<a class="btn btn-primary" href="ket-noi.html?tab=mcp">Nối ' + esc(miss.group.vai.toLowerCase()) + '</a>') : '';
-      return '<article class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">' +
+      if (!fix && lack.length) fix = needBtn(lack[0], 'btn btn-primary');
+      var needBox = lack.length || soft.length ? '<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:8px;background:' + (lack.length ? '#FFF6F4' : '#F7F7F8') + '">' +
+        '<p style="margin:0;font-size:12px;font-weight:600">' + (lack.length ? 'Cần có trước khi chạy để ra kết quả thật' : 'Nên có để kết quả tốt hơn') + '</p>' +
+        lack.concat(soft).map(function (x, i) {
+          return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px;line-height:1.5"><span style="flex:1;min-width:180px"><b style="font-weight:600;color:' + (i < lack.length ? '#B3261E' : 'inherit') + '">' + esc(x.ten) + '.</b> <span class="muted">' + esc(x.cach) + '</span></span>' + (i === 0 && lack.length && !miss ? '' : needBtn(x, 'btn btn-ghost chip')) + '</div>';
+        }).join('') + '</div>' : '';
+      return '<article class="card" id="wf-' + w.id + '" style="padding:16px;display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">' +
         '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><p class="muted" style="margin:0;font-size:12px;font-weight:600">' + esc(depName[w.phong]) + '</p><h2 style="margin:2px 0 0;font-size:16px;font-weight:600">' + esc(w.ten) + '</h2></div>' +
-        (ready ? '<span class="pill pill-ok">Sẵn sàng</span>' : '<span class="pill pill-warn">Thiếu kết nối</span>') + '</div>' +
+        (ready ? '<span class="pill pill-ok">Sẵn sàng</span>' : !appsOk ? '<span class="pill pill-warn">Thiếu kết nối</span>' : '<span class="pill pill-warn">' + (lack[0].loai === 'truoc' ? 'Chạy quy trình trước' : 'Thiếu dữ liệu') + '</span>') + '</div>' +
         '<p class="muted" style="margin:0;font-size:13px;line-height:1.55">' + esc(w.mo_ta) + '</p>' +
         '<p style="margin:0;font-size:12px;color:#4A4A4A">Gợi ý lịch: ' + esc(w.lich) + '</p>' +
         (kenh ? '<div style="display:flex;gap:4px;flex-wrap:wrap">' + kenh + '</div>' : '') +
+        needBox +
         (w.media && !(brandData.video_style || brandData.visual || (brandData.refs || []).length) ? '<p style="margin:0;padding:8px 10px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.5">AI làm theo phong cách và mẫu bạn thích: thêm <a href="thuong-hieu.html#f-visual">phong cách hình ảnh/video, giọng đọc và video, ảnh mẫu</a> ở Brain thương hiệu để ra đúng gu.</p>' : '') +
         (w.tu_dong ? '<p class="muted" style="margin:0;font-size:12px">Có chế độ tự trả lời: bấm Hẹn giờ → Mỗi giờ → bật "Cho AI tự trả lời câu thường".</p>' : '') +
         (groups ? '<details' + (ready ? '' : ' open') + '><summary style="cursor:pointer;font-size:13px;font-weight:600">Công cụ chạy quy trình (' + (w.cong_cu || []).length + ' vai trò, chọn app bạn dùng)</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">' + groups + '</div></details>' : '') +
@@ -206,6 +236,8 @@
 
   document.addEventListener('click', function (e) {
     var t = e.target;
+    var gt = t.closest('[data-goto]');
+    if (gt) { goTo(gt.getAttribute('data-goto')); return; }
     var d = t.closest('[data-dep]');
     if (d) { dep = d.getAttribute('data-dep'); syncUrl(); render(); return; }
     var ng = t.closest('[data-nganh]');
@@ -238,6 +270,7 @@
     json('/api/status?uid=' + encodeURIComponent(uid)).catch(function () { return {}; }),
     json('/api/mcp-servers?uid=' + encodeURIComponent(uid)).catch(function () { return { servers: [] }; }),
     json('/api/brand?uid=' + encodeURIComponent(uid)).catch(function () { return {}; }),
+    json('/api/workflows/status?uid=' + encodeURIComponent(uid)).catch(function () { return {}; }),
     loadSched()
   ]).then(function (r) {
     data = r[0];
@@ -248,7 +281,10 @@
     mcpUrls = ((r[3] && r[3].servers) || []).map(function (s) { return s.url; });
     var b = (r[4] && r[4].brand) || {};
     brandData = b;
+    flowStatus = (r[5] && r[5].status) || {};
     $('[data-brand-warn]').hidden = !!(b.name || b.products);
     render();
+    var h = /^#wf-([a-z_]+)$/.exec(location.hash);
+    if (h) goTo(h[1]);
   }).catch(function (err) { listEl.innerHTML = ''; say(err.message); });
 })();

@@ -100,7 +100,7 @@ src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): D
                           mỗi vai trò nhiều app thay thế, bat_buoc/san_co), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm CHỈ ở đây
 src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; cron */15 (wrangler triggers) → tạo phiếu việc; che_do 'crewzy' thì
                           runAgent chế độ app tự làm (≤3 lượt mỗi lần cron, tính vào trần lượt của app). scripts/schedtest.mjs
-src/routes/workflows.js   GET /api/workflows · GET/POST /api/schedules (tao | bat | tat | xoa)
+src/routes/workflows.js   GET /api/workflows · GET /api/workflows/status?uid= (sẵn sàng thật) · GET/POST /api/schedules (tao | bat | tat | xoa)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
@@ -192,6 +192,16 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Trợ lý AI kiểu nhắn tin (khung chat chiếm phần còn lại, gợi ý cuộn ngang, ô nhập tròn sát thanh dưới). Văn phòng bỏ dữ liệu mẫu:
   AI gọi CREWZY_VIEC_CAN_LAM → phiếu cho_lam chuyển dang_lam (nhan_luc, "<AI> nhận việc"); cron runAuto gọi markWorking trước khi chạy.
   KV aiseen:<uid> chỉ ghi lúc initialize (gói KV Free 1.000 lượt ghi/ngày — đừng ghi mỗi tools/call).
+- "Sẵn sàng" = đủ app + ĐỦ DỮ LIỆU (22/11, Claude của Giang gọi thử qua link nối AI và báo 2 lỗi: Báo cáo tuần "chạy được" khi chưa nối
+  app nào; Ảnh theo mẫu "chạy được" khi Brain trống; Video theo phong cách cần sổ tay của doi_thu_reels; Dựng Brain bị khoá vì thiếu app đọc web).
+  workflows.js: NEEDS → w.can (brain: mục Brain phải có · mau: loại mẫu tham khảo · truoc: quy trình phải có kết quả trước, thay thế được bằng mục
+  Brain/mẫu · nguon: ít nhất 1 nhóm công cụ theo key); bat_buoc false = "nên có", không chặn. readiness(w, {connected, mcpUrls, brand, jobs|done})
+  là NGUỒN DUY NHẤT cho CREWZY_QUY_TRINH (thieu_du_lieu, nen_co, luu_y_du_lieu), /api/office (phòng setup) và GET /api/workflows/status?uid=
+  (trang Quy trình: nhãn Thiếu dữ liệu / Chạy quy trình trước, hộp "Cần có trước khi chạy", nút nhảy tới thẻ #wf-<id>). doneFlows: phiếu
+  cho_duyet/da_duyet/da_dang/xong có quy_trinh (bỏ phiếu "Chưa chạy tự động…"). Nhóm công cụ có key (req/opt). Test: scripts/readytest.mjs (npm test).
+  CREWZY_DOC_WEB (src/lib/webRead.js): Crewzy tự đọc trang web công khai (≤1,5MB, trả ≤12.000 ký tự + lien_ket cùng website), chặn IP nội bộ/localhost,
+  từ chối Facebook/Instagram/TikTok/LinkedIn/Zalo (cần đăng nhập) → nhóm doc_web_minh và soi_web có san_co, Dựng Brain chạy được khi chưa nối gì.
+  connectedApps chuyển sang src/lib/connected.js (office + workflows status dùng chung).
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,
@@ -333,6 +343,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Webhook thanh toán: xác thực khoá, chống trùng, kiểm tra đủ tiền, ghi log mọi giao dịch.
 - Trước khi chạy quảng cáo: trang giới thiệu, chính sách bảo mật, điều khoản, cookie; Pixel + CAPI cùng `event_id`; sự kiện gắn đúng lúc có giá trị.
 - Sửa lỗi: tìm nguyên nhân gốc theo đường đi dữ liệu, sửa xong ghi 1 dòng vào mục 5.
+- Đánh dấu "chạy được" phải xét cả dữ liệu đầu vào và quy trình cần chạy trước, không chỉ app đã nối; nhờ chính AI của khách gọi thử qua link MCP để bắt lỗi kiểu này.
 
 ## 5. Nhật ký
 

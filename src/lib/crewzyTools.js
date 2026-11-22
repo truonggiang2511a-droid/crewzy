@@ -6,7 +6,9 @@ import { getBrand, brandText, brandPack } from './brand.js';
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl } from './media.js';
-import { WORKFLOWS, DEPARTMENTS, workflowById, missingFor, WORKFLOW_RULES, formatsFor, MCP_HOSTS } from './workflows.js';
+import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS } from './workflows.js';
+import { readWebsite } from './webRead.js';
+import { listJobs } from './jobs.js';
 import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
 
@@ -157,16 +159,19 @@ async function workflowTool(env, uid, args, connected) {
   const urls = servers.map((x) => x.url);
   const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
   const id = args && args.id;
+  const [brand, jobs] = await Promise.all([getBrand(env, uid).catch(() => null), listJobs(env, uid).catch(() => [])]);
+  const ctx = { connected, mcpUrls: urls, brand, done: doneFlows(jobs) };
+  const short = (r) => r.thieu_du_lieu.map((x) => x.ten + ' → ' + x.cach);
   if (!id) {
     return { data: { quy_trinh: WORKFLOWS.map((w) => {
-      const miss = missingFor(w, connected, urls);
-      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: miss.nhom, san_sang: !miss.nhom.length };
-    }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết.' } };
+      const r = readiness(w, ctx);
+      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: r.thieu_nhom, thieu_du_lieu: short(r), san_sang: r.san_sang };
+    }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết. Khách mới: bắt đầu bằng brain_tu_website.' } };
   }
   const w = workflowById(id);
   if (!w) return { error: 'Không có quy trình ' + id + '. Gọi CREWZY_QUY_TRINH không kèm id để xem danh sách.' };
-  const miss = missingFor(w, connected, urls);
-  const brand = await getBrand(env, uid).catch(() => null);
+  const r = readiness(w, ctx);
+  const miss = { nhom: r.thieu_nhom, groups: r.groups };
   const mcpIds = Object.keys(MCP_HOSTS).filter((k) => urls.some((u) => u.includes(MCP_HOSTS[k])));
   return { data: {
     doc_truoc: 'BƯỚC 0: đọc kỹ thuong_hieu dưới đây (và mở các link mẫu tham khảo) trước khi làm bất cứ bước nào.',
@@ -174,7 +179,10 @@ async function workflowTool(env, uid, args, connected) {
     dinh_dang_kenh: formatsFor(connected, mcpIds),
     id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, can_hoi_khach: w.hoi || undefined,
     kenh: w.kenh, loai_ket_qua: w.loai,
-    cong_cu: miss.groups, thieu_nhom: miss.nhom, san_sang: !miss.nhom.length,
+    cong_cu: miss.groups, thieu_nhom: miss.nhom, san_sang: r.san_sang,
+    thieu_du_lieu: r.thieu_du_lieu.length ? short(r) : undefined,
+    nen_co: r.nen_co.length ? r.nen_co.map((x) => x.ten + ' → ' + x.cach) : undefined,
+    luu_y_du_lieu: r.thieu_du_lieu.length ? 'Chưa đủ dữ liệu để ra kết quả thật. Báo khách mục còn thiếu và cách bổ sung (hoặc chạy quy trình cần chạy trước), KHÔNG tự bịa nội dung thay cho dữ liệu thiếu.' : undefined,
     cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${b}`),
     quy_tac: WORKFLOW_RULES,
     huong_dan_noi: miss.nhom.length
@@ -183,6 +191,16 @@ async function workflowTool(env, uid, args, connected) {
     ghi_chu_cong_cu: 'Công cụ của app tìm bằng COMPOSIO_SEARCH_TOOLS (vd "post to pinterest", "add contact pipedrive", "apify run actor") rồi chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL; công cụ MCP ngoài có tiền tố m…_.',
   } };
 }
+
+// Đọc website công khai (src/lib/webRead.js): bước Dựng Brain và So sánh đối thủ không cần nối app đọc web.
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_DOC_WEB',
+    description: 'Đọc một trang web công khai (website của khách hoặc đối thủ): trả tiêu đề, mô tả, các mục, chữ chính (tối đa 12.000 ký tự) và lien_ket = các trang con cùng website để đọc tiếp (sản phẩm, bảng giá, giới thiệu). Không đọc được trang cần đăng nhập (Facebook, Instagram, TikTok).',
+    parameters: { type: 'object', properties: { url: { type: 'string', description: 'Link trang web, ví dụ https://tenmien.vn hoặc một trang con.' } }, required: ['url'] },
+  },
+});
 
 // Phiếu việc: AI của khách nhận việc và nộp kết quả về Crewzy (src/lib/jobs.js).
 CREWZY_TOOL_DEFS.push(...JOB_TOOL_DEFS);
@@ -266,6 +284,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || []);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
+    if (name === 'CREWZY_DOC_WEB') return await readWebsite(args && args.url);
     if (name === 'CREWZY_TAI_LEN') return await createPutLink(env, origin, uid, args && args.loai_file);
     if (name === 'CREWZY_CHO') {
       const s = Math.min(30, Math.max(5, Number((args && args.giay) || 15)));
