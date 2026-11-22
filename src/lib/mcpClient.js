@@ -164,6 +164,7 @@ export async function discoverOAuth(mcpUrl, wwwAuth) {
     resource: (prm && prm.resource) || mcpUrl,
     scopes,
     pkce: !as.code_challenge_methods_supported || as.code_challenge_methods_supported.includes('S256'),
+    cimd: as.client_id_metadata_document_supported === true,
   };
 }
 
@@ -181,6 +182,18 @@ export async function registerClient(oauth, redirectUri) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.client_id) throw new Error('Máy chủ từ chối đăng ký app (' + res.status + ').');
   return { clientId: data.client_id, clientSecret: data.client_secret || '', authMethod: data.token_endpoint_auth_method || (data.client_secret ? 'client_secret_post' : 'none') };
+}
+
+// Kiểm tra trước link đăng nhập: một số máy chủ (vd Canva) chỉ nhận địa chỉ quay về của Claude/ChatGPT/localhost
+// và trả trang lỗi "Invalid redirect URI" → phát hiện ở máy chủ để khách không bị kẹt ở trang trắng.
+export async function authorizeAccepted(url) {
+  try {
+    const res = await timedFetch(url, { redirect: 'manual', headers: { accept: 'text/html' } }, 10000);
+    if (res.status >= 300 && res.status < 400) return true;
+    if (res.status >= 400) return false;
+    const text = (await res.text()).slice(0, 3000);
+    return !/invalid[_ ]redirect|redirect[_ ]uri.{0,40}(invalid|not (allowed|registered))|invalid[_ ]client/i.test(text);
+  } catch (e) { return true; }
 }
 
 const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

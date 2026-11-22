@@ -15,7 +15,7 @@ import { serveImage } from './lib/crewzyTools.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
+  '/api/mcp-link': mcpLink, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
 };
 
 export default {

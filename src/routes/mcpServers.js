@@ -4,11 +4,22 @@
 // POST /api/mcp-servers {uid, action:'remove'|'test', id}
 // GET  /api/mcp-callback?code&state     → app kia trả về sau khi khách đồng ý → lưu token → về ket-noi.html?tab=mcp
 import { resolveUid, kvGetJson, kvPutJson, sealText, openText } from '../lib/common.js';
-import { checkMcpUrl, McpConnection, McpAuthError, discoverOAuth, registerClient, randomToken, pkceChallenge, authorizeUrl, tokenRequest } from '../lib/mcpClient.js';
+import { checkMcpUrl, McpConnection, McpAuthError, discoverOAuth, registerClient, randomToken, pkceChallenge, authorizeUrl, authorizeAccepted, tokenRequest } from '../lib/mcpClient.js';
 import { listServers, saveServers, publicServer, newServerId, cleanName, openServer, MAX_SERVERS } from '../lib/mcpServers.js';
 
 const PENDING_TTL = 900;
 const callbackUrl = (req) => new URL('/api/mcp-callback', req.url).toString();
+const clientDocUrl = (req) => new URL('/api/oauth-client.json', req.url).toString();
+
+// Tài liệu mô tả app Crewzy cho OAuth (Client ID Metadata Document): client_id chính là link này.
+function clientDocument(req) {
+  const origin = new URL(req.url).origin;
+  return Response.json({
+    client_id: clientDocUrl(req), client_name: 'Crewzy', client_uri: origin, logo_uri: origin + '/assets/favicon.svg',
+    redirect_uris: [callbackUrl(req)], grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'],
+    token_endpoint_auth_method: 'none',
+  }, { headers: { 'cache-control': 'public, max-age=3600' } });
+}
 const errText = (e) => String((e && e.message) || e || 'Lỗi không rõ').slice(0, 240);
 
 async function probe(url, token) {
@@ -39,15 +50,32 @@ async function startOAuth(req, env, uid, { id, name, url, wwwAuth }) {
   const oauth = await discoverOAuth(url, wwwAuth);
   if (!oauth.authorizationEndpoint || !oauth.tokenEndpoint) throw new Error('Không tìm thấy trang đăng nhập của máy chủ này.');
   const redirectUri = callbackUrl(req);
-  const client = await registerClient(oauth, redirectUri);
   const state = randomToken(24);
   const verifier = randomToken(48);
+  const challenge = await pkceChallenge(verifier);
+  // Thử lần lượt: client ID dạng link tài liệu (CIMD, chuẩn MCP mới) rồi tự đăng ký (DCR). Chọn cách máy chủ chấp nhận.
+  const candidates = [];
+  if (oauth.cimd) candidates.push(async () => ({ clientId: clientDocUrl(req), clientSecret: '', authMethod: 'none' }));
+  candidates.push(() => registerClient(oauth, redirectUri));
+  let client = null;
+  let link = '';
+  let lastErr = null;
+  for (const make of candidates) {
+    try {
+      const c = await make();
+      const l = authorizeUrl(oauth, c, { redirectUri, state, challenge });
+      if (await authorizeAccepted(l)) { client = c; link = l; break; }
+    } catch (e) { lastErr = e; }
+  }
+  if (!client) {
+    throw new Error(lastErr ? errText(lastErr) : 'Máy chủ này chỉ cho một số app AI được duyệt (như Claude, ChatGPT) đăng nhập, chưa nhận Crewzy.');
+  }
   await kvPutJson(env, 'mcpoauth:' + state, {
     uid, id, name, url, redirectUri,
     oauth: { ...oauth, clientId: client.clientId, clientSecret: await sealText(env, client.clientSecret), authMethod: client.authMethod },
     verifier: await sealText(env, verifier),
   }, { expirationTtl: PENDING_TTL });
-  return authorizeUrl(oauth, client, { redirectUri, state, challenge: await pkceChallenge(verifier) });
+  return link;
 }
 
 async function finishOAuth(req, env) {
@@ -81,6 +109,7 @@ async function finishOAuth(req, env) {
 export default async (req, env) => {
   const path = new URL(req.url).pathname;
   if (path === '/api/mcp-callback') return finishOAuth(req, env);
+  if (path === '/api/oauth-client.json') return clientDocument(req);
 
   let body = {};
   if (req.method === 'POST') { try { body = await req.json(); } catch (e) { return Response.json({ error: 'Dữ liệu không hợp lệ.' }, { status: 400 }); } }
