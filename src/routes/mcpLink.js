@@ -21,6 +21,8 @@ export default async (req, env) => {
       mcp: true,
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      // Instant (Composio trả bằng ví của Giang) tắt cho link nối AI: cổng MCP không đo được tiền từng lần gọi để trừ credit khách.
+      instant: false,
     });
     const upstream = session.mcp && session.mcp.url;
     if (!upstream) {

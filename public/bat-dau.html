@@ -50,7 +50,7 @@
     <button type="button" class="ob-step" data-go="brand"><b>BƯỚC 1</b>Thương hiệu</button>
     <button type="button" class="ob-step" data-go="channel"><b>BƯỚC 2</b>Kết nối kênh</button>
     <button type="button" class="ob-step" data-go="ai"><b>BƯỚC 3</b>Kết nối AI</button>
-    <button type="button" class="ob-step" data-go="paid"><b>BƯỚC 4</b>Thanh toán</button>
+    <button type="button" class="ob-step" data-go="paid"><b>BƯỚC 4</b>Dùng thử / Gói</button>
   </div>
 
   <section class="card ob-card" data-panel="brand" hidden>
@@ -96,6 +96,15 @@
 
   <section class="card ob-card" data-panel="paid" hidden>
     <h2>Chọn gói</h2>
+    <div data-trial hidden style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px;border-radius:12px;background:#0F0F0F;color:#fff">
+      <div style="flex:1;min-width:220px">
+        <p class="label-mono" style="margin:0 0 4px;color:#D4FF4A">Miễn phí · không cần thanh toán</p>
+        <p style="margin:0;font-size:17px;font-weight:600" data-trial-title>Dùng thử 7 ngày · 300 credit</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#C9C9C9">Đủ để Trợ lý Crewzy (Claude Opus 5.5) làm vài việc thật: viết bài theo thương hiệu, tạo ảnh, soi đối thủ. Hết hạn thì chọn gói, mọi dữ liệu vẫn giữ.</p>
+      </div>
+      <button type="button" class="btn" data-trial-start style="background:#D4FF4A;color:#0F0F0F;border-color:#D4FF4A">Dùng thử miễn phí</button>
+      <p class="ob-msg err" data-trial-msg style="flex-basis:100%;margin:0;display:none"></p>
+    </div>
     <p class="muted" style="margin:0;font-size:14px">Thanh toán bằng chuyển khoản VietQR, kích hoạt tự động sau vài giây. Credit dùng cho đăng bài, tạo ảnh, video, chạy công cụ.</p>
     <div data-plans></div>
     <div data-order></div>

@@ -175,3 +175,27 @@ console.log('billingtest OK');
   assert.equal(opus, Math.ceil((30000 * 4 + 1000 * 20) / 1e6 * 26000 * 2 / 100));
   console.log('billingtest: credit theo model OK', { opus, haiku, cached });
 }
+
+// Dùng thử miễn phí: 1 lần/tài khoản, bấm 2 lần không cộng đôi, đã mua gói thì không được, hết hạn báo đúng câu, TRIAL=off tắt.
+{
+  const { startTrial, trialAvailable } = await import('../src/lib/billing.js');
+  const U = 'khach-dung-thu-01';
+  assert.equal(await trialAvailable(env, U), true);
+  const [a, b] = await Promise.all([startTrial(env, U, 'a@x.vn'), startTrial(env, U, 'a@x.vn')]);
+  assert.equal([a, b].filter((r) => r.ok).length, 1, 'chỉ 1 lần');
+  const acc = await getAccount(env, U);
+  assert.equal(acc.credits, 300);
+  assert.equal(acc.plan, 'dung_thu');
+  assert.ok(acc.plan_until > Date.now() + 6 * 86400000);
+  assert.equal(await trialAvailable(env, U), false);
+  assert.equal(await gate(env, U, { needCredits: 5 }), null, 'đang dùng thử thì được dùng');
+  DB.db.prepare('UPDATE accounts SET plan_until = ? WHERE uid = ?').run(Date.now() - 1000, U);
+  assert.match((await gate(env, U)).error, /hết thời gian dùng thử/i);
+  // Đã từng mua gói → không dùng thử.
+  const U2 = 'khach-da-mua-02';
+  DB.db.prepare("INSERT INTO orders (id, uid, kind, item, amount, credits, days, code, status, created_at) VALUES ('o-x', ?, 'plan', 'co_ban', 299000, 3000, 30, 'CZAAAA2222', 'paid', 1)").run(U2);
+  assert.equal(await trialAvailable(env, U2), false);
+  assert.equal((await startTrial(env, U2, 'b@x.vn')).ok, false);
+  assert.equal(await trialAvailable({ ...env, TRIAL: 'off' }, 'khach-moi-03'), false);
+  console.log('billingtest: dùng thử OK');
+}

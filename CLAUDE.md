@@ -120,6 +120,11 @@ src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-k
 src/lib/billing.js        GÓI + CREDIT (nguồn duy nhất): billingOn (DB + GOOGLE_CLIENT_ID + BILLING≠off), gói/nạp/giá mặc định (đổi bằng PLANS_JSON,
                           TOPUPS_JSON, PRICES_JSON), onboarding() 4 bước, charge (nguyên tử: UPDATE … WHERE credits>=n + ledger WHERE changes()>0),
                           chargeAfter (token AI, có thể âm, RETURNING), grant (cộng dồn hạn gói), toolPrice, tokenCredits, makeMeter, gate, ADMIN_EMAILS
+src/lib/instant.js        COMPOSIO INSTANT (22/11 tối): INSTANT_APPS (serpapi, firecrawl, tavily, elevenlabs, google_maps, apollo, semrush, ahrefs) chạy
+                          không cần khách kết nối, Composio trả từ ví của Giang (giá gốc 0% phí) → instantConfig (trần ngày: app INSTANT_DAILY_USD=1,
+                          khách INSTANT_USER_DAILY_USD=0,3, tắt INSTANT=off), instantUsd đọc instantCharge, recordInstant (KV instusd:<ngày VN>:<uid|all>).
+                          CHỈ Trợ lý Crewzy (chat mode app + cron) bật Instant; mcpLink tạo phiên instant:false (cổng MCP không đo được tiền).
+                          readiness ctx.instant → nhóm có app Instant coi như đủ (chat, trang Quy trình, Văn phòng). Test: scripts/instanttest.mjs
 src/routes/billing.js     /api/billing · /api/billing/order (tạo đơn mã CZ+8 ký tự, dùng lại đơn chờ 24 giờ, ≤5 đơn chờ) · /api/billing/admin ·
                           /api/sepay/webhook (Apikey, INSERT OR IGNORE theo id SePay, khớp mã trong content/code/description, kiểm đủ tiền,
                           đánh dấu paid có điều kiện status='pending', luôn trả {success:true} khi khoá đúng) · /api/onboarding · /api/onboarding/brand-from-web
@@ -458,6 +463,16 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026 (tối): Giang muốn dùng model mạnh (Opus 5.5) để khách thấy giá trị. Gói Claude Pro không dùng được trong app khác →
   dùng API Opus 5.5 bằng khoá của Giang, trừ credit theo giá thật + prompt caching. Tra giá platform.claude.com: Haiku 5.5 chỉ 0,1/0,5 USD
   (trước đó billing tính nhầm 1/5). CHƯA thử với khoá thật (bật gói rồi nên chat cần phiên đăng nhập) → Giang chat thử 1 câu ở Trợ lý sau deploy.
+
+- 22/11/2026 (tối): Giang đi vắng, dặn "bật Instant + tính credit vẫn lời + cho dùng thử". Đã bật Instant trong Composio (Platform → project Settings
+  → General → Instant; hộp thoại báo: bật là MỌI phiên cũ lẫn mới đều có Instant, tắt riêng từng phiên được). Ví mới có 2 USD tặng 1 lần; nạp thêm cần
+  gói Composio Pro. Link nối AI tạo TRƯỚC 22/11 tối vẫn có Instant (không đo được) → rủi ro giới hạn trong số dư ví; khách tạo link mới là tắt.
+  Credit Instant = USD × 26.000 × instant_markup 2 / 100, tối thiểu 1 (0,01 USD → 6 credit). Lãi gói (giá vốn 50đ/credit vì bán ×2):
+  Cơ bản 299k − 3.000×50 = 149k · Tăng trưởng 699k − 400k = 299k · Doanh nghiệp 1,49tr − 1tr = 490k, chưa trừ Composio Pro 29 USD/tháng chia chung.
+  Dùng thử: 7 ngày + 300 credit, 1 lần/tài khoản (ledger reason 'dung_thu', đã mua gói thì không), nguyên tử bằng INSERT … WHERE NOT EXISTS +
+  UPDATE … WHERE changes()>0; plan 'dung_thu' (ten_goi "Dùng thử"), hết hạn gate báo "Đã hết thời gian dùng thử". Nút ở bước 4 bat-dau (đổi tên
+  "Dùng thử / Gói"); POST /api/onboarding {trial:true}. TRIAL_JSON / TRIAL=off. Chi phí tối đa cho Giang ≈ 15.000đ/khách dùng thử.
+  CHƯA thử thật: Instant với ví thật (chờ Giang nạp) và Opus với khoá thật.
 
 ## 6. Việc tiếp theo
 

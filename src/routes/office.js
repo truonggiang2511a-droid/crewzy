@@ -1,6 +1,7 @@
 // Văn phòng thật: GET /api/office[?uid=] → mọi số liệu trang Văn phòng cần trong 1 lần gọi (điện thoại đỡ chờ).
 // Phòng = DEPARTMENTS của thư viện quy trình. Trạng thái phòng tính từ phiếu việc thật (jobs), lịch hẹn, app đã nối, máy chủ MCP.
 // Bảng tin = lịch sử thật của các phiếu (lich_su). Bộ não = AI của khách gần nhất gọi link nối AI (KV aiseen:<uid>) + Trợ lý trong app.
+import { instantOn } from '../lib/instant.js';
 import { resolveUid, kvGetJson } from '../lib/common.js';
 import { connectedApps } from '../lib/connected.js';
 import { listJobs, STATUSES } from '../lib/jobs.js';
@@ -28,7 +29,7 @@ export default async (req, env) => {
   const now = Date.now();
   const connected = Object.keys(accounts || {});
   const mcpUrls = servers.filter((s) => !s.off).map((s) => s.url);
-  const rctx = { connected, mcpUrls, brand: brand || {}, done: doneFlows(jobs) };
+  const rctx = { connected, mcpUrls, brand: brand || {}, done: doneFlows(jobs), instant: instantOn(env) && !!env.ANTHROPIC_API_KEY };
   const effective = (j) => (j.trang_thai === 'dang_lam' && now - Date.parse(j.nhan_luc || j.cap_nhat) > STALE_MS ? 'cho_lam' : j.trang_thai);
 
   const rooms = DEPARTMENTS.map((d) => {

@@ -16,6 +16,7 @@ export const DEPARTMENTS = [
 ];
 
 // mcp: tên máy chủ MCP ngoài khách cần nối ở Kết nối → MCP khác (khớp theo tên miền trong link).
+import { INSTANT_APPS } from './instant.js';
 import { MCP_HOSTS, MCP_DIRECTORY } from './mcpDirectory.js';
 import { BRAND_FIELDS, REF_TYPES } from './brand.js';
 export { MCP_HOSTS };
@@ -406,17 +407,20 @@ export function publicWorkflows() {
 
 // Kiểm tra từng nhóm công cụ: nhóm có app/MCP đã nối thì đạt; nhóm bắt buộc chưa có gì → thiếu.
 // connected: slug Composio ACTIVE; mcpUrls: link MCP ngoài khách đã nối.
-export function groupStatus(w, connected, mcpUrls) {
+// instant = true khi chạy bằng Trợ lý Crewzy có Instant (src/lib/instant.js): nhóm có app Instant coi như đã đủ, khách không phải kết nối.
+export function groupStatus(w, connected, mcpUrls, instant) {
   const set = new Set(connected || []);
   const urls = (mcpUrls || []).join(' ');
   return (w.cong_cu || []).map((g) => {
     const apps = (g.apps || []).filter((s) => set.has(s));
     const mcp = (g.mcp || []).filter((m) => urls.includes(MCP_HOSTS[m] || m));
-    return { vai: g.vai, bat_buoc: !!g.bat_buoc, san_co: g.san_co || '', san_co_mcp: g.san_co_mcp, da_noi: [...apps, ...mcp.map((m) => 'mcp:' + m)], goi_y: g.apps || [], goi_y_mcp: g.mcp || [], dat: !!(apps.length || mcp.length || g.san_co) };
+    const inst = instant ? (g.apps || []).filter((s) => INSTANT_APPS.includes(s)) : [];
+    return { vai: g.vai, bat_buoc: !!g.bat_buoc, san_co: g.san_co || '', san_co_mcp: g.san_co_mcp, da_noi: [...apps, ...mcp.map((m) => 'mcp:' + m)], goi_y: g.apps || [], goi_y_mcp: g.mcp || [],
+      ...(inst.length && !apps.length ? { instant: inst } : {}), dat: !!(apps.length || mcp.length || g.san_co || inst.length) };
   });
 }
-export function missingFor(w, connected, mcpUrls) {
-  const groups = groupStatus(w, connected, mcpUrls);
+export function missingFor(w, connected, mcpUrls, instant) {
+  const groups = groupStatus(w, connected, mcpUrls, instant);
   return { nhom: groups.filter((g) => g.bat_buoc && !g.dat).map((g) => g.vai), groups };
 }
 
@@ -461,7 +465,7 @@ function checkNeed(c, b, done, groups) {
 
 // Sẵn sàng thật = đủ app bắt buộc + đủ điều kiện dữ liệu. ctx: { connected, mcpUrls, brand, jobs | done }.
 export function readiness(w, ctx) {
-  const miss = missingFor(w, ctx.connected, ctx.mcpUrls);
+  const miss = missingFor(w, ctx.connected, ctx.mcpUrls, ctx.instant);
   const b = ctx.brand || {};
   const done = ctx.done || doneFlows(ctx.jobs);
   const groups = miss.groups.map((g, i) => ({ ...g, key: (w.cong_cu[i] || {}).key }));

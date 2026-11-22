@@ -3,6 +3,7 @@
 // GET  /api/workflows/status?uid=         → {status: {id: {san_sang, thieu_nhom, thieu_du_lieu, nen_co}}} (đủ app + đủ dữ liệu)
 // GET  /api/schedules?uid=                → {schedules, days, modes}
 // POST /api/schedules {uid, action:'tao', quy_trinh, gio, ngay, che_do, ghi_chu} | {uid, action:'bat'|'tat'|'xoa', id}
+import { instantOn } from '../lib/instant.js';
 import { resolveUid } from '../lib/common.js';
 import { publicWorkflows, WORKFLOWS, readiness, doneFlows } from '../lib/workflows.js';
 import { connectedApps } from '../lib/connected.js';
@@ -22,7 +23,7 @@ export default async (req, env) => {
   if (url.pathname === '/api/workflows/status') {
     const [accounts, servers, brand, jobs] = await Promise.all([connectedApps(env, who.uid), listServers(env, who.uid).catch(() => []),
       getBrand(env, who.uid).catch(() => null), listJobs(env, who.uid).catch(() => [])]);
-    const ctx = { connected: Object.keys(accounts || {}), mcpUrls: servers.filter((x) => !x.off).map((x) => x.url), brand: brand || {}, done: doneFlows(jobs) };
+    const ctx = { connected: Object.keys(accounts || {}), mcpUrls: servers.filter((x) => !x.off).map((x) => x.url), brand: brand || {}, done: doneFlows(jobs), instant: instantOn(env) && !!env.ANTHROPIC_API_KEY };
     const status = {};
     for (const w of WORKFLOWS) { const r = readiness(w, ctx); status[w.id] = { san_sang: r.san_sang, thieu_nhom: r.thieu_nhom, thieu_du_lieu: r.thieu_du_lieu, nen_co: r.nen_co }; }
     return Response.json({ status, app_loi: accounts === null }, { headers: { 'cache-control': 'no-store' } });

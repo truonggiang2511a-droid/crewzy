@@ -27,7 +27,7 @@
     if (view === 'brand') loadBrand();
     if (view === 'channel') drawApps();
     if (view === 'ai') startAiPoll();
-    if (view === 'paid') loadPlans();
+    if (view === 'paid') { loadPlans(); showTrial(); }
   }
   function refresh(goNext) {
     return api('/api/onboarding').then(function (res) {
@@ -136,6 +136,23 @@
   $('[data-use-crewzy]').addEventListener('click', function (e) {
     e.target.disabled = true;
     api('/api/onboarding', { method: 'POST', body: JSON.stringify({ ai: 'crewzy' }) }).then(function () { refresh(true); });
+  });
+
+  // ---- Bước 4: dùng thử miễn phí (1 lần/tài khoản) hoặc thanh toán ----
+  function showTrial() {
+    var box = $('[data-trial]'), t = state && state.dung_thu;
+    if (!box) return;
+    box.hidden = !t;
+    box.style.display = t ? 'flex' : 'none';
+    if (t) $('[data-trial-title]').textContent = 'Dùng thử ' + t.ngay + ' ngày · ' + t.credits + ' credit';
+  }
+  $('[data-trial-start]').addEventListener('click', function (e) {
+    var b = e.target, m = $('[data-trial-msg]');
+    b.disabled = true; b.textContent = 'Đang kích hoạt…'; m.style.display = 'none';
+    api('/api/onboarding', { method: 'POST', body: JSON.stringify({ trial: true }) }).then(function (res) {
+      if (!res.ok) { b.disabled = false; b.textContent = 'Dùng thử miễn phí'; m.textContent = res.j.error || 'Chưa kích hoạt được, thử lại sau.'; m.style.display = 'block'; return; }
+      refresh(true);
+    });
   });
 
   // ---- Bước 4: thanh toán ----

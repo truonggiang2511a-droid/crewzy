@@ -5,6 +5,7 @@
 // mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
+import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE } from '../lib/instant.js';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Composio } from '@composio/core';
@@ -247,9 +248,12 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
   const composioKey = getApiKey(env);
   const deadline = Date.now() + timeBudgetMs;
     const composio = new Composio({ apiKey: composioKey });
+    // Instant chỉ cho Trợ lý Crewzy (khoá của Giang): đo được tiền từng lần gọi để trừ credit. Khoá riêng của khách thì tắt.
+    const instant = mode === 'app' ? await instantConfig(env, uid).catch(() => false) : false;
     const session = await composio.create(userIdFor(uid), {
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      instant,
     });
     const [composioTools, built, ext] = await Promise.all([
       session.tools(), buildSystem(env, composio, uid),
@@ -258,6 +262,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     let tools = [...composioTools, ...CREWZY_TOOL_DEFS, VIDEO_TOOL, ...ext.defs];
     if (mode === 'gemini') tools = tools.map(geminiSafeTool);
     let system = built.system;
+    if (instant) system += '\n\n' + INSTANT_NOTE;
     if (ext.names.length || ext.failed.length) {
       system += '\n\n# Máy chủ MCP khác khách đã nối\n'
         + (ext.names.length ? 'Đang dùng được: ' + ext.names.join(', ') + '. Công cụ của chúng có tiền tố m…_ và ghi [tên máy chủ] ở đầu mô tả; gọi thẳng, không cần COMPOSIO_SEARCH_TOOLS.' : '')
@@ -273,7 +278,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
         if (no) return { error: no };
       }
       if (isCrewzyTool(name)) {
-        const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs, agent: 'Trợ lý Crewzy' });
+        const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs, agent: 'Trợ lý Crewzy', instant: !!instant });
         if (out && out.image) emit({ type: 'image', url: out.image });
         if (out && out.video) emit({ type: 'video', url: out.video });
         return out;
@@ -293,7 +298,19 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
           return res;
         }
       }
-      try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
+      let res;
+      try { res = await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
+      // Công cụ Instant: ghi chi tiêu (trần ngày) và trừ credit theo tiền Composio báo về.
+      const usd = instant ? instantUsd(res) : 0;
+      if (usd > 0) {
+        await recordInstant(env, uid, usd).catch((e) => console.error('instant record failed', e && e.message));
+        const stop = meter ? await meter.instant(usd, name).catch(() => null) : null;
+        if (res && typeof res === 'object') {
+          delete res.instantCharge;
+          res.crewzy_phi = `Công cụ trả phí qua Crewzy: ${usd.toFixed(4)} USD` + (stop ? '. Khách đã hết credit, dừng lại và báo khách nạp thêm.' : '');
+        }
+      }
+      return res;
     };
     const model = mode === 'openrouter' ? orModel : mode === 'app' ? appModel(env, brain) : MODELS[mode];
     if (mode === 'openrouter') {

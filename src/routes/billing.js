@@ -4,13 +4,13 @@
 //   GET  /api/billing/order?id=        → { don: {..., status} }   (trình duyệt hỏi mỗi 4 giây tới khi paid)
 //   GET  /api/billing/admin            → admin: 100 tài khoản gần nhất · POST {email|uid, credits, days, plan} → cấp credit/gia hạn
 //   POST /api/sepay/webhook            → SePay báo có tiền vào (header Authorization: Apikey <SEPAY_WEBHOOK_KEY>)
-//   GET  /api/onboarding               → trạng thái 4 bước · POST /api/onboarding {ai: 'crewzy'} → chọn Trợ lý Crewzy làm bộ não
+//   GET  /api/onboarding               → trạng thái 4 bước · POST /api/onboarding {ai: 'crewzy'} → chọn Trợ lý Crewzy làm bộ não · {trial: true} → dùng thử miễn phí (1 lần)
 //   POST /api/onboarding/brand-from-web {url} → đọc website, Claude điền sẵn Brain (khách xem lại rồi bấm Lưu)
 // Biến môi trường: SEPAY_WEBHOOK_KEY (bí mật), SEPAY_BANK (vd MBBank, VCB), SEPAY_ACCOUNT (số tài khoản), SEPAY_ACCOUNT_NAME, ADMIN_EMAILS.
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveUid, safeDetail, sameText } from '../lib/common.js';
 import {
-  billingOn, plans, topups, prices, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant,
+  billingOn, plans, topups, prices, startTrial, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant,
 } from '../lib/billing.js';
 import { readWebsite } from '../lib/webRead.js';
 import { BRAND_FIELDS } from '../lib/brand.js';
@@ -120,6 +120,10 @@ export default async (req, env, ctx) => {
     if (req.method === 'POST') {
       let body = {};
       try { body = await req.json(); } catch (e) { /* trống */ }
+      if (body.trial && env.DB) {
+        const r = await startTrial(env, uid, email);
+        if (!r.ok) return Response.json({ error: r.error }, { status: 409, headers: noStore });
+      }
       if (body.ai === 'crewzy' && env.DB) {
         await ensureAccount(env, uid, email);
         await env.DB.prepare("UPDATE accounts SET ai_choice = 'crewzy', updated_at = ?2 WHERE uid = ?1").bind(uid, Date.now()).run();

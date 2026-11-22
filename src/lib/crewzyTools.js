@@ -155,7 +155,7 @@ function mcpHint(groups) {
   return ids.length ? ' (' + ids.map((m) => `${m.name}: ${m.url}`).join(', ') + ')' : '';
 }
 // surface 'mcp' = AI ngoài qua link nối AI: viết lại câu nhắc công cụ chỉ có trong Trợ lý AI của app (forMcp, san_co_mcp).
-async function workflowTool(env, uid, args, connected, surface) {
+async function workflowTool(env, uid, args, connected, surface, instant) {
   const mcp = surface === 'mcp';
   const tx = (t) => (mcp ? forMcp(t) : t);
   const groupsOut = (gs) => gs.map(({ san_co_mcp, ...g }) => (mcp && san_co_mcp ? { ...g, san_co: san_co_mcp } : g));
@@ -164,7 +164,7 @@ async function workflowTool(env, uid, args, connected, surface) {
   const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
   const id = args && args.id;
   const [brand, jobs] = await Promise.all([getBrand(env, uid).catch(() => null), listJobs(env, uid).catch(() => [])]);
-  const ctx = { connected, mcpUrls: urls, brand, done: doneFlows(jobs) };
+  const ctx = { connected, mcpUrls: urls, brand, done: doneFlows(jobs), instant };
   const short = (r) => r.thieu_du_lieu.map((x) => x.ten + ' → ' + x.cach);
   if (!id) {
     return { data: { quy_trinh: WORKFLOWS.map((w) => {
@@ -283,12 +283,12 @@ export async function readBrain(env, uid, connectedNames) {
   return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
 }
 
-export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent, surface }) {
+export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent, surface, instant }) {
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
-    if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface);
+    if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface, !!instant);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent, args && args.id);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_DOC_WEB') return await readWebsite(args && args.url);

@@ -29,6 +29,7 @@ export const DEFAULT_PRICES = {
   video_second: 15,   // CREWZY_TAO_VIDEO, mỗi giây
   usd_rate: 26000,    // đổi chi phí AI (USD) ra đồng
   ai_markup: 2,       // giá bán = chi phí AI × 2
+  instant_markup: 2,  // giá bán công cụ Instant = tiền Composio tính × 2
   ai_in_per_m: 1,     // USD / 1 triệu token vào (Claude Haiku, khoá của Giang)
   ai_out_per_m: 5,    // USD / 1 triệu token ra
   min_start: 5,       // cần ít nhất 5 credit mới bắt đầu một lượt chat
@@ -41,6 +42,29 @@ function parseJson(text, fallback) {
   try { const v = JSON.parse(text); return v && typeof v === 'object' ? v : fallback; } catch (e) { return fallback; }
 }
 export const plans = (env) => parseJson(env.PLANS_JSON, DEFAULT_PLANS);
+// Dùng thử miễn phí: 1 lần cho mỗi tài khoản (chưa từng dùng thử, chưa từng mua gói). Chi phí tối đa cho Giang ≈ credits × 50đ
+// (giá bán 100đ/credit có lãi ×2) → 300 credit ≈ 15.000đ. Đổi bằng TRIAL_JSON {"ngay":7,"credits":300}; tắt bằng TRIAL=off.
+export const DEFAULT_TRIAL = { ngay: 7, credits: 300 };
+export const trialConfig = (env) => (String(env.TRIAL || '').toLowerCase() === 'off' ? null : { ...DEFAULT_TRIAL, ...parseJson(env.TRIAL_JSON, {}) });
+export async function trialAvailable(env, uid) {
+  const t = trialConfig(env);
+  if (!t || !env.DB || !uid) return false;
+  const row = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM ledger WHERE uid = ?1 AND reason = 'dung_thu') + (SELECT COUNT(*) FROM orders WHERE uid = ?1 AND status = 'paid') AS n").bind(uid).first();
+  return !(row && row.n > 0);
+}
+// Nguyên tử: ghi sổ chỉ khi chưa từng dùng thử/mua gói, rồi mới cộng credit + hạn (bấm 2 lần cũng chỉ được 1 lần).
+export async function startTrial(env, uid, email) {
+  const t = trialConfig(env);
+  if (!t) return { ok: false, error: 'Hiện chưa mở dùng thử.' };
+  await ensureAccount(env, uid, email);
+  const now = Date.now();
+  const [ins] = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO ledger (uid, delta, reason, ref, created_at) SELECT ?1, ?2, 'dung_thu', ?3, ?4
+      WHERE NOT EXISTS (SELECT 1 FROM ledger WHERE uid = ?1 AND reason = 'dung_thu') AND NOT EXISTS (SELECT 1 FROM orders WHERE uid = ?1 AND status = 'paid')`).bind(uid, t.credits, t.ngay + ' ngày', now),
+    env.DB.prepare(`UPDATE accounts SET credits = credits + ?2, plan_until = MAX(plan_until, ?3) + ?4 * ${DAY}, plan = 'dung_thu', updated_at = ?3 WHERE uid = ?1 AND changes() > 0`).bind(uid, t.credits, now, t.ngay),
+  ]);
+  return ins.meta.changes ? { ok: true, ...t } : { ok: false, error: 'Tài khoản này đã dùng thử rồi. Chọn một gói để dùng tiếp nhé.' };
+}
 export const topups = (env) => parseJson(env.TOPUPS_JSON, DEFAULT_TOPUPS);
 export const prices = (env) => ({ ...DEFAULT_PRICES, ...parseJson(env.PRICES_JSON, {}) });
 
@@ -66,7 +90,7 @@ export const isActive = (acc, now = Date.now()) => !!(acc && acc.plan_until > no
 export function publicAccount(env, acc) {
   if (!acc) return null;
   const p = plans(env).find((x) => x.id === acc.plan);
-  return { plan: acc.plan || null, ten_goi: p ? p.ten : null, het_han: acc.plan_until || 0, con_han: isActive(acc), credits: acc.credits || 0, ai: acc.ai_choice || null };
+  return { plan: acc.plan || null, ten_goi: p ? p.ten : acc.plan === 'dung_thu' ? 'Dùng thử' : null, het_han: acc.plan_until || 0, con_han: isActive(acc), credits: acc.credits || 0, ai: acc.ai_choice || null };
 }
 
 // ---------- 4 bước bắt đầu ----------
@@ -79,9 +103,9 @@ export async function onboarding(env, uid, { email, admin } = {}) {
   const on = billingOn(env);
   if (!on || !uid) return { required: false, done: true, steps: null };
   if (admin) return { required: true, done: true, admin: true, steps: { brand: true, channel: true, ai: true, paid: true } };
-  const [brand, apps, servers, seen, acc] = await Promise.all([
+  const [brand, apps, servers, seen, acc, canTrial] = await Promise.all([
     getBrand(env, uid).catch(() => null), connectedApps(env, uid).then((o) => Object.keys(o || {})).catch(() => []), listServers(env, uid).catch(() => []),
-    env.KV.get('aiseen:' + uid, { type: 'json' }).catch(() => null), ensureAccount(env, uid, email),
+    env.KV.get('aiseen:' + uid, { type: 'json' }).catch(() => null), ensureAccount(env, uid, email), trialAvailable(env, uid).catch(() => false),
   ]);
   const b = brand || {};
   const missingBrand = Object.keys(BRAND_REQUIRED).filter((k) => !String(b[k] || '').trim());
@@ -97,6 +121,7 @@ export async function onboarding(env, uid, { email, admin } = {}) {
     required: true, done: steps.brand && steps.channel && steps.ai && steps.paid, steps,
     chi_tiet: { thieu_brain: missingBrand.map((k) => BRAND_REQUIRED[k]), kenh: [...channelApps, ...channelMcp], ai: seen && seen.ten ? seen.ten : acc && acc.ai_choice === 'crewzy' ? 'Trợ lý Crewzy' : null },
     account: publicAccount(env, acc),
+    dung_thu: canTrial ? trialConfig(env) : null,
   };
 }
 
@@ -148,6 +173,11 @@ export function toolPrice(env, name, args) {
   if (name.startsWith('CREWZY_')) return 0; // đọc Brain, quy trình, phiếu, đọc web, tải file: miễn phí
   return p.tool; // công cụ app (Composio) hoặc MCP ngoài (m…_)
 }
+export function instantCredits(env, usd) {
+  if (!(usd > 0)) return 0;
+  const p = prices(env);
+  return Math.max(1, Math.ceil((usd * p.usd_rate * (p.instant_markup || p.ai_markup)) / 100));
+}
 // Giá Anthropic theo model (USD / 1 triệu token, tra platform.claude.com/docs/en/about-claude/pricing 22/11/2026).
 // cr = hệ số giá đọc cache so với giá vào; ghi cache 5 phút = 1,25 × giá vào. Haiku: giá ≤100K token (prompt dài hơn tính ×5).
 export const AI_MODEL_PRICES = {
@@ -180,6 +210,13 @@ export async function makeMeter(env, uid, { email } = {}) {
       const r = await charge(env, uid, n, 'cong_cu', name);
       return r.ok ? null : out(`Hết credit để chạy ${name} (cần ${n} credit).`);
     },
+    // Công cụ Instant (Composio trả bằng ví của Giang): trừ theo USD thật × tỉ giá × hệ số lãi, tối thiểu 1 credit. Có thể âm → dừng.
+    async instant(usd, ref) {
+      const n = instantCredits(env, usd);
+      if (!n) return null;
+      const left = await chargeAfter(env, uid, n, 'instant', ref || 'instant');
+      return left !== null && left <= 0 ? 'stop' : null;
+    },
     async tokens(usage, ref, model) {
       const n = tokenCredits(env, usage, model);
       if (!n) return null;
@@ -194,7 +231,7 @@ export async function gate(env, uid, { email, needCredits = 0 } = {}) {
   if (!billingOn(env) || !uid) return null;
   const acc = await ensureAccount(env, uid, email);
   if (isAdminEmail(env, (acc && acc.email) || email)) return null;
-  if (!isActive(acc)) return { status: 402, error: 'Tài khoản chưa kích hoạt gói hoặc gói đã hết hạn. Vào Crewzy → Gói và credit để thanh toán.', can: 'thanh_toan' };
+  if (!isActive(acc)) return { status: 402, error: acc && acc.plan === 'dung_thu' ? 'Đã hết thời gian dùng thử. Vào Crewzy → Gói và credit chọn gói để dùng tiếp (kết quả, kết nối, Brain vẫn giữ nguyên).' : 'Tài khoản chưa kích hoạt gói hoặc gói đã hết hạn. Vào Crewzy → Gói và credit để thanh toán.', can: 'thanh_toan' };
   if (needCredits && (acc.credits || 0) < needCredits) return { status: 402, error: `Còn ${acc.credits || 0} credit, cần ít nhất ${needCredits}. Vào Gói và credit để nạp thêm.`, can: 'nap_credit' };
   return null;
 }
