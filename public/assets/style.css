@@ -1,41 +1,99 @@
+/* Văn Phòng AI · bộ màu và khung chung (tham khảo dashboard Composio: nền xám rất nhạt, thẻ trắng viền mảnh, xanh đậm làm điểm nhấn).
+   Font Be Vietnam Pro thay Geist vì dấu tiếng Việt rõ hơn. Nút cao tối thiểu 40–44px để bấm dễ trên điện thoại. */
 :root {
-  --accent: #2350E6;
+  --accent: #0007CD;
+  --accent-hover: #0005A0;
+  --accent-soft: #EDEEFD;
+  --bg: #FAFAFA;
+  --card: #FFFFFF;
+  --line: #E8E8E8;
+  --text: #1A1A1A;
+  --muted: #6B6B6B;
+  --ok: #157F3C;
+  --ok-soft: #E6F4EA;
+  --warn-soft: #FFF4DB;
+  --warn: #7A4A00;
+  --radius: 6px;
 }
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: #F5F6F8;
-  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-  color: #1B2230;
-}
-a { color: #2350E6; }
-a:hover { color: #1A3DB3; }
-button:focus-visible, a:focus-visible, input:focus-visible {
-  outline: 3px solid #93AEFF;
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: var(--text); }
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #8E93F5;
   outline-offset: 2px;
 }
-@media (max-width: 640px) {
-  main { padding: 20px 16px 40px !important; }
-  nav[aria-label="Điều hướng chính"] { border-right: 0 !important; border-bottom: 1px solid #E3E6EB; }
-}
-@media (max-width: 640px) {
-  nav[aria-label="Điều hướng chính"] { padding: 12px 12px 8px !important; gap: 10px !important; }
-  nav[aria-label="Điều hướng chính"] > div:nth-child(2) {
-    flex-direction: row !important;
-    overflow-x: auto;
-    gap: 6px !important;
-    padding-bottom: 4px;
-  }
-  nav[aria-label="Điều hướng chính"] > div:nth-child(2) > a {
-    flex-shrink: 0;
-    white-space: nowrap;
-    gap: 8px;
-  }
-  nav[aria-label="Điều hướng chính"] > div:nth-child(3) { display: none !important; }
+
+/* ---------- Menu trái (layout.js vẽ vào <nav data-sidebar>) ---------- */
+.sb { flex: 0 0 248px; min-height: 100vh; position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
+  background: var(--card); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+.sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.sb-logo { width: 32px; height: 32px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.sb-name { margin: 0; font-weight: 700; font-size: 15px; }
+.sb-sub { margin: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; }
+.sb-label { margin: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #9A9A9A; }
+.sb-links { display: flex; flex-direction: column; gap: 2px; }
+.sb a.sb-link { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: var(--radius); text-decoration: none; color: var(--text); font-size: 14px; }
+.sb a.sb-link:hover { background: #F2F2F2; color: var(--text); }
+.sb a.sb-link[aria-current="page"] { background: #EFEFEF; font-weight: 600; }
+.sb a.sb-link svg { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sb-badge { margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.sb-soon { margin-left: auto; font-size: 11px; color: #9A9A9A; }
+.sb-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
+.sb-card { padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.sb-card p { margin: 0; }
+.sb-user { display: flex; align-items: center; gap: 10px; padding: 8px; border-top: 1px solid var(--line); }
+.sb-avatar { width: 30px; height: 30px; border-radius: 50%; background: #DDE7DD; color: #23452A; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.sb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sb-out { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 24px; }
+
+/* ---------- Thành phần chung ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: var(--radius); border: 1px solid transparent;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); color: #fff; }
+.btn-ghost { background: var(--card); color: var(--text); border-color: #D6D6D6; }
+.btn-ghost:hover { background: #F4F4F4; color: var(--text); }
+.btn:disabled { opacity: .55; cursor: default; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.06); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #F0F0F0; color: #4A4A4A; white-space: nowrap; }
+.pill-ok { background: var(--ok-soft); color: var(--ok); }
+.pill-warn { background: var(--warn-soft); color: var(--warn); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius); background: #F0F0F0; }
+.seg button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 4px; background: none; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.seg .num { font-size: 12px; padding: 0 6px; border-radius: 4px; background: #E4E4E4; }
+.field { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid #D6D6D6; border-radius: var(--radius); font: inherit; font-size: 15px; color: var(--text); background: var(--card); }
+textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-height: 1.5; }
+.muted { color: var(--muted); }
+.page-head h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; }
+.page-head p { margin: 6px 0 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
+
+/* Logo app */
+.app-logo { width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0; object-fit: contain; background: #fff; }
+.app-logo-letter { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+
+/* ---------- Điện thoại ---------- */
+@media (max-width: 760px) {
+  main { padding: 20px 16px 88px !important; }
+  .sb { flex: 1 1 100%; position: static; height: auto; min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 10px 6px; gap: 0; }
+  .sb-brand { border-bottom: 0; margin-bottom: 4px; padding-bottom: 6px; }
+  .sb-label, .sb-foot .sb-card { display: none; }
+  .sb-groups { display: flex; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+  .sb-links { flex-direction: row; }
+  .sb a.sb-link { white-space: nowrap; min-height: 40px; }
+  .sb-soon { display: none; }
+  .sb-foot { position: absolute; top: 10px; right: 10px; margin: 0; padding: 0; }
+  .sb-user { border: 0; padding: 4px; }
+  .sb-user .sb-who { display: none; }
+  .sb { position: relative; }
+  .page-head h1 { font-size: 24px; }
 }
 
 /* Trang Trợ lý AI: chừa chỗ cho huy hiệu Netlify góc phải dưới; trên điện thoại khung chat cao theo màn hình */
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   main[data-chat-main] { height: auto !important; padding-bottom: 80px !important; }
   main[data-chat-main] #chat-log { flex: none !important; height: 58vh; height: 58dvh; }
 }

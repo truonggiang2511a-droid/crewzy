@@ -1,0 +1,29 @@
+"""Tạo khung trang HTML dùng chung (head, menu trái data-sidebar, main). Dùng: from page import page."""
+HEAD = '''<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{title} · Văn Phòng AI (bản thử)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/layout.js"></script>
+<script src="assets/auth.js"></script>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Điều hướng chính" data-sidebar></nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
+{body}
+</main>
+</div>
+{scripts}
+</body>
+</html>
+'''
+def page(title, body, scripts):
+    return HEAD.format(title=title, body=body.strip(), scripts='\n'.join(f'<script src="assets/{s}"></script>' for s in scripts))

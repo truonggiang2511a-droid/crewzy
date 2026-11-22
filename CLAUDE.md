@@ -40,17 +40,25 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 public/                 Thư mục được đưa lên mạng (Netlify publish = "public"); CLAUDE.md, README không lên mạng
 public/index.html        Màn 1 · Văn phòng: 9 phòng, trạng thái, bảng tin phiếu việc
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
-public/ket-noi.html      Màn 3 · Kết nối công cụ: tiến độ 5 công cụ, chọn credit hoặc khoá API, nút Run
+public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn
+public/quy-trinh.html    Quy trình: 7 mẫu theo phòng ban, logo app cần có, Chạy → chat.html?q=<câu lệnh>
+public/thuong-hieu.html  Brain thương hiệu: 11 mục, lưu /api/brand, AI đọc mỗi lượt chat
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
-public/assets/style.css  Biến màu --accent, focus, menu gọn trên điện thoại (≤640px)
+public/assets/style.css  Bộ màu (tham khảo Composio: --accent #0007CD, nền #FAFAFA, viền #E8E8E8, chữ #1A1A1A), menu .sb, .btn .card .pill .seg .field, điện thoại ≤760px
+public/assets/layout.js  Menu trái dùng chung: vẽ vào <nav data-sidebar>; sửa menu ở đây. Có window.vpaiUid()
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
 public/assets/favicon.svg
-public/assets/connect.js   Trang Kết nối: thẻ thật từng công cụ (số tài khoản, Thêm tài khoản), tạo link nối AI, sao chép
+public/assets/connect.js   Trang Kết nối: vẽ từ /api/catalog + /api/status, kết nối, chi tiết + Skill, OpenRouter, link nối AI
+public/assets/quy-trinh.js · brand.js  Script trang Quy trình (mẫu FLOWS nằm ở đây) và Brain thương hiệu
 public/assets/chat.js      Trang Trợ lý AI: gọi /api/chat, đọc NDJSON từng dòng, lưu lịch sử + chế độ + khoá trong localStorage
 public/assets/auth.js      Có trên mọi trang (trong <head>): hỏi /api/auth/me, bắt buộc đăng nhập thì chuyển sang dang-nhap.html, hiện email + Đăng xuất dưới tên app
 public/assets/openrouter.js  Đăng nhập OpenRouter (OAuth PKCE) trên trình duyệt, khoá lưu localStorage vpai.key.openrouter
-netlify/lib/common.mjs     Danh sách TOOLKITS (10 công cụ), tối đa 5 tài khoản/công cụ, ký link MCP (signUpstream)
+netlify/lib/catalog.mjs    NGUỒN DUY NHẤT danh mục app: thể loại, mô tả, status ready/soon, Skill (can/try/rules); TOOLKITS = app ready
+netlify/lib/brand.mjs      Mục Brain thương hiệu, làm sạch, brandText() nạp cho AI (Blobs vpai-brand, khoá = mã khách)
+netlify/lib/common.mjs     TOOLKITS (từ catalog), tối đa 5 tài khoản/công cụ, ký link MCP, phiên đăng nhập, resolveUid
+netlify/functions/catalog.mjs · brand.mjs   GET /api/catalog · GET/POST /api/brand
+scripts/page.py           Khung trang HTML mới (head + menu + main): from page import page
 netlify/functions/connect.mjs   GET /api/connect?toolkit=…&uid=… → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 netlify/functions/status.mjs    GET /api/status?uid=… → {accounts: {slug: số tài khoản ACTIVE}}
 netlify/functions/mcp-link.mjs  GET /api/mcp-link?uid=… → link https://<site>/mcp/<token> để dán vào Claude/ChatGPT
@@ -81,6 +89,14 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
   Đã thử (22/11): kiểm tra kết nối ~6 giây, tìm công cụ đăng Fanpage, khoá sai báo "Khoá API không đúng"; điện thoại 390px và máy tính 1440px không lỗi console.
   COMPOSIO_MANAGE_CONNECTIONS tự tạo yêu cầu kết nối "đang chờ" (INITIATED) cho mọi công cụ chưa nối; status/connect chỉ đếm ACTIVE nên không sai số.
   Huy hiệu "Powered by Netlify" nằm góc phải dưới: trang chat chừa 76–80px dưới cùng để không che nút Gửi.
+- Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
+  google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
+  Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,
+  TikTok Shop, Haravan, Sapo, CapCut (hiện chữ cái đầu thay logo). Logo: https://logos.composio.dev/api/<slug> (trả ảnh mặc định
+  cả với slug không tồn tại → không dùng để kiểm tra app có hay không; kiểm bằng ô tìm kiếm trên dashboard hoặc /api/connect).
+  Thêm app: thêm vào APPS trong catalog.mjs với status 'soon', deploy, gọi /api/connect?toolkit=<slug>&uid=test-xxxxxxxx, ra redirectUrl
+  thì mới đổi 'ready'. Một slug 'ready' mà cần auth config làm hỏng composio.create() của mọi người (chat, link nối AI).
+- Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
 - Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://van-phong-ai.netlify.app;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
   Phiên = cookie HttpOnly `vpai_session` 30 ngày, ký HMAC bằng `SESSION_SECRET` (chưa đặt thì suy ra từ COMPOSIO_API_KEY).
@@ -161,6 +177,10 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
   nên chat trong app phải dùng khoá API của khách hoặc credit của app (Netlify AI Gateway). Deploy bằng Netlify MCP: tạm dời
   node_modules ra ngoài repo trước khi chạy lệnh (đỡ tải lên), deploy xong nhớ trả lại — dùng `trap '…mv lại…' EXIT` trong cùng
   lệnh, vì lệnh bị ngắt giữa chừng từng để quên node_modules ở ngoài.
+- 22/11/2026: Thiết kế lại theo dashboard Composio (Giang mở bằng Chrome cho xem): menu trái chung, trang Kết nối lưới logo + lọc thể loại
+  + chi tiết có Skill, thêm Quy trình và Brain thương hiệu. Giữ Be Vietnam Pro thay Geist (dấu tiếng Việt), nút ≥40px, mô tả việc làm
+  được thay vì "61 công cụ". Thử app mới thì tiktok/threads/google_business_profile lỗi "require auth configs" và làm hỏng luôn
+  link nối AI của mọi người → bài học ở mục 1. Chrome của Giang tự dịch dashboard Composio sang tiếng Việt (tên app bị dịch, vd "Khái niệm" = Notion).
 - 22/11/2026: Giang muốn "đăng nhập Google để nối tài khoản AI của khách qua Composio". Phản biện: Composio và Google không làm được
   việc này (xem mục 1, Đăng nhập AI) → làm đăng nhập Google cho tài khoản Văn Phòng AI + nút Đăng nhập OpenRouter, ChatGPT/Claude để "Sắp có".
 
@@ -173,5 +193,7 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.
 - Trợ lý AI: trừ credit theo từng khách thay cho trần chung 150 lượt/ngày; nút "Duyệt" bấm được thay cho gõ "đồng ý"; trả lời chạy chữ dần (stream).
-- Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit".
+- Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit" (đang để Sắp có trong menu).
+- Tạo auth config riêng trên Composio cho TikTok (app TikTok developer), Threads, Google Business; nối riêng Zalo OA, Shopee.
+- Trang Văn phòng và Chờ duyệt vẫn là dữ liệu mẫu; canvas Design chưa cập nhật theo giao diện mới.
 - Kiểm chứng nhu cầu theo quy trình saas-startup-foundry trước khi làm backend.

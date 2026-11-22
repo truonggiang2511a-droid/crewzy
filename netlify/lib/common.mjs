@@ -1,11 +1,9 @@
 // Dùng chung cho các hàm máy chủ.
+import { READY_SLUGS } from './catalog.mjs';
 import { createHash, createHmac, createPublicKey, timingSafeEqual, verify as cryptoVerify } from 'node:crypto';
 
-// Công cụ khách được kết nối thật (dùng app có sẵn của Composio). TikTok cần app developer riêng nên chưa mở.
-export const TOOLKITS = [
-  'facebook', 'instagram', 'youtube', 'linkedin',
-  'gmail', 'googlesheets', 'googlecalendar', 'googledrive', 'notion', 'hubspot',
-];
+// Công cụ khách được kết nối thật: các app status 'ready' trong netlify/lib/catalog.mjs.
+export const TOOLKITS = READY_SLUGS;
 export const MAX_ACCOUNTS_PER_TOOLKIT = 5;
 export const UID_PATTERN = /^[a-z0-9-]{8,64}$/;
 

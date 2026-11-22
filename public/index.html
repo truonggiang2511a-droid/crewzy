@@ -10,73 +10,50 @@
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/layout.js"></script>
 <script src="assets/auth.js"></script>
 </head>
 <body>
-<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F6F8; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1B2230">
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #FAFAFA; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1A1A1A">
 
-<nav aria-label="Điều hướng chính" style="flex: 1 1 240px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px">
-<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
-<div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">VP</div>
-<div>
-<p style="margin: 0; font-weight: 700; font-size: 16px">Văn Phòng AI</p>
-<p style="margin: 0; font-size: 12px; color: #5B6472">Nhà Đất Mẫu</p>
-</div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 4px">
-<a href="index.html" aria-current="page" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600; color: var(--accent); background: #EEF2FF">Văn phòng</a>
-<a href="chat.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Trợ lý AI</a>
-<a href="cho-duyet.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Việc chờ duyệt<span style="min-width: 24px; height: 24px; border-radius: 12px; background: #FFF1D6; color: #7A4A00; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">3</span></a>
-<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết quả</a>
-<a href="ket-noi.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Kết nối công cụ</a>
-<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Mẫu quy trình</a>
-<a href="#" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 500; color: #1B2230">Gói và credit</a>
-</div>
-<div style="margin-top: auto; border: 1px solid #E3E6EB; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-size: 13px; color: #5B6472">Credit còn lại</p>
-<p style="margin: 0; font-size: 22px; font-weight: 700">1.240</p>
-<div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 62%; height: 6px; border-radius: 99px; background: var(--accent)"></div></div>
-<p style="margin: 0; font-size: 12px; color: #5B6472">Gói Doanh nghiệp · gia hạn 21/12</p>
-<a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid #CBD2DC; text-decoration: none; color: #1B2230; font-weight: 600; font-size: 14px">Nạp credit</a>
-</div>
-</nav>
+<nav aria-label="Điều hướng chính" data-sidebar></nav>
 
 <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
 
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div>
-<p style="margin: 0; font-size: 13px; color: #5B6472">Nhà Đất Mẫu · Thứ Bảy 21/11</p>
+<p style="margin: 0; font-size: 13px; color: #6B6B6B">Nhà Đất Mẫu · Thứ Bảy 21/11</p>
 <h1 style="margin: 4px 0 0; font-size: 28px; font-weight: 700">Văn phòng hôm nay</h1>
 </div>
 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
-<span style="padding: 6px 10px; border-radius: 99px; background: #EEF0F3; color: #3F4652; font-size: 12px; font-weight: 600">Dữ liệu mẫu</span>
-<div style="display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 8px 8px 8px 14px">
+<span style="padding: 6px 10px; border-radius: 99px; background: #EEF0F3; color: #4A4A4A; font-size: 12px; font-weight: 600">Dữ liệu mẫu</span>
+<div style="display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 8px 8px 8px 14px">
 <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #1E8E4A"></span>
 <div>
 <p style="margin: 0; font-size: 13px; font-weight: 600">Đang chạy: Tuần nội dung</p>
-<p style="margin: 0; font-size: 12px; color: #5B6472">Bước 4/9 · bắt đầu 08:30</p>
+<p style="margin: 0; font-size: 12px; color: #6B6B6B">Bước 4/9 · bắt đầu 08:30</p>
 </div>
-<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #CBD2DC; background: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; color: #1B2230; cursor: pointer">Tạm dừng</button>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 6px; border: 1px solid #D6D6D6; background: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; color: #1A1A1A; cursor: pointer">Tạm dừng</button>
 </div>
-<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Run mẫu khác</button>
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 6px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Run mẫu khác</button>
 </div>
 </div>
 
 <section aria-label="Số liệu hôm nay" style="display: flex; flex-wrap: wrap; gap: 16px">
-<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 16px 18px">
-<p style="margin: 0; font-size: 13px; color: #5B6472">Khách mới hôm nay</p>
+<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 16px 18px">
+<p style="margin: 0; font-size: 13px; color: #6B6B6B">Khách mới hôm nay</p>
 <p style="margin: 6px 0 0; font-size: 28px; font-weight: 700">6</p>
 </div>
-<a href="cho-duyet.html" style="flex: 1 1 180px; display: block; text-decoration: none; color: #1B2230; background: #FFF8EA; border: 1px solid #F2C46D; border-radius: 14px; padding: 16px 18px">
+<a href="cho-duyet.html" style="flex: 1 1 180px; display: block; text-decoration: none; color: #1A1A1A; background: #FFF8EA; border: 1px solid #F2C46D; border-radius: 8px; padding: 16px 18px">
 <span style="display: block; font-size: 13px; color: #7A4A00">Việc chờ bạn duyệt</span>
 <span style="display: block; margin-top: 6px; font-size: 28px; font-weight: 700">3</span>
 </a>
-<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 16px 18px">
-<p style="margin: 0; font-size: 13px; color: #5B6472">Đơn chốt tháng này</p>
+<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 16px 18px">
+<p style="margin: 0; font-size: 13px; color: #6B6B6B">Đơn chốt tháng này</p>
 <p style="margin: 6px 0 0; font-size: 28px; font-weight: 700">1</p>
 </div>
-<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 16px 18px">
-<p style="margin: 0; font-size: 13px; color: #5B6472">Credit đã dùng hôm nay</p>
+<div style="flex: 1 1 180px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 16px 18px">
+<p style="margin: 0; font-size: 13px; color: #6B6B6B">Credit đã dùng hôm nay</p>
 <p style="margin: 6px 0 0; font-size: 28px; font-weight: 700">86</p>
 </div>
 </section>
@@ -86,148 +63,148 @@
 <section aria-labelledby="rooms-h" style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
 <h2 id="rooms-h" style="margin: 0; font-size: 18px; font-weight: 600">9 phòng đang làm việc</h2>
-<p style="margin: 0; font-size: 13px; color: #5B6472">4 đang làm · 3 chờ bạn · 1 xong · 1 rảnh</p>
+<p style="margin: 0; font-size: 13px; color: #6B6B6B">4 đang làm · 3 chờ bạn · 1 xong · 1 rảnh</p>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px">
 
-<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">M</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">M</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Sản phẩm</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Minh</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Minh</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4A00">Chờ duyệt</span>
 </div>
 <p style="margin: 0; font-size: 14px">Đã nhập 3 căn · căn A15 chờ bạn xác minh</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 100%; height: 6px; border-radius: 99px; background: #C27803"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">L</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">L</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Hình ảnh</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Lan</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Lan</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đang làm</span>
 </div>
 <p style="margin: 0; font-size: 14px">Làm bộ ảnh căn A12 (6/10 ảnh)</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 60%; height: 6px; border-radius: 99px; background: #1E8E4A"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>1 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>1 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">H</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">H</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Video</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Huy</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Huy</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đang làm</span>
 </div>
 <p style="margin: 0; font-size: 14px">Dựng video 30 giây căn A12</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 35%; height: 6px; border-radius: 99px; background: #1E8E4A"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>2 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>2 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">T</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">T</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Nội dung</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Thảo</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Thảo</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4A00">Chờ duyệt</span>
 </div>
 <p style="margin: 0; font-size: 14px">Lịch 7 bài tuần 23–29/11 đang chờ bạn</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 100%; height: 6px; border-radius: 99px; background: #C27803"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #F2C46D; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">Q</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">Q</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Quảng cáo</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Quân</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Quân</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4A00">Chờ duyệt</span>
 </div>
 <p style="margin: 0; font-size: 14px">Đề xuất chạy bài thắng 300.000đ/ngày</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 100%; height: 6px; border-radius: 99px; background: #C27803"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>Dừng chờ bạn</span><a href="cho-duyet.html" style="font-weight: 600">Duyệt ngay</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">N</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">N</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Chăm sóc khách</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Ngọc</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Ngọc</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đang làm</span>
 </div>
 <p style="margin: 0; font-size: 14px">Trả lời 4 tin nhắn mới trên Fanpage</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 50%; height: 6px; border-radius: 99px; background: #1E8E4A"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>2 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>2 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">T</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">T</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Phòng Sale</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Tuấn</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Tuấn</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E3F4E8; color: #14612D">Đang làm</span>
 </div>
 <p style="margin: 0; font-size: 14px">Nhắc sale gọi 2 khách mới, còn 9 phút</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 70%; height: 6px; border-radius: 99px; background: #1E8E4A"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>1 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>1 việc trong hàng chờ</span><a href="#" style="font-weight: 600">Xem phòng</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">A</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">A</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Ban giám đốc</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: An</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: An</p>
 </div>
-<span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EEF0F3; color: #3F4652">Rảnh</span>
+<span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EEF0F3; color: #4A4A4A">Rảnh</span>
 </div>
 <p style="margin: 0; font-size: 14px">Báo cáo ngày lúc 7:30 sáng mai</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>Đã gửi báo cáo sáng nay</span><a href="#" style="font-weight: 600">Xem báo cáo</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>Đã gửi báo cáo sáng nay</span><a href="#" style="font-weight: 600">Xem báo cáo</a></div>
 </article>
 
-<article style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center; gap: 12px">
-<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EEF2FF; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">H</div>
+<div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #EDEEFD; color: #1A3DB3; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">H</div>
 <div style="flex: 1; min-width: 0">
 <h3 style="margin: 0; font-size: 16px; font-weight: 600">Tài chính và credit</h3>
-<p style="margin: 2px 0 0; font-size: 13px; color: #5B6472">Nhân viên AI: Hà</p>
+<p style="margin: 2px 0 0; font-size: 13px; color: #6B6B6B">Nhân viên AI: Hà</p>
 </div>
 <span style="flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #E8EEFF; color: #1A3DB3">Xong</span>
 </div>
 <p style="margin: 0; font-size: 14px">Đã trừ 86 credit cho 14 việc hôm nay</p>
 <div style="height: 6px; border-radius: 99px; background: #EEF0F3"><div style="width: 100%; height: 6px; border-radius: 99px; background: #2350E6"></div></div>
-<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5B6472"><span>Còn đủ cho khoảng 14 ngày</span><a href="#" style="font-weight: 600">Xem chi tiết</a></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6B6B6B"><span>Còn đủ cho khoảng 14 ngày</span><a href="#" style="font-weight: 600">Xem chi tiết</a></div>
 </article>
 
 </div>
 </section>
 
-<aside aria-labelledby="feed-h" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 16px">
+<aside aria-labelledby="feed-h" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 16px">
 <h2 id="feed-h" style="margin: 0; font-size: 18px; font-weight: 600">Phiếu việc vừa chuyền</h2>
 <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">09:12</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Hình ảnh → Video</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Bộ ảnh căn A12 đủ để dựng video</p></div></li>
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">09:05</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Chăm sóc khách → Sale</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Khách mới từ Fanpage, đã xin số điện thoại</p></div></li>
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">08:50</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Nội dung → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Lịch 7 bài tuần sau chờ duyệt</p></div></li>
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">08:41</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Quảng cáo → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Đề xuất chạy bài có nhiều tin nhắn nhất</p></div></li>
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">08:30</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Sản phẩm → Hình ảnh</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Căn A12 đã xác minh, bắt đầu làm ảnh</p></div></li>
-<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #5B6472">07:30</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Ban giám đốc → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #3F4652">Báo cáo ngày đã gửi qua Telegram</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">09:12</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Hình ảnh → Video</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Bộ ảnh căn A12 đủ để dựng video</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">09:05</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Chăm sóc khách → Sale</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Khách mới từ Fanpage, đã xin số điện thoại</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">08:50</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Nội dung → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Lịch 7 bài tuần sau chờ duyệt</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">08:41</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Quảng cáo → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Đề xuất chạy bài có nhiều tin nhắn nhất</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">08:30</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Sản phẩm → Hình ảnh</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Căn A12 đã xác minh, bắt đầu làm ảnh</p></div></li>
+<li style="display: flex; gap: 12px"><span style="flex-shrink: 0; width: 44px; font-size: 13px; color: #6B6B6B">07:30</span><div><p style="margin: 0; font-size: 13px; font-weight: 600">Ban giám đốc → Bạn</p><p style="margin: 2px 0 0; font-size: 13px; color: #4A4A4A">Báo cáo ngày đã gửi qua Telegram</p></div></li>
 </ol>
 </aside>
 

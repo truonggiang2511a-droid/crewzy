@@ -1,5 +1,5 @@
 // Đăng nhập Google: kiểm tra phiên trên mọi trang, chuyển sang dang-nhap.html khi bắt buộc đăng nhập,
-// hiện email người dùng dưới tên app trong menu, nút Đăng xuất.
+// hiện người dùng + nút Đăng xuất ở chân menu (ô [data-user-slot] do layout.js vẽ).
 (function () {
   var page = location.pathname.split('/').pop() || 'index.html';
 
@@ -14,27 +14,24 @@
     } catch (e) {}
   }
 
+  function esc(t) { return String(t || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
   function renderUser(user) {
-    var brandText = document.querySelector('nav[aria-label="Điều hướng chính"] > div:first-child > div:last-child');
-    if (!brandText) return;
-    var sub = brandText.querySelector('p:nth-child(2)');
-    if (sub) {
-      sub.textContent = user.email || user.name || 'Đã đăng nhập';
-      sub.style.cssText += ';overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px';
-      sub.title = user.email || '';
-    }
-    var out = document.createElement('button');
-    out.type = 'button';
-    out.textContent = 'Đăng xuất';
-    out.style.cssText = 'margin: 2px 0 0; padding: 0; border: 0; background: none; color: var(--accent); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 24px';
-    out.addEventListener('click', function () {
-      out.disabled = true;
+    var slot = document.querySelector('[data-user-slot]');
+    if (!slot) return;
+    var initial = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
+    var avatar = user.picture ? '<img src="' + esc(user.picture) + '" alt="" referrerpolicy="no-referrer">' : esc(initial);
+    slot.innerHTML = '<div class="sb-user"><div class="sb-avatar">' + avatar + '</div><div class="sb-who" style="min-width:0;flex:1">' +
+      '<p style="margin:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(user.name || 'Tài khoản') + '</p>' +
+      '<p class="muted" style="margin:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(user.email) + '</p></div>' +
+      '<button type="button" class="sb-out">Đăng xuất</button></div>';
+    slot.querySelector('.sb-out').addEventListener('click', function (e) {
+      e.target.disabled = true;
       fetch('/api/auth/logout', { method: 'POST' }).catch(function () {}).then(function () {
         clearLocal();
         location.href = 'dang-nhap.html';
       });
     });
-    brandText.appendChild(out);
   }
 
   window.VPAI_ME = fetch('/api/auth/me', { cache: 'no-store' })
@@ -42,7 +39,7 @@
     .then(function (me) {
       if (me.required && !me.user) { goLogin(); return me; }
       if (me.user) {
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { renderUser(me.user); });
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(function () { renderUser(me.user); }, 0); });
         else renderUser(me.user);
       }
       return me;

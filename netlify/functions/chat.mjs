@@ -10,6 +10,8 @@ import OpenAI from 'openai';
 import { getStore } from '@netlify/blobs';
 import { Composio } from '@composio/core';
 import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
+import { skillText, appBySlug } from '../lib/catalog.mjs';
+import { brandStore, brandText } from '../lib/brand.mjs';
 
 const APP_DAILY_CAP = 150;          // số lượt chat/ngày cho chế độ credit của app (toàn site)
 const MAX_STEPS = 8;                // số vòng gọi công cụ tối đa mỗi lượt
@@ -20,8 +22,7 @@ const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: '
 const OPENROUTER_MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-haiku-5.5', 'google/gemini-4-neon'];
 
 const SYSTEM_PROMPT = `Bạn là Trợ lý điều hành của Văn Phòng AI, làm việc cho một doanh nghiệp nhỏ ở Việt Nam.
-Bạn dùng các công cụ Composio để làm việc trên ứng dụng khách đã kết nối: Facebook Fanpage, Instagram, YouTube, LinkedIn,
-Gmail, Google Sheets, Google Calendar, Google Drive, Notion, HubSpot.
+Bạn dùng các công cụ Composio để làm việc trên ứng dụng khách đã kết nối (danh sách và Skill từng app ở cuối).
 Cách dùng công cụ: tìm công cụ bằng COMPOSIO_SEARCH_TOOLS, xem tham số bằng COMPOSIO_GET_TOOL_SCHEMAS nếu cần,
 kiểm tra hoặc tạo kết nối bằng COMPOSIO_MANAGE_CONNECTIONS, rồi chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL.
 Quy tắc bắt buộc:
@@ -32,7 +33,28 @@ Quy tắc bắt buộc:
 - Chỉ dùng thông tin có thật do người dùng đưa hoặc đọc được từ công cụ. Không bịa giá, số liệu, tên người.
 - Không đưa số điện thoại hay thông tin cá nhân của khách hàng lên bài đăng công khai.
 - Nếu ứng dụng chưa kết nối, nói người dùng vào trang Kết nối công cụ (ket-noi.html) để kết nối, hoặc đưa link kết nối từ COMPOSIO_MANAGE_CONNECTIONS.
-- Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.`;
+- Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.
+- Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.`;
+
+// Lời dặn đầy đủ cho một lượt: lời dặn chung + Brain thương hiệu + Skill các app đã kết nối.
+async function buildSystem(composio, uid) {
+  const parts = [SYSTEM_PROMPT];
+  let connected = [];
+  try {
+    const res = await composio.connectedAccounts.list({ userIds: [userIdFor(uid)], statuses: ['ACTIVE'], limit: 100 });
+    connected = [...new Set((res.items || []).map((i) => i.toolkit && i.toolkit.slug).filter(Boolean))];
+  } catch (e) { console.error('list connected failed', e && e.message); }
+  try {
+    const brand = await brandStore().get(uid, { type: 'json' });
+    const text = brandText(brand);
+    parts.push(text ? '# Brain thương hiệu\n' + text : '# Brain thương hiệu\nChưa điền. Khi cần viết nội dung, nhắc người dùng điền ở trang Brain thương hiệu (thuong-hieu.html).');
+  } catch (e) { console.error('brand read failed', e && e.message); }
+  const names = connected.map((s) => (appBySlug(s) || { name: s }).name);
+  parts.push('# Ứng dụng đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa kết nối ứng dụng nào. Hướng dẫn người dùng vào trang Kết nối (ket-noi.html).'));
+  const skills = skillText(connected);
+  if (skills) parts.push('# Skill từng ứng dụng\n' + skills);
+  return parts.join('\n\n');
+}
 
 const encoder = new TextEncoder();
 
@@ -76,14 +98,14 @@ async function takeAppQuota() {
 }
 
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
-async function runClaude({ client, model, tools, session, messages, emit, deadline }) {
+async function runClaude({ client, model, tools, session, messages, emit, deadline, system }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
   });
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.messages.create({ model, max_tokens: 1500, system: SYSTEM_PROMPT, tools: anthropicTools, messages: convo });
+    const res = await client.messages.create({ model, max_tokens: 1500, system, tools: anthropicTools, messages: convo });
     const texts = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
     if (texts) emit({ type: 'text', text: texts });
     const calls = res.content.filter((b) => b.type === 'tool_use');
@@ -106,8 +128,8 @@ async function runClaude({ client, model, tools, session, messages, emit, deadli
 }
 
 // Vòng gọi công cụ với ChatGPT (OpenAI Chat Completions)
-async function runOpenAI({ client, model, tools, session, messages, emit, deadline, tokenParam = 'max_completion_tokens' }) {
-  const convo = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages];
+async function runOpenAI({ client, model, tools, session, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
+  const convo = [{ role: 'system', content: system }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: 1500 });
     const msg = res.choices[0].message;
@@ -171,7 +193,7 @@ export default async (req) => {
           toolkits: TOOLKITS,
           multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
         });
-        const tools = await session.tools();
+        const [tools, system] = await Promise.all([session.tools(), buildSystem(composio, uid)]);
         const model = mode === 'openrouter' ? orModel : MODELS[mode];
         if (mode === 'openrouter') {
           const client = new OpenAI({
@@ -179,13 +201,13 @@ export default async (req) => {
             baseURL: 'https://openrouter.ai/api/v1',
             defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': 'Van Phong AI' },
           });
-          await runOpenAI({ client, model, tools, session, messages, emit, deadline, tokenParam: 'max_tokens' });
+          await runOpenAI({ client, model, tools, session, messages, emit, deadline, system, tokenParam: 'max_tokens' });
         } else if (mode === 'openai') {
           const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-          await runOpenAI({ client, model, tools, session, messages, emit, deadline });
+          await runOpenAI({ client, model, tools, session, messages, emit, deadline, system });
         } else {
           const client = mode === 'app' ? new Anthropic() : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-          await runClaude({ client, model, tools, session, messages, emit, deadline });
+          await runClaude({ client, model, tools, session, messages, emit, deadline, system });
         }
         emit({ type: 'done' });
       } catch (err) {

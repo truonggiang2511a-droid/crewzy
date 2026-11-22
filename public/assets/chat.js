@@ -256,6 +256,14 @@
   renderMode();
   renderAll();
 
+  // Mở từ trang Quy trình / Kết nối với ?q=…: điền sẵn câu lệnh và gửi luôn một lần.
+  var preset = new URLSearchParams(location.search).get('q');
+  if (preset) {
+    history.replaceState(null, '', location.pathname);
+    input.value = preset.slice(0, 2000);
+    setTimeout(function () { send(input.value); }, 400);
+  }
+
   fetch('/api/chat').then(function (r) { return r.json(); }).then(function (j) {
     appMode = !!j.appMode;
     var opt = modeSel.querySelector('option[value="app"]');
