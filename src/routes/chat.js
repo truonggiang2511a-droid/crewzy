@@ -20,6 +20,7 @@ const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit c�
 const MAX_STEPS = 16;               // số vòng gọi công cụ tối đa mỗi lượt (đủ để chờ video tạo xong)
 const TIME_BUDGET_MS = 150000;      // dừng sớm, nhắn khách gõ "tiếp tục"
 const MAX_TOOL_RESULT_CHARS = 12000;
+const MAX_OUTPUT_TOKENS = 6000;     // đủ cho báo cáo/7 bài đăng nộp qua CREWZY_NOP_KET_QUA (1500 bị cắt giữa chừng)
 const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
 // Gemini và Grok gọi qua cổng tương thích OpenAI (đã tra tài liệu 22/11/2026).
 const OPENAI_COMPAT = {
@@ -158,7 +159,11 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
   });
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.messages.create({ model, max_tokens: 1500, system, tools: anthropicTools, messages: convo });
+    const res = await client.messages.create({ model, max_tokens: MAX_OUTPUT_TOKENS, system, tools: anthropicTools, messages: convo });
+    if (res.stop_reason === 'max_tokens') {
+      emit({ type: 'text', text: 'Nội dung dài quá một lượt trả lời, anh/chị nhắn "tiếp tục" để em làm nốt nhé.' });
+      return;
+    }
     const texts = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
     if (texts) emit({ type: 'text', text: texts });
     const calls = res.content.filter((b) => b.type === 'tool_use');
@@ -184,7 +189,11 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
 async function runOpenAI({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
   const convo = [{ role: 'system', content: system }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: 1500 });
+    const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: MAX_OUTPUT_TOKENS });
+    if (res.choices[0].finish_reason === 'length') {
+      emit({ type: 'text', text: 'Nội dung dài quá một lượt trả lời, anh/chị nhắn "tiếp tục" để em làm nốt nhé.' });
+      return;
+    }
     const msg = res.choices[0].message;
     if (msg.content && msg.content.trim()) emit({ type: 'text', text: msg.content.trim() });
     const calls = msg.tool_calls || [];
@@ -243,7 +252,8 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
         const res = await ext.run(name, args);
         if (res) {
           // Ảnh/video máy chủ MCP trả về (dạng dữ liệu hoặc link): lưu thành link cố định của Crewzy, hiện trong chat.
-          const media = res.raw ? await collectMedia(env, uid, origin, res.raw, seenMedia) : [];
+          const media = res.raw ? await collectMedia(env, uid, origin, res.raw, seenMedia, res.tool) : [];
+              delete res.tool;
           delete res.raw;
           delete res.images;
           for (const m of media) emit({ type: m.kind === 'video' ? 'video' : m.kind === 'audio' ? 'audio' : 'image', url: m.link });

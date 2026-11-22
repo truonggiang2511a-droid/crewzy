@@ -89,9 +89,18 @@ export async function rehostUrl(env, uid, origin, url) {
 }
 
 // Từ kết quả MCP → danh sách ảnh/video đã lưu. seen: Set dùng chung cả lượt chat để không lưu trùng.
-export async function collectMedia(env, uid, origin, result, seen) {
+// Công cụ đọc/tìm (scrape, search, list…) trả về rất nhiều link ảnh của trang web → chỉ lấy ảnh dạng dữ liệu, không tải link.
+const READ_TOOL = /(scrape|crawl|search|read|list|parse|extract|fetch|browse|map|wiki|docs|query)/i;
+const MAKE_TOOL = /(generat|create|render|image|video|edit|upscale|animate|status|result|job|task|download|output)/i;
+export function wantsLinkMedia(toolName) {
+  return !toolName || !READ_TOOL.test(toolName) || MAKE_TOOL.test(toolName);
+}
+
+export async function collectMedia(env, uid, origin, result, seen, toolName) {
   const found = [];
+  const linksOk = wantsLinkMedia(toolName);
   for (const c of findMediaCandidates(result)) {
+    if (!c.data && !linksOk) continue;
     if (found.length >= MAX_PER_CALL) break;
     if (c.data) {
       try {
