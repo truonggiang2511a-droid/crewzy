@@ -12,7 +12,7 @@
     "html_handling": "none"
   },
   "kv_namespaces": [
-    { "binding": "KV", "id": "c16eb86713c0479690faa6dae0be62c7" }
+    { "binding": "KV", "id": "cefc3dfec3b248929a490ff8cd5cc216" }
   ],
   // Khoá bí mật đặt trong dashboard (Worker → Settings → Variables and Secrets), KHÔNG ghi ở đây:
   // COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET, GOOGLE_CLIENT_ID. keep_vars giữ biến đặt trên dashboard khi deploy.

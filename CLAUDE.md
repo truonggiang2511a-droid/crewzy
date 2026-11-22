@@ -68,14 +68,14 @@ src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiế
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
 src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
 src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
-wrangler.jsonc            Worker "crewzy", nodejs_compat, KV binding KV (id c16eb86713c0479690faa6dae0be62c7, tên crewzy-data), keep_vars
+wrangler.jsonc            Worker "crewzy", nodejs_compat, KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
 scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 
-- Cloudflare: Worker `crewzy` trên tài khoản Cloudflare hungnguyen2511ab@gmail.com (account 335d210ae0fbc3ac05c5d7b9f45d0a60,
-  KHÁC tài khoản của vi-tri-studio/dung-video-ai mà công cụ Cloudflare MCP đang nối → KV tạo bằng MCP sẽ nằm sai tài khoản;
-  tạo tài nguyên cho Crewzy trên dashboard của hungnguyen2511ab), địa chỉ https://crewzy.hungnguyen2511ab.workers.dev
+- Cloudflare: Worker `crewzy` trên tài khoản Cloudflare truonggiang2511a@gmail.com (cùng tài khoản vi-tri-studio, dung-video-ai —
+  KHÔNG đụng vào các Worker đó; GitHub truonggiang2511a-droid chỉ nối được với MỘT tài khoản Cloudflare, chính là tài khoản này;
+  tài khoản hungnguyen2511ab có KV crewzy-data c16eb86713c0479690faa6dae0be62c7 tạo nhầm, không dùng), địa chỉ https://crewzy.truonggiang2511a.workers.dev
   Deploy: GitHub repo nối Workers Builds (giống vi-tri-studio) → push nhánh main là tự `npx wrangler deploy`.
   Khoá bí mật đặt trên dashboard (Worker → Settings → Variables and Secrets): COMPOSIO_API_KEY, ANTHROPIC_API_KEY (chế độ credit của app),
   SESSION_SECRET, GOOGLE_CLIENT_ID. Không ghi vars trong wrangler.jsonc; `keep_vars: true` để deploy không xoá biến trên dashboard.
@@ -107,7 +107,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Thêm app: thêm vào APPS trong catalog.js với status 'soon', deploy, gọi /api/connect?toolkit=<slug>&uid=test-xxxxxxxx, ra redirectUrl
   thì mới đổi 'ready'. Một slug 'ready' mà cần auth config làm hỏng composio.create() của mọi người (chat, link nối AI).
 - Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
-- Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.hungnguyen2511ab.workers.dev và tên miền riêng sau này;
+- Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.truonggiang2511a.workers.dev và tên miền riêng sau này;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
   Phiên = cookie HttpOnly `vpai_session` 30 ngày, ký HMAC bằng `SESSION_SECRET` (chưa đặt thì suy ra từ COMPOSIO_API_KEY).
   ID token kiểm tra bằng khoá công khai Google (JWKS, RS256, aud = Client ID), không gọi tokeninfo. Thử cục bộ: `node scripts/authtest.mjs`.
