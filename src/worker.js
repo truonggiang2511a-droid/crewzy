@@ -11,6 +11,7 @@ import status from './routes/status.js';
 import mcpGateway from './routes/mcpGateway.js';
 import mcpServers from './routes/mcpServers.js';
 import jobs from './routes/jobs.js';
+import probe from './routes/probe.js';
 import workflows from './routes/workflows.js';
 import { runAgent, takeAppQuota } from './routes/chat.js';
 import { runDueSchedules } from './lib/schedules.js';
@@ -21,7 +22,7 @@ import { serveMedia } from './lib/media.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
+  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/probe-toolkits': probe, '/api/workflows': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
 };
 
 export default {
