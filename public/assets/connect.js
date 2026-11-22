@@ -103,7 +103,7 @@
     var chips = $('[data-cat-chips]');
     chips.innerHTML = items.map(function (c) {
       var on = state.cat === c.id;
-      return '<button type="button" data-cat="' + c.id + '" aria-pressed="' + on + '" class="btn ' + (on ? 'btn-primary' : 'btn-ghost') + '" style="min-height:36px;font-size:13px;font-weight:500">' + esc(c.id === 'all' ? 'Tất cả' : c.name) + '</button>';
+      return '<button type="button" data-cat="' + c.id + '" aria-pressed="' + on + '" class="btn chip ' + (on ? 'btn-primary' : 'btn-ghost') + '" style="min-height:36px;font-size:13px;font-weight:500">' + esc(c.id === 'all' ? 'Tất cả' : c.name) + '</button>';
     }).join('');
   }
 
@@ -118,7 +118,7 @@
     var ind = industry();
     var chips = list.map(function (x) {
       var on = x.id === state.nganh;
-      return '<button type="button" data-nganh="' + x.id + '" aria-pressed="' + on + '" class="btn ' + (on ? 'btn-primary' : 'btn-ghost') + '" style="min-height:34px;font-size:13px;font-weight:500">' + esc(x.name) + '</button>';
+      return '<button type="button" data-nganh="' + x.id + '" aria-pressed="' + on + '" class="btn chip ' + (on ? 'btn-primary' : 'btn-ghost') + '" style="min-height:34px;font-size:13px;font-weight:500">' + esc(x.name) + '</button>';
     }).join('');
     var head = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between"><p style="margin:0;font-weight:600;font-size:15px">Bạn kinh doanh gì?</p>' +
       '<span class="muted" style="font-size:13px">' + (ind ? 'Chỉ cần nối các app gợi ý bên dưới là chạy được quy trình ra khách.' : 'Chọn ngành để biết nên nối app nào trước, khỏi phải xem hết ' + allItems().length + ' app.') + '</span></div>';

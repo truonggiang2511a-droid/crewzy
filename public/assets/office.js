@@ -86,9 +86,9 @@
     el('feGaussianBlur', { stdDeviation: '3', result: 'b' }, glow);
     var merge = el('feMerge', {}, glow); el('feMergeNode', { in: 'b' }, merge); el('feMergeNode', { in: 'SourceGraphic' }, merge);
     var grad = el('radialGradient', { id: 'core' }, defs);
-    el('stop', { offset: '0%', 'stop-color': '#3D4BFF', 'stop-opacity': brainActive() ? '0.65' : '0.35' }, grad);
-    el('stop', { offset: '100%', 'stop-color': '#3D4BFF', 'stop-opacity': '0' }, grad);
-    el('ellipse', { cx: cx, cy: cy, rx: rx, ry: ry, fill: 'none', stroke: 'rgba(148,163,255,0.10)', 'stroke-dasharray': '2 6' }, svg);
+    el('stop', { offset: '0%', 'stop-color': '#1F2BFF', 'stop-opacity': brainActive() ? '0.65' : '0.35' }, grad);
+    el('stop', { offset: '100%', 'stop-color': '#1F2BFF', 'stop-opacity': '0' }, grad);
+    el('ellipse', { cx: cx, cy: cy, rx: rx, ry: ry, fill: 'none', stroke: 'rgba(255,255,255,0.08)', 'stroke-dasharray': '2 6' }, svg);
     el('circle', { cx: cx, cy: cy, r: 110, fill: 'url(#core)' }, svg);
     state.rooms.forEach(function (r, i) {
       var ang = -Math.PI / 2 + i * (2 * Math.PI / state.rooms.length);
@@ -96,7 +96,7 @@
     });
     nodes.brain = { x: cx, y: cy };
     var links = el('g', {}, svg);
-    state.rooms.forEach(function (r) { var n = nodes[r.id]; el('line', { x1: cx, y1: cy, x2: n.x, y2: n.y, stroke: 'rgba(148,163,255,0.10)', 'stroke-dasharray': '3 6' }, links); });
+    state.rooms.forEach(function (r) { var n = nodes[r.id]; el('line', { x1: cx, y1: cy, x2: n.x, y2: n.y, stroke: 'rgba(255,255,255,0.08)', 'stroke-dasharray': '3 6' }, links); });
     EDGES.forEach(function (e, i) {
       var on = edgeActive(e);
       var bend = (e[0] === 'brain' || e[1] === 'brain') ? 0.06 : 0.24;
@@ -123,8 +123,8 @@
       el('animate', { attributeName: 'opacity', values: '0.6;0', dur: '1.8s', repeatCount: 'indefinite' }, pulse);
     }
     el('circle', { cx: n.x, cy: n.y, r: R + 4, fill: 'none', stroke: st.color, 'stroke-width': 2.5 }, g);
-    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#111733', stroke: 'rgba(148,163,255,0.35)', class: 'onode-core' }, g);
-    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12) + ' ' + (n.y - 12) + ')', fill: 'none', stroke: '#E6E9FF', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#1A1A1A', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
+    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12) + ' ' + (n.y - 12) + ')', fill: 'none', stroke: '#F2F2F2', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
     var badge = r.counts.duyet || r.counts.lam || r.counts.cho;
     if (badge) {
       el('circle', { cx: n.x + 24, cy: n.y - 24, r: 10, fill: st.color }, g);
@@ -147,20 +147,20 @@
     var on = brainActive();
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': 'Bộ não AI', 'data-node': 'brain', style: 'cursor:pointer' }, layer);
     if (on && !reduceMotion) {
-      var p = el('circle', { cx: n.x, cy: n.y, r: 52, fill: 'none', stroke: '#8B9BFF', 'stroke-width': 2, opacity: 0.5 }, g);
+      var p = el('circle', { cx: n.x, cy: n.y, r: 52, fill: 'none', stroke: '#5662FF', 'stroke-width': 2, opacity: 0.5 }, g);
       el('animate', { attributeName: 'r', values: '52;68', dur: '2.4s', repeatCount: 'indefinite' }, p);
       el('animate', { attributeName: 'opacity', values: '0.5;0', dur: '2.4s', repeatCount: 'indefinite' }, p);
     }
-    el('circle', { cx: n.x, cy: n.y, r: 54, fill: 'none', stroke: '#8B9BFF', 'stroke-width': 1.5, opacity: 0.6 }, g);
-    el('circle', { cx: n.x, cy: n.y, r: 50, fill: '#151C3A', stroke: 'rgba(148,163,255,0.35)', class: 'onode-core' }, g);
-    el('path', { d: 'M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4 Z', transform: 'translate(' + n.x + ' ' + (n.y - 10) + ')', fill: on ? '#C7D0FF' : '#7F8BC9' }, g);
+    el('circle', { cx: n.x, cy: n.y, r: 54, fill: 'none', stroke: '#5662FF', 'stroke-width': 1.5, opacity: 0.6 }, g);
+    el('circle', { cx: n.x, cy: n.y, r: 50, fill: '#202020', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
+    el('path', { d: 'M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4 Z', transform: 'translate(' + n.x + ' ' + (n.y - 10) + ')', fill: on ? '#E5E7FF' : '#8C8C8C' }, g);
     var t = el('text', { x: n.x, y: n.y + 18, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13, 'font-weight': 700 }, g); t.textContent = 'Bộ não AI';
-    var s = el('text', { x: n.x, y: n.y + 33, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#9AA3C7', 'font-size': 11 }, g); s.textContent = on ? 'hoạt động' : 'chờ việc';
+    var s = el('text', { x: n.x, y: n.y + 33, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#8F8F8F', 'font-size': 11 }, g); s.textContent = on ? 'hoạt động' : 'chờ việc';
   }
   function highlight(id) {
     document.querySelectorAll('[data-node]').forEach(function (g) {
       var core = g.querySelector('.onode-core');
-      if (core) { core.setAttribute('stroke', g.getAttribute('data-node') === id ? '#FFFFFF' : 'rgba(148,163,255,0.35)'); core.setAttribute('stroke-width', g.getAttribute('data-node') === id ? 2.5 : 1); }
+      if (core) { core.setAttribute('stroke', g.getAttribute('data-node') === id ? '#FFFFFF' : 'rgba(255,255,255,0.22)'); core.setAttribute('stroke-width', g.getAttribute('data-node') === id ? 2.5 : 1); }
     });
     document.querySelectorAll('[data-tile]').forEach(function (t) { t.setAttribute('aria-pressed', String(t.getAttribute('data-tile') === id)); });
   }
@@ -169,7 +169,7 @@
   function renderTiles() {
     if (!state || !isMobile()) { tilesBox.innerHTML = ''; return; }
     var b = brainActive();
-    var html = '<button type="button" class="of-tile of-tile-brain" data-tile="brain" aria-pressed="false"><span class="of-tile-dot" style="background:' + (b ? '#86EFAC' : '#7C8597') + '"></span>' +
+    var html = '<button type="button" class="of-tile of-tile-brain" data-tile="brain" aria-pressed="false"><span class="of-tile-dot" style="background:' + (b ? '#4ADE80' : '#7C8597') + '"></span>' +
       '<b>Bộ não AI</b><small>' + esc(brainLine()) + '</small></button>';
     html += state.rooms.map(function (r) {
       var st = STATUS[r.status];

@@ -17,7 +17,7 @@
   var nganh = new URLSearchParams(location.search).get('nganh') || (function () { try { return localStorage.getItem('crewzy.nganh') || 'all'; } catch (e) { return 'all'; } })();
   function saveNganh() { try { if (nganh === 'all') localStorage.removeItem('crewzy.nganh'); else localStorage.setItem('crewzy.nganh', nganh); } catch (e) {} }
   function chip(attr, id, label, on) {
-    return '<button type="button" ' + attr + '="' + id + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--accent)' : '#D6D6D6') + ';background:' + (on ? 'var(--accent)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(label) + '</button>';
+    return '<button type="button" ' + attr + '="' + id + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--primary)' : '#D4D4D4') + ';background:' + (on ? 'var(--primary)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(label) + '</button>';
   }
   function renderIndustries() {
     var box = $('[data-industries]'); if (!box) return;
@@ -65,7 +65,7 @@
     var keys = ['all'].concat(Object.keys(data.channels || {}));
     $('[data-channels]').innerHTML = keys.map(function (k) {
       var on = channel === k;
-      return '<button type="button" data-channel="' + k + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--accent)' : '#D6D6D6') + ';background:' + (on ? 'var(--accent)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(k === 'all' ? 'Tất cả' : data.channels[k]) + '</button>';
+      return '<button type="button" data-channel="' + k + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--primary)' : '#D4D4D4') + ';background:' + (on ? 'var(--primary)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(k === 'all' ? 'Tất cả' : data.channels[k]) + '</button>';
     }).join('');
   }
 

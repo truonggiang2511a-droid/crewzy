@@ -7,7 +7,7 @@
 <title>Trợ lý AI · Crewzy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/layout.js"></script>
@@ -23,10 +23,10 @@
 <div style="display: flex; flex-direction: column; gap: 10px">
 <div class="chat-head" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
 <div>
-<h1 style="margin: 0; font-size: 26px; font-weight: 700">Trợ lý AI</h1>
+<h1 style="margin: 0; font-size: 30px; letter-spacing: -.03em">Trợ lý <span class="hl">AI</span></h1>
 <p class="chat-intro" style="margin: 4px 0 0; font-size: 14px; color: #4A4A4A">Ra lệnh bằng tiếng Việt. AI dùng các ứng dụng bạn đã <a href="ket-noi.html">kết nối</a> để làm việc. Việc đăng bài, gửi tin, chi tiền luôn hỏi bạn trước.</p>
 </div>
-<button type="button" data-chat-clear="" style="min-height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Cuộc trò chuyện mới</button>
+<button type="button" data-chat-clear="" class="btn btn-ghost">Cuộc trò chuyện mới</button>
 </div>
 <div class="chat-ai" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 12px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px">
 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px">
@@ -51,7 +51,7 @@
 <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (nhanh, rẻ)</option>
 <option value="google/gemini-4-neon">Gemini 4 Neon (nhanh)</option>
 </select>
-<button type="button" data-or-login="" style="display: none; min-height: 40px; padding: 0 14px; border-radius: 6px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Đăng nhập OpenRouter</button>
+<button type="button" data-or-login="" style="display: none; min-height: 40px; padding: 0 14px; border-radius: 2px; border: 0; background: var(--primary); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Đăng nhập OpenRouter</button>
 </div>
 <p data-mode-note="" style="margin: 0; flex-basis: 100%; font-size: 12px; color: #6B6B6B">Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.</p>
 </div>
@@ -72,7 +72,7 @@
 <form data-chat-form="" style="display: flex; gap: 8px; align-items: flex-end">
 <label for="chat-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Tin nhắn cho Trợ lý AI</label>
 <textarea id="chat-input" rows="2" placeholder="Ví dụ: Đăng bài này lên Fanpage lúc 8 giờ tối nay…" style="flex: 1; min-height: 48px; max-height: 160px; box-sizing: border-box; padding: 12px; border: 1px solid #D6D6D6; border-radius: 8px; font-family: inherit; font-size: 15px; resize: vertical; color: #1A1A1A"></textarea>
-<button type="submit" data-chat-send="" style="min-height: 48px; padding: 0 20px; border-radius: 8px; border: 0; background: var(--accent); color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Gửi</button>
+<button type="submit" data-chat-send="" style="min-height: 48px; padding: 0 20px; border-radius: 2px; border: 0; background: var(--primary); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .04em; font-size: 13px !important; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Gửi</button>
 </form>
 
 </main>

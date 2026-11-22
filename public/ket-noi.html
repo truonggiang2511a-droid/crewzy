@@ -7,7 +7,7 @@
 <title>Kết nối · Crewzy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/layout.js"></script>
@@ -19,7 +19,7 @@
 <main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
 <div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
 <div>
-<h1>Kết nối</h1>
+<h1>Kết nối <span class="hl">app và AI</span></h1>
 <p>Nối các ứng dụng bạn đang dùng. AI làm việc trên đó theo Skill riêng của từng app, việc ra bên ngoài luôn hỏi bạn trước.</p>
 </div>
 <div class="seg" role="group" aria-label="Chọn phần">
@@ -69,7 +69,7 @@
 </div>
 <p class="muted" style="margin:0;font-size:14px;line-height:1.5">Ba bước, khoảng 1 phút. Xong rồi AI của bạn (Claude, ChatGPT, Gemini, Grok…) đọc được Brain thương hiệu, làm việc thật trên các app đã kết nối, tạo ảnh và luôn hỏi bạn trước khi đăng hay gửi.</p>
 
-<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--primary);font-family:var(--font-mono);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
 <p style="margin:2px 0 0;font-weight:600">Tạo link Crewzy của bạn</p>
 <button type="button" data-ai-create class="btn btn-primary" style="align-self:flex-start">Tạo link nối AI</button>
 <p data-ai-msg role="status" style="margin:0;font-size:13px;color:#8A2A12;display:none"></p>
@@ -79,13 +79,13 @@
 <p style="margin:0;padding:8px 10px;border-radius:6px;background:var(--warn-soft);font-size:12px;color:var(--warn)">Link này như chìa khoá: ai có link đều dùng được các tài khoản bạn đã kết nối. Không gửi cho người khác.</p>
 </div></div></div>
 
-<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">2</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--primary);font-family:var(--font-mono);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">2</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
 <p style="margin:2px 0 0;font-weight:600">Thêm vào AI bạn dùng</p>
 <div class="seg" role="tablist" aria-label="Chọn AI" data-ai-clients style="flex-wrap:wrap;align-self:flex-start"></div>
 <div data-ai-panel style="padding:12px 14px;border-radius:8px;background:#F6F6F6;font-size:14px;line-height:1.6"></div>
 </div></div>
 
-<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">3</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:12px"><span aria-hidden="true" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--primary);font-family:var(--font-mono);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">3</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
 <p style="margin:2px 0 0;font-weight:600">Giao việc bằng tiếng Việt</p>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start">
 <p data-ai-sample style="margin:0;flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px dashed #D6D6D6;font-size:14px;line-height:1.5"></p>

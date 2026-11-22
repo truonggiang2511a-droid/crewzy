@@ -55,7 +55,9 @@ public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (re
                          qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
-public/assets/style.css  Bộ màu (tham khảo Composio: --accent #0007CD, nền #FAFAFA, viền #E8E8E8, chữ #1A1A1A), menu .sb, .btn .card .pill .seg .field, điện thoại ≤760px
+public/assets/style.css  Phong cách composio.dev (22/11): Geist + JetBrains Mono (cả hai có bộ chữ tiếng Việt), nền #F6F6F6, thẻ trắng viền #E5E5E5 bo 12px,
+                         chữ #0F0F0F, nút .btn = mono in hoa góc vuông (chính màu đen), .btn.chip = chip lọc chữ thường bo tròn, .hl = chữ xanh #0007CD
+                         trong tiêu đề, nhãn mono in hoa (.label-mono, kpi, sb-label), --highlight #D4FF4A; khung Văn phòng tối trung tính #0F0F0F
 public/assets/layout.js  Menu trái dùng chung (máy tính) + điện thoại ≤760px: thanh trên .mtop (logo, Kết nối), thanh dưới .mbar 5 mục
                          (Văn phòng, Duyệt có số, Trợ lý, Quy trình, Thêm) và bảng .msheet (Kết nối, Brain, Kết quả, Gói, tài khoản). Có window.vpaiUid()
 public/assets/app.js     Bộ chạy nhỏ: data-if, data-text, data-click, data-change, data-checked
@@ -181,6 +183,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Remotion KHÔNG có MCP render trên mây (@remotion/mcp chỉ tra tài liệu, chạy máy) → dùng trong Claude Code/Codex của khách (npx skills add
   remotion-dev/skills, npx remotion render) rồi CREWZY_TAI_LEN. Giấy phép Remotion: miễn phí cá nhân/công ty ≤3 người, lớn hơn mua license.
   Vbee, FPT.AI: không có MCP/Composio → khách tải giọng mẫu vào Brain (giong_mau) hoặc ghi tên giọng; muốn đọc thẳng phải làm kết nối API riêng.
+- Giao diện kiểu composio.dev (22/11, Giang: "font chữ và tất cả bên trong giống Composio nhưng là Crewzy"): đã lấy token thật từ CSS
+  composio.dev (font-sans = Geist, mono = JetBrains Mono, --background #f6f6f6, --foreground #0f0f0f, --primary gần đen, --brand-readable #0007cd,
+  --highlight #d4ff4a, --radius .625rem, tracking -.011em, tiêu đề nét 400–500). Tiêu đề trang 1 cụm chữ xanh (.hl). Không dùng font Roobert TRIAL,
+  Flecha Test (bản dùng thử có bản quyền), logo, ảnh minh hoạ của Composio. Logo Crewzy: ô đen "Cz" + chấm xanh chanh.
 - Giao diện điện thoại + Văn phòng thật (22/11, Giang: "mobile gọn, sạch, dễ dùng; văn phòng phải mô phỏng thật, hiệu quả công việc"):
   bỏ menu cuộn ngang, thay bằng thanh dưới kiểu app + bảng Thêm; hàng lọc/chip (.hrow) một hàng cuộn ngang; mô tả trang cắt 2 dòng;
   Trợ lý AI kiểu nhắn tin (khung chat chiếm phần còn lại, gợi ý cuộn ngang, ô nhập tròn sát thanh dưới). Văn phòng bỏ dữ liệu mẫu:
