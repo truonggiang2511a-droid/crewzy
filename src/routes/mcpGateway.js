@@ -12,6 +12,7 @@ import { APP_NAME, getApiKey, verifyUpstreamToken, userIdFor } from '../lib/comm
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
 import { billingOn, gate, makeMeter } from '../lib/billing.js';
@@ -132,6 +133,12 @@ export default async (request, env, ctx) => {
     const meter = await makeMeter(env, uid).catch(() => null);
     const no = meter ? await meter.tool(rpc.params.name, rpc.params.arguments || {}) : null;
     if (no) return fail(no + ` (${reqUrl.origin}/goi.html)`);
+  }
+
+  // Màn Kết quả: ghi việc AI của khách làm qua link nối AI (ghi lúc gọi, không chờ kết quả).
+  if (rpc && rpc.method === 'tools/call' && rpc.params && uid) {
+    const rec = recordActivity(env, uid, rpc.params.name, rpc.params.arguments || {});
+    if (ctx && ctx.waitUntil) ctx.waitUntil(rec); else await rec;
   }
 
   // Công cụ của Crewzy: tự trả lời, không gửi Composio.

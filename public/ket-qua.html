@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kết quả · Crewzy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/layout.js"></script>
+<script src="assets/auth.js"></script>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Điều hướng chính" data-sidebar></nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
+<div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+<div><h1>Kết quả của <span class="hl">đội AI</span></h1><p>Mọi việc AI đã làm cho bạn: bài đã đăng, bình luận đã trả lời, ảnh, video, khách mới, và thời gian bạn tiết kiệm được.</p></div>
+<div style="display:flex;gap:8px;align-items:center;max-width:100%"><label class="label-mono" for="kq-thang">Tháng</label><select id="kq-thang" class="field" style="min-height:40px;max-width:100%;min-width:0" data-month></select></div>
+</div>
+<section class="card" data-hero style="padding:22px;background:#0F0F0F;color:#fff;border-color:#0F0F0F;display:flex;flex-direction:column;gap:6px"><p class="muted">Đang tải…</p></section>
+<section class="kpis" data-kpis aria-label="Số liệu chính"></section>
+<section class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:500">Việc mỗi ngày</h2>
+<div data-chart style="overflow-x:auto"></div>
+</section>
+<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+<div class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:18px;font-weight:500">Chi tiết việc đã làm</h2><div data-detail></div></div>
+<div class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:18px;font-weight:500">Kết quả gần đây</h2><div data-recent></div></div>
+</section>
+<section class="card" data-tips style="padding:20px;display:flex;flex-direction:column;gap:10px" hidden></section>
+<p class="muted" style="font-size:12px;margin:0" data-note></p>
+</main>
+</div>
+<script src="assets/ket-qua.js"></script>
+</body>
+</html>

@@ -16,18 +16,21 @@ import mcpServers from './routes/mcpServers.js';
 import jobs from './routes/jobs.js';
 import workflows from './routes/workflows.js';
 import billing from './routes/billing.js';
+import results from './routes/results.js';
 import { runAgent, takeAppQuota } from './routes/chat.js';
 import { runDueSchedules } from './lib/schedules.js';
 import { submitResult } from './lib/jobs.js';
 import { serveImage } from './lib/crewzyTools.js';
 import { serveMedia } from './lib/media.js';
 import { markWorking } from './lib/jobs.js';
-import { gate, makeMeter, prices } from './lib/billing.js';
+import { gate, makeMeter, prices, plans } from './lib/billing.js';
+import { runWeeklyReports } from './lib/activity.js';
+import { listJobs } from './lib/jobs.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/results': results,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 
@@ -78,6 +81,7 @@ export default {
       await runAgent({ env, uid, origin, mode: 'app', brain, messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
+    ctx.waitUntil(runWeeklyReports(env, { origin, submitResult, listJobs, plans: plans(env) }).then((r) => console.log('weekly', JSON.stringify(r))).catch((e) => console.error('weekly failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
 };

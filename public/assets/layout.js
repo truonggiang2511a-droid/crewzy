@@ -38,7 +38,7 @@
       { href: 'thuong-hieu.html', text: 'Brain thương hiệu', icon: 'brain' }
     ] },
     { label: 'Theo dõi', links: [
-      { href: '#', text: 'Kết quả', icon: 'chart', soon: true },
+      { href: 'ket-qua.html', text: 'Kết quả', icon: 'chart' },
       { href: 'goi.html', text: 'Gói và credit', icon: 'card' }
     ] }
   ];
@@ -57,7 +57,7 @@
       });
       html += '</div>';
     });
-    html += '</div><div class="sb-foot"><div class="sb-card"><p style="font-size:13px;font-weight:600">Đang dùng thử</p><p class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">Kết nối app, điền Brain thương hiệu rồi giao việc cho Trợ lý AI.</p></div><div data-user-slot></div></div>';
+    html += '</div><div class="sb-foot"><div class="sb-card" data-plan-card><p style="font-size:13px;font-weight:600">Crewzy</p><p class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">Kết nối app, điền Brain thương hiệu rồi giao việc cho Trợ lý AI.</p></div><div data-user-slot></div></div>';
     nav.innerHTML = html;
     nav.querySelectorAll('a[aria-disabled="true"]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
     renderMobile(page);
@@ -73,7 +73,7 @@
   var MORE = [
     { href: 'ket-noi.html', text: 'Kết nối app và AI', sub: 'Facebook, Gmail, Claude, ChatGPT…', icon: 'apps' },
     { href: 'thuong-hieu.html', text: 'Brain thương hiệu', sub: 'Giọng văn, sản phẩm, mẫu video và ảnh', icon: 'brain' },
-    { href: '#', text: 'Kết quả', sub: 'Sắp có', icon: 'chart', soon: true },
+    { href: 'ket-qua.html', text: 'Kết quả', sub: 'Việc AI đã làm, giờ tiết kiệm', icon: 'chart' },
     { href: 'goi.html', text: 'Gói và credit', sub: 'Hạn gói, credit, thanh toán', icon: 'card' }
   ];
   function renderMobile(page) {
@@ -122,9 +122,46 @@
     }).catch(function () {});
   }
 
+  // Gói của khách: thẻ dưới menu (tên gói, còn mấy ngày, credit) + thanh nhắc gia hạn đầu trang khi còn ≤3 ngày,
+  // đã hết hạn hoặc credit dưới 10% gói. Bấm "Đóng" thì ẩn tới hôm sau (localStorage crewzy.renew.hide).
+  function loadPlan() {
+    var page = location.pathname.split('/').pop() || 'index.html';
+    if (/dang-nhap|bat-dau/.test(page)) return;
+    fetch('/api/billing', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.bat || !d.account || d.admin) return;
+      var a = d.account, now = Date.now();
+      var days = a.het_han ? Math.ceil((a.het_han - now) / 86400000) : 0;
+      var plan = (d.goi || []).filter(function (p) { return p.id === a.plan; })[0];
+      var low = plan && a.credits < plan.credits * 0.1;
+      var card = document.querySelector('[data-plan-card]');
+      if (card) {
+        card.innerHTML = '<p style="font-size:13px;font-weight:600">' + (a.ten_goi || 'Chưa có gói') + '</p>' +
+          '<p class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">' + (a.con_han ? 'Còn ' + days + ' ngày · ' : 'Đã hết hạn · ') + Number(a.credits || 0).toLocaleString('vi-VN') + ' credit</p>' +
+          (!a.con_han || days <= 3 || low ? '<a href="goi.html" class="btn btn-primary" style="margin-top:8px;min-height:34px;width:100%;justify-content:center">' + (a.con_han && low && days > 3 ? 'Nạp credit' : 'Gia hạn') + '</a>' : '');
+      }
+      var msg = !a.con_han ? (a.plan === 'dung_thu' ? 'Hết thời gian dùng thử. Chọn gói để đội AI làm việc tiếp, Brain, kết nối và kết quả vẫn giữ nguyên.' : 'Gói đã hết hạn, đội AI đang tạm dừng. Gia hạn để chạy tiếp.')
+        : days <= 3 ? 'Gói ' + (a.ten_goi || '') + ' còn ' + days + ' ngày. Gia hạn sớm để lịch tự đăng bài và trả lời bình luận không bị dừng.'
+        : low ? 'Còn ' + Number(a.credits).toLocaleString('vi-VN') + ' credit (dưới 10% gói). Nạp thêm để AI không dừng giữa chừng.' : '';
+      var today = new Date().toISOString().slice(0, 10);
+      var hidden = false; try { hidden = localStorage.getItem('crewzy.renew.hide') === today && a.con_han; } catch (e) {}
+      if (!msg || hidden || page === 'goi.html') return;
+      var main = document.querySelector('main');
+      if (!main || document.querySelector('[data-renew]')) return;
+      var bar = document.createElement('div');
+      bar.setAttribute('data-renew', '');
+      bar.setAttribute('role', 'status');
+      bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:12px;border:1px solid ' + (a.con_han ? '#F1DDA6;background:#FFFBEF' : '#F5C2C0;background:#FEF3F2');
+      bar.innerHTML = '<span style="font-size:14px;flex:1 1 260px">' + msg + '</span><span style="display:flex;gap:8px"><a class="btn btn-primary" href="goi.html" style="min-height:36px">' + (a.con_han && days > 3 ? 'Nạp credit' : 'Gia hạn ngay') + '</a>' +
+        (a.con_han ? '<button type="button" class="btn btn-ghost" data-renew-x style="min-height:36px">Đóng</button>' : '') + '</span>';
+      main.insertBefore(bar, main.firstChild);
+      var x = bar.querySelector('[data-renew-x]');
+      if (x) x.addEventListener('click', function () { try { localStorage.setItem('crewzy.renew.hide', today); } catch (e) {} bar.remove(); });
+    }).catch(function () {});
+  }
+
   function init() {
     var nav = document.querySelector('nav[data-sidebar]');
-    if (nav) { render(nav); loadBadge(); }
+    if (nav) { render(nav); loadBadge(); loadPlan(); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

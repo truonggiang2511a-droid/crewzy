@@ -57,6 +57,8 @@ public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Servi
 public/bat-dau.html      Thiết lập 4 bước BẮT BUỘC khi bật gói (assets/bat-dau.js): Brain (3 mục + tự điền từ website) → kết nối ≥1 kênh
                          (/api/connect?back=bat-dau quay lại đây) → AI (link MCP: Claude 1 bấm/chép link, tự nhận khi aiseen có; hoặc Trợ lý Crewzy)
                          → chọn gói + VietQR (assets/pay.js), tự hỏi trạng thái đơn tới khi paid → "Vào Văn phòng". Không có menu trái
+public/ket-qua.html      Kết quả (assets/ket-qua.js): biên nhận tháng từ /api/results?thang= (giờ + tiền tiết kiệm, gấp bao nhiêu lần tiền gói),
+                         5 số chính, cột việc mỗi ngày (SVG), chi tiết, kết quả gần đây, gợi ý làm thêm. layout.js: thẻ gói dưới menu + thanh nhắc gia hạn
 public/goi.html          Gói và credit (assets/goi.js): tóm tắt gói/hạn/credit, gia hạn, nạp credit, bảng giá, sổ credit, đơn; khu quản trị (ADMIN_EMAILS):
                          cấp credit/ngày theo email, 100 tài khoản, 30 giao dịch SePay gần nhất
 public/assets/pay.js     Dùng chung: thẻ gói/nạp, tạo đơn, hiện QR (vietqr.app → lỗi thì qr.sepay.vn) + thông tin chuyển khoản có nút Chép, hỏi trạng thái 4 giây/lần
@@ -125,6 +127,11 @@ src/lib/instant.js        COMPOSIO INSTANT (22/11 tối): INSTANT_APPS (serpapi,
                           khách INSTANT_USER_DAILY_USD=0,3, tắt INSTANT=off), instantUsd đọc instantCharge, recordInstant (KV instusd:<ngày VN>:<uid|all>).
                           CHỈ Trợ lý Crewzy (chat mode app + cron) bật Instant; mcpLink tạo phiên instant:false (cổng MCP không đo được tiền).
                           readiness ctx.instant → nhóm có app Instant coi như đủ (chat, trang Quy trình, Văn phòng). Test: scripts/instanttest.mjs
+src/lib/activity.js       VIỆC AI ĐÃ LÀM: classify(tên công cụ) → dang_bai/tra_loi/gui_tin/anh/video/khach/doc/khac, recordActivity → D1 activity
+                          (uid, day, kind, n; migrations/0002_activity.sql, ĐÃ áp lên D1 thật 22/11). Chat ghi khi công cụ chạy không lỗi, cổng MCP ghi lúc gọi.
+                          buildResults (giờ tiết kiệm theo DEFAULT_MINUTES, 50.000đ/giờ; RESULT_MINUTES_JSON, RESULT_HOUR_VND), runWeeklyReports (cron thứ Hai
+                          ≥8 giờ VN, cờ KV weekly:<ngày>, phiếu 'Báo cáo tuần Crewzy' loai bao_cao, không gọi AI; WEEKLY_REPORT=off). Phiếu nguoi_lam 'Crewzy…' không tính.
+src/routes/results.js     GET /api/results?thang=YYYY-MM | ?tuan=1 · Test: scripts/resultstest.mjs
 src/routes/billing.js     /api/billing · /api/billing/order (tạo đơn mã CZ+8 ký tự, dùng lại đơn chờ 24 giờ, ≤5 đơn chờ) · /api/billing/admin ·
                           /api/sepay/webhook (Apikey, INSERT OR IGNORE theo id SePay, khớp mã trong content/code/description, kiểm đủ tiền,
                           đánh dấu paid có điều kiện status='pending', luôn trả {success:true} khi khoá đúng) · /api/onboarding · /api/onboarding/brand-from-web
@@ -482,6 +489,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026 (tối): Thêm gói MCP For You 149k/30 ngày/2.000 credit (Giang để Claude quyết giá): khách dùng AI của họ qua link nối AI, Giang không trả
   token, chỉ lượt Composio (~8đ) + ảnh → số lượng cao nhất (100 bài × mọi kênh, 400 bình luận); 74,5đ/credit vẫn lời nếu khách tiêu vào Trợ lý Crewzy.
   Không giới hạn chức năng theo gói (gói chỉ khác credit) → khách gói này vẫn dùng được Trợ lý Crewzy, trừ credit như thường.
+- 22/11/2026 (tối): Màn Kết quả + biên nhận tháng + nhắc gia hạn + báo cáo tuần tự động (Giang: "làm luôn" đề xuất 1+2) để khách thấy giá trị và gia hạn.
+  Nhắc gia hạn chỉ trong app (thanh đầu trang + thẻ menu: còn ≤3 ngày, hết hạn, credit <10% gói; Đóng = ẩn tới hôm sau). CHƯA gửi email: cần nhà cung cấp
+  email (vd Resend, Giang tạo khoá RESEND_API_KEY + xác minh tên miền). Số việc chỉ đếm từ 22/11; cổng MCP đếm cả lần gọi lỗi (không đọc được kết quả).
 
 ## 6. Việc tiếp theo
 
@@ -494,7 +504,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.
 - Trợ lý AI: trừ credit theo từng khách thay cho trần chung 150 lượt/ngày; nút "Duyệt" bấm được thay cho gõ "đồng ý"; trả lời chạy chữ dần (stream).
-- Màn "Kết quả" (khách mới, đơn chốt, doanh thu theo nguồn) và "Gói và credit" (đang để Sắp có trong menu).
+- (Đã có màn Kết quả 22/11.) Còn: doanh thu theo nguồn, đơn chốt; email báo cáo tuần + nhắc gia hạn (cần Resend).
 - Tạo auth config riêng trên Composio cho TikTok (app TikTok developer), Threads, Google Business; nối riêng Zalo OA, Shopee.
 - Canvas Design chưa cập nhật theo giao diện mới (Văn phòng, Chờ duyệt đã dùng dữ liệu thật).
 - Kiểm chứng nhu cầu theo quy trình saas-startup-foundry trước khi làm backend.

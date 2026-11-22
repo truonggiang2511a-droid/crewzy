@@ -13,6 +13,7 @@ import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, ge
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { recordActivity } from '../lib/activity.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 import { billingOn, gate, makeMeter, prices } from '../lib/billing.js';
@@ -272,6 +273,12 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
     const exec = async (name, args) => {
+      const res = await execRaw(name, args);
+      // Màn Kết quả: ghi việc đã làm khi công cụ chạy không lỗi.
+      if (res && !res.error && !(res.successful === false)) await recordActivity(env, uid, name, args);
+      return res;
+    };
+    const execRaw = async (name, args) => {
       // Gói và credit: trừ trước khi chạy công cụ tốn tiền (Composio, MCP ngoài, ảnh, video); hết credit thì báo AI.
       if (meter) {
         const no = await meter.tool(name, args);
