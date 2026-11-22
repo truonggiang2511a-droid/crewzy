@@ -81,6 +81,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   SESSION_SECRET, GOOGLE_CLIENT_ID. Không ghi vars trong wrangler.jsonc; `keep_vars: true` để deploy không xoá biến trên dashboard.
   Chạy cục bộ: tạo `.dev.vars` (đã gitignore) rồi `npx wrangler dev --local` → http://127.0.0.1:8787 (KV giả lập cục bộ).
   Đã thử cục bộ 22/11: mọi route, KV ghi/đọc Brain, Composio SDK chạy trong workerd (gọi tới backend.composio.dev được), Playwright 2 khổ màn.
+  Đã chạy thật 22/11 (account 03b6191738250b652c9472dcc6129114, Worker tạo qua dashboard → Import repository, deploy ~50 giây):
+  /api/catalog, Brain KV, /api/connect ra link Composio, chat chế độ app ~3–4 giây (có gọi công cụ Composio, không vượt CPU gói Free),
+  link nối AI qua /mcp/* initialize OK. 3 khoá bí mật COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET do Giang tự đặt trên dashboard.
   Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
 - KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày).
   KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
