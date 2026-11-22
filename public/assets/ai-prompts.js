@@ -16,11 +16,21 @@
     { id: 'gemini', name: 'Gemini', logo: 'gemini', need: 'gemini.google.com trên web, giao diện tiếng Anh', steps: ['Settings → <b>Connected Apps</b> → Custom apps → <b>Add a custom app</b>.', 'Dán link ở bước 1, bấm Next rồi đồng ý kết nối (cần bật Keep Activity).', 'Thêm xong dùng được cả trên app Gemini điện thoại.'], sample: 'Dùng Crewzy đọc số liệu quảng cáo Meta 7 ngày qua và chỉ ra chiến dịch nên tắt.' },
     { id: 'grok', name: 'Grok', logo: 'grok', need: 'grok.com, gói trả phí', steps: ['Mở <b>grok.com/connectors</b>.', 'Bấm <b>New Connector</b> → <b>Custom</b>, đặt tên Crewzy, dán link ở bước 1, lưu.', 'Khi chat bật connector Crewzy rồi giao việc.'], sample: 'Dùng Crewzy viết 3 bài đăng ưu đãi cuối tuần theo Brain thương hiệu, cho tôi duyệt trước khi đăng.' },
     { id: 'claudecode', name: 'Claude Code', logo: 'claude', need: 'Claude Code trên máy tính (Terminal, VS Code, ứng dụng Claude)',
-      cmd: function (link) { return 'claude mcp add --transport http --scope user crewzy ' + link; },
-      steps: ['Mở Terminal, dán lệnh bên dưới rồi Enter (lệnh đã có sẵn link của bạn).', 'Mở <b>claude</b>, gõ <b>/mcp</b> để thấy Crewzy ở trạng thái connected.', 'Đã thêm Crewzy trong claude.ai (tab Claude) và đăng nhập Claude Code bằng cùng tài khoản thì Crewzy có sẵn, không cần lệnh.'],
-      sample: 'Dùng Crewzy đọc Brain thương hiệu, viết 5 bài Facebook cho tuần này và lưu thành file bai-dang-tuan.md trong thư mục này.' },
+      cmds: function (link, origin) { return [
+        ['Nối Crewzy', 'claude mcp add --transport http --scope user crewzy ' + link],
+        ['Cài Skill Crewzy (macOS/Linux; Windows: tải ' + origin + '/api/skill.md lưu vào %USERPROFILE%\\.claude\\skills\\crewzy\\SKILL.md)', 'mkdir -p ~/.claude/skills/crewzy && curl -fsSL ' + origin + '/api/skill.md -o ~/.claude/skills/crewzy/SKILL.md']
+      ]; },
+      steps: ['Mở Terminal, chạy 2 lệnh bên dưới (đã có sẵn link của bạn): nối Crewzy và cài Skill Crewzy.', 'Mở <b>claude</b>, gõ <b>/mcp</b> thấy Crewzy connected. Gõ <b>/mcp__crewzy__lam_viec_crewzy</b> để nhận việc Crewzy giao.', 'Claude Code dùng thêm skill sẵn có (tạo file Excel, Word, PDF, chỉnh ảnh…) rồi nộp kết quả về Việc chờ duyệt.'],
+      sample: '/mcp__crewzy__lam_viec_crewzy' },
+    { id: 'codex', name: 'Codex', logo: 'openai', need: 'Codex CLI, tiện ích VS Code hoặc ứng dụng ChatGPT trên máy tính (dùng chung cấu hình)',
+      cmds: function (link, origin) { return [
+        ['Nối Crewzy', 'codex mcp add crewzy --url ' + link],
+        ['Cài Skill Crewzy (macOS/Linux)', 'mkdir -p ~/.codex/skills/crewzy && curl -fsSL ' + origin + '/api/skill.md -o ~/.codex/skills/crewzy/SKILL.md']
+      ]; },
+      steps: ['Mở Terminal, chạy 2 lệnh bên dưới: nối Crewzy và cài Skill Crewzy.', 'Mở lại Codex, gõ <b>/mcp</b> thấy Crewzy. Gõ <b>$crewzy</b> hoặc nhắn "làm việc Crewzy".', 'Codex làm việc bằng app đã kết nối và skill của nó, rồi nộp kết quả về Việc chờ duyệt.'],
+      sample: 'Dùng skill crewzy: nhận các việc Crewzy đang giao, làm xong nộp kết quả về Crewzy.' },
     { id: 'cursor', name: 'Cursor', logo: 'cursor', need: 'Cursor trên máy tính',
-      cmd: function (link) { return JSON.stringify({ mcpServers: { crewzy: { type: 'http', url: link } } }); },
+      cmds: function (link) { return [['Dán vào mcp.json', JSON.stringify({ mcpServers: { crewzy: { type: 'http', url: link } } })]]; },
       steps: ['Settings → <b>MCP &amp; Integrations</b> → <b>New MCP server</b> (mở file mcp.json).', 'Dán đoạn bên dưới (đã có sẵn link của bạn) rồi lưu.', 'Trong khung Agent giao việc, Crewzy hiện trong danh sách công cụ.'], sample: 'Dùng Crewzy lấy 20 bình luận mới nhất trên Fanpage và soạn câu trả lời theo giọng thương hiệu.' },
     { id: 'other', name: 'AI khác', logo: '', need: 'Mọi AI có mục Connectors hoặc MCP', steps: ['Vào phần <b>Connectors</b>, <b>Integrations</b> hoặc <b>MCP</b> trong cài đặt của AI đó.', 'Thêm máy chủ mới: kiểu <b>Streamable HTTP</b>, dán link ở bước 1, chọn không cần đăng nhập (link đã có khoá riêng).', 'Giao việc bằng tiếng Việt; AI sẽ tự đọc hướng dẫn của Crewzy.'], sample: 'Dùng Crewzy kiểm tra các app tôi đã kết nối và gợi ý 3 việc marketing nên làm hôm nay.' }
   ];
@@ -44,15 +54,17 @@
     panel.setAttribute('data-ai-guide', c.id);
     panel.innerHTML = '<p class="muted" style="margin:0 0 6px;font-size:12px">' + esc(c.need) + '</p><ol style="margin:0;padding-left:20px">' +
       c.steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>';
-    if (c.cmd) {
+    if (c.cmds) {
       var link = (document.getElementById('ai-link') || {}).value || '';
-      panel.innerHTML += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:flex-start">' +
-        '<code data-ai-cmd style="flex:1;min-width:200px;padding:8px 10px;border-radius:6px;background:#1A1A1A;color:#F2F2F2;font-size:12px;line-height:1.5;word-break:break-all">' +
-        esc(link ? c.cmd(link) : c.cmd('LINK_Ở_BƯỚC_1')) + '</code>' +
-        '<button type="button" class="btn btn-ghost" data-copy-cmd>' + (link ? 'Sao chép lệnh' : 'Tạo link ở bước 1 trước') + '</button></div>';
-      var btn = panel.querySelector('[data-copy-cmd]');
-      btn.disabled = !link;
-      btn.addEventListener('click', function () { copy(panel.querySelector('[data-ai-cmd]').textContent, btn); });
+      c.cmds(link || 'LINK_Ở_BƯỚC_1', location.origin).forEach(function (pair) {
+        var needLink = pair[1].indexOf('LINK_Ở_BƯỚC_1') >= 0;
+        panel.insertAdjacentHTML('beforeend', '<p class="muted" style="margin:10px 0 4px;font-size:12px">' + esc(pair[0]) + '</p><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start">' +
+          '<code data-ai-cmd style="flex:1;min-width:200px;padding:8px 10px;border-radius:6px;background:#1A1A1A;color:#F2F2F2;font-size:12px;line-height:1.5;word-break:break-all">' + esc(pair[1]) + '</code>' +
+          '<button type="button" class="btn btn-ghost" data-copy-cmd' + (needLink ? ' disabled' : '') + '>' + (needLink ? 'Tạo link ở bước 1 trước' : 'Sao chép') + '</button></div>');
+      });
+      panel.querySelectorAll('[data-copy-cmd]').forEach(function (btn) {
+        btn.addEventListener('click', function () { copy(btn.previousElementSibling.textContent, btn); });
+      });
     }
     currentClient = c.id;
     sampleEl.textContent = c.sample;

@@ -43,7 +43,8 @@ public/_headers          X-Robots-Tag: noindex (bản thử không cho Google l�
 public/index.html        Màn 1 · Văn phòng: số liệu, SƠ ĐỒ MẠNG phòng ban (office.js), chi tiết phòng, bảng tin phiếu việc chạy liên tục
 public/assets/office.js  Vẽ SVG: Bộ não AI ở tâm, 8 phòng trên elip, đường nhánh FLOWS có hạt sáng chạy (animateMotion), huy hiệu app
                          (sáng khi đã kết nối, lấy thật từ /api/status); phòng ban + bảng tin là dữ liệu mẫu; tôn trọng prefers-reduced-motion
-public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
+public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ 22/11, script assets/jobs.js): Giao việc mới (mẫu, Giao cho AI của tôi /
+                         Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, Duyệt/Sửa/Làm lại/Từ chối/Đăng/Xoá, ?id= làm nổi
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
                          ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
 public/quy-trinh.html    Quy trình: 7 mẫu theo phòng ban, logo app cần có, Chạy → chat.html?q=<câu lệnh>
@@ -76,6 +77,9 @@ src/lib/mcpServers.js     Lưu máy chủ MCP của khách (KV mcpsrv:<uid>, t�
 src/routes/mcpServers.js  GET/POST /api/mcp-servers (add|remove|test) · GET /api/mcp-callback (app kia trả về sau khi khách đồng ý)
 src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoài (dữ liệu base64, resource, link trong JSON/chữ), tải về lưu KV media:<id>
                           (90 ngày, ≤24MB, lớn hơn giữ link gốc), phục vụ /api/media/<id>.<đuôi> công khai có Range (tua video)
+src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của khách): KV jobs:<uid> (≤150), trạng thái cho_lam → cho_duyet → da_duyet → da_dang
+                          (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM, CREWZY_NOP_KET_QUA (tự lưu ảnh/video về /api/media); MCP_PROMPTS
+src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
@@ -171,6 +175,13 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Chiều ngược lại (khung chat Crewzy điều khiển Claude Code của khách) KHÔNG làm: `claude mcp serve` chỉ chạy stdio trên máy khách,
   Worker trên mây không gọi tới được; muốn được phải mở đường hầm từ máy khách ra internet và để lộ Bash/sửa file của máy → quá rủi ro
   cho khách không rành kỹ thuật. Gói Claude Pro/Max cũng không được dùng làm bộ não trong app khác.
+- Hai chiều AI của khách ↔ Crewzy (22/11, Giang: "bằng mọi cách nối Model của khách, dùng skill Claude Code/Codex, trả kết quả về Crewzy"):
+  link MCP v2 có thêm CREWZY_VIEC_CAN_LAM + CREWZY_NOP_KET_QUA; initialize khai báo capabilities.prompts và cổng tự trả prompts/list,
+  prompts/get (5 lệnh: lam_viec_crewzy, len_lich_tuan, bao_cao_tuan, tra_loi_binh_luan, video_quang_cao → Claude Code hiện /mcp__crewzy__<tên>).
+  Tab Codex (`codex mcp add crewzy --url <link>`, cấu hình dùng chung CLI/VS Code/app ChatGPT máy tính) và Claude Code có lệnh cài Skill
+  (curl /api/skill.md vào ~/.claude/skills/crewzy/ hoặc ~/.codex/skills/crewzy/). Trợ lý trong app cũng nộp kết quả vào phiếu việc.
+  Menu "Việc chờ duyệt" hiện số phiếu cho_duyet thật (layout.js → /api/jobs). Tự chạy khi khách vắng: khách đặt lịch trong AI của họ
+  (scheduled task của Claude/ChatGPT, cron `claude -p "/mcp__crewzy__lam_viec_crewzy"`) — Crewzy không gọi được AI của khách (không có sampling).
 - Bấm nút Bộ não AI ở Văn phòng: khung chi tiết có 4 nút Claude/ChatGPT/Gemini/Grok → ket-noi.html?tab=ai&ai=<x> (làm nổi hướng dẫn).
   Logo AI: logos.composio.dev/api/claude|openai|gemini|grok (anthropic, chatgpt, xai trả ảnh mặc định).
 - Đăng nhập AI (đã nghiên cứu 22/11/2026):

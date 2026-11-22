@@ -69,7 +69,7 @@ async function putMedia(env, uid, origin, bytes, ct, src) {
 }
 
 // Tải một link về và lưu lại. Trả {kind, link, goc?} hoặc null nếu không phải ảnh/video.
-async function rehostUrl(env, uid, origin, url) {
+export async function rehostUrl(env, uid, origin, url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 45000);
   try {

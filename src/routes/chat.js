@@ -47,6 +47,8 @@ Quy tắc bắt buộc:
 - Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
   hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
   rồi tạo design từ ảnh (CANVA_POST_DESIGNS) và gửi link chỉnh sửa. Đăng bài có ảnh thì dùng đúng link ảnh đã tạo.
+- Làm xong một sản phẩm (bài viết, kịch bản, báo cáo, danh sách, ảnh/video) thì nộp về Việc chờ duyệt bằng CREWZY_NOP_KET_QUA (nguoi_lam "Trợ lý Crewzy")
+  để khách duyệt và lưu lại; khách bảo "làm việc được giao" thì gọi CREWZY_VIEC_CAN_LAM trước.
 - Chỉ nói "không làm được" khi công cụ thật sự báo lỗi; nói rõ lỗi gì và cách khắc phục.
 - Công cụ tạo ảnh/video của app khác (OpenArt, Higgsfield…) thường trả mã việc trước: gọi CREWZY_CHO (10–30 giây) rồi gọi công cụ
   xem trạng thái của app đó, lặp tới khi có kết quả. Crewzy tự lưu ảnh/video thành link cố định trong trường media_crewzy
@@ -95,6 +97,8 @@ function geminiSafeTool(t) {
 function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
+  if (name === 'CREWZY_VIEC_CAN_LAM') return 'Xem việc Crewzy đang giao';
+  if (name === 'CREWZY_NOP_KET_QUA') return 'Nộp kết quả vào Việc chờ duyệt';
   if (name === 'CREWZY_CHO') return 'Đang chờ kết quả (' + Math.round(Number((input && input.giay) || 15)) + ' giây)';
   if (name === 'COMPOSIO_SEARCH_TOOLS') return 'Tìm công cụ phù hợp';
   if (name === 'COMPOSIO_GET_TOOL_SCHEMAS') return 'Xem cách dùng công cụ';

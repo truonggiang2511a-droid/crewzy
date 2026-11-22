@@ -28,7 +28,7 @@
     { label: null, links: [
       { href: 'index.html', text: 'Văn phòng', icon: 'home' },
       { href: 'chat.html', text: 'Trợ lý AI', icon: 'chat' },
-      { href: 'cho-duyet.html', text: 'Việc chờ duyệt', icon: 'check', badge: '3' }
+      { href: 'cho-duyet.html', text: 'Việc chờ duyệt', icon: 'check', badgeKey: 'jobs' }
     ] },
     { label: 'Thiết lập', links: [
       { href: 'ket-noi.html', text: 'Kết nối', icon: 'apps' },
@@ -50,7 +50,7 @@
       html += '<div class="sb-links">';
       g.links.forEach(function (l) {
         var current = l.href === page ? ' aria-current="page"' : '';
-        var extra = l.badge ? '<span class="sb-badge">' + l.badge + '</span>' : l.soon ? '<span class="sb-soon">Sắp có</span>' : '';
+        var extra = l.badgeKey ? '<span class="sb-badge" data-badge="' + l.badgeKey + '" hidden></span>' : l.soon ? '<span class="sb-soon">Sắp có</span>' : '';
         html += '<a class="sb-link" href="' + l.href + '"' + current + (l.soon ? ' aria-disabled="true"' : '') + '>' + icon(l.icon) + '<span>' + l.text + '</span>' + extra + '</a>';
       });
       html += '</div>';
@@ -64,9 +64,20 @@
     if (cur && row && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, cur.offsetLeft - 12);
   }
 
+  // Số phiếu việc chờ duyệt thật (từ /api/jobs). Trang Việc chờ duyệt gọi window.vpaiSetJobBadge(n) khi số đổi.
+  window.vpaiSetJobBadge = function (n) {
+    document.querySelectorAll('[data-badge="jobs"]').forEach(function (b) { b.textContent = n; b.hidden = !n; });
+  };
+  function loadBadge() {
+    if (!window.vpaiUid || location.pathname.indexOf('dang-nhap') >= 0) return;
+    fetch('/api/jobs?uid=' + encodeURIComponent(window.vpaiUid())).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (d && d.counts) window.vpaiSetJobBadge(d.counts.cho_duyet || 0);
+    }).catch(function () {});
+  }
+
   function init() {
     var nav = document.querySelector('nav[data-sidebar]');
-    if (nav) render(nav);
+    if (nav) { render(nav); loadBadge(); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

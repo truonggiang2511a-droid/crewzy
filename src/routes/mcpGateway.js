@@ -9,6 +9,7 @@ import { APP_NAME, getApiKey, verifyUpstreamToken, userIdFor } from '../lib/comm
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { MCP_PROMPTS } from '../lib/jobs.js';
 
 const plain = (status, text) => new Response(text, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
@@ -33,6 +34,7 @@ async function buildInstructions(env, uid) {
     'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. Cần ảnh mới thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ).',
     'Luôn trả lời bằng tiếng Việt. Trước khi đăng bài, gửi tin/email cho người khác, xoá dữ liệu hay chi tiền quảng cáo: tóm tắt và hỏi người dùng đồng ý.',
     'Không bịa giá, số liệu; không đưa số điện thoại khách lên bài công khai. Làm ra kết quả thật (bài đăng, ảnh, báo cáo), không đẩy việc về cho người dùng.',
+    'Phiếu việc: khách giao việc trong Crewzy → xem bằng CREWZY_VIEC_CAN_LAM. Làm xong MỌI sản phẩm (bài viết, báo cáo, kịch bản, danh sách khách, ảnh/video, file bạn tạo bằng skill của mình) thì nộp về Crewzy bằng CREWZY_NOP_KET_QUA (ghi nguoi_lam là tên của bạn) để khách duyệt, đăng và xem báo cáo. Việc khách đã duyệt (da_duyet): đăng/gửi rồi nộp lại trạng thái da_dang kèm link.',
     '# Brain thương hiệu\n' + (brandText(brand) || 'Chưa điền (người dùng điền ở trang Brain thương hiệu của Crewzy). Hỏi khi cần.'),
     '# App đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa có. Người dùng kết nối ở trang Kết nối của Crewzy.'),
   ];
@@ -70,6 +72,17 @@ export default async (request, env) => {
     if (uid) { try { rpc = JSON.parse(new TextDecoder().decode(bodyBuf)); } catch (e) { rpc = null; } }
   }
   if (Array.isArray(rpc)) rpc = null; // gói nhiều yêu cầu: chuyển thẳng, không thêm phần Crewzy
+
+  // Câu lệnh mẫu (MCP prompts): Claude Code hiện thành /mcp__crewzy__<tên>.
+  if (rpc && (rpc.method === 'prompts/list' || rpc.method === 'prompts/get')) {
+    const sid = { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } };
+    if (rpc.method === 'prompts/list') {
+      return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { prompts: MCP_PROMPTS.map((p) => ({ name: p.name, title: p.title, description: p.description })) } }, sid);
+    }
+    const p = MCP_PROMPTS.find((x) => x.name === (rpc.params && rpc.params.name));
+    if (!p) return Response.json({ jsonrpc: '2.0', id: rpc.id, error: { code: -32602, message: 'Không có câu lệnh này' } }, sid);
+    return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { description: p.description, messages: [{ role: 'user', content: { type: 'text', text: p.text } }] } }, sid);
+  }
 
   // Công cụ của Crewzy: tự trả lời, không gửi Composio.
   if (rpc && rpc.method === 'tools/call' && rpc.params && isCrewzyTool(rpc.params.name)) {
@@ -109,6 +122,7 @@ export default async (request, env) => {
     patched = rewriteRpc(text, ct, rpc.id, (result) => {
       result.instructions = [result.instructions, ins.text].filter(Boolean).join('\n\n');
       result.serverInfo = { ...(result.serverInfo || {}), name: APP_NAME + ' (Composio)' };
+      result.capabilities = { ...(result.capabilities || {}), prompts: { listChanged: false } };
     });
   }
   out.delete('content-length');

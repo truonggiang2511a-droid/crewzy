@@ -3,6 +3,7 @@
 //   (dùng được để đăng Facebook/Instagram, tải lên Canva/Drive). Canva API KHÔNG tạo ảnh từ chữ nên phải dùng công cụ này.
 // CREWZY_BRAIN: đọc Brain thương hiệu + danh sách app đã kết nối (cho AI bên ngoài như Claude/ChatGPT/Gemini/Grok).
 import { getBrand, brandText } from './brand.js';
+import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -48,6 +49,9 @@ CREWZY_TOOL_DEFS.push({
     parameters: { type: 'object', properties: { giay: { type: 'number', description: 'Số giây chờ, từ 5 đến 30.' } }, required: ['giay'] },
   },
 });
+
+// Phiếu việc: AI của khách nhận việc và nộp kết quả về Crewzy (src/lib/jobs.js).
+CREWZY_TOOL_DEFS.push(...JOB_TOOL_DEFS);
 
 export const isCrewzyTool = (name) => typeof name === 'string' && name.startsWith('CREWZY_');
 
@@ -123,6 +127,8 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
+    if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca);
+    if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_CHO') {
       const s = Math.min(30, Math.max(5, Number((args && args.giay) || 15)));
       await new Promise((r) => setTimeout(r, s * 1000));
