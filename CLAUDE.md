@@ -244,6 +244,13 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Map tài khoản trong KV: `user:<sub>` → {uid,…}, `uid:<uid>` → sub. Lần đầu đăng nhập nhận luôn mã trình duyệt cũ
   (nếu chưa thuộc ai) để giữ kết nối Composio đã làm; còn lại uid = `g-<sub>`. Bật đăng nhập rồi thì mọi hàm (connect, status, mcp-link, chat)
   chỉ tin mã trong phiên (`resolveUid`), bỏ qua uid gửi lên; không có phiên → 401 `{login:true}` → trang tự chuyển sang đăng nhập.
+- Cài 1 lần bấm (22/11, Giang: "bấm Install như Composio là vào thẳng app Claude, điền sẵn, khách chỉ bấm kết nối"): public/assets/ai-install.js
+  + khối #cai-dat đầu tab AI của bạn. Claude dùng ĐÚNG link composio.dev đang dùng: https://claude.ai/customize/connectors?modal=add-custom-connector
+  &connectorName=Crewzy&connectorUrl=<link> (điện thoại có app Claude → mở app; máy tính → claude.ai). Cursor: cursor://anysphere.cursor-deeplink/mcp/
+  install?name=Crewzy&config=base64({type:'http',url}); VS Code: vscode:mcp/install?<JSON>; hai nút này tắt trên điện thoại. ChatGPT/Gemini/Grok
+  không có link điền sẵn cho connector tự tạo (Composio dùng app đã duyệt trong thư mục ChatGPT/Grok) → tự chép link rồi mở trang cài đặt.
+  Claude Code/Codex/AI khác: chép lệnh/link. Mở tab là tự tạo link (/api/mcp-link) nếu chưa có, để nút bấm chạy ngay (iPhone chỉ cho chép khi
+  đang bấm). Văn phòng → Bộ não: nút Claude mở thẳng link điền sẵn khi đã có link.
 - Tab AI của bạn làm theo kiểu openart.ai/mcp (Giang gửi 22/11): 3 bước có số (tạo link → chọn AI theo tab Claude/ChatGPT/Gemini/Grok/
   Cursor/AI khác → câu lệnh mẫu sao chép được), thư viện "Câu lệnh mẫu" lọc Marketing/Mạng xã hội/Bán hàng/Báo cáo (nút Thử trong Crewzy
   → chat.html?q=, Sao chép), Câu hỏi thường gặp. Dữ liệu tab + câu lệnh nằm trong public/assets/ai-prompts.js (window.crewzyAiTabs.select).

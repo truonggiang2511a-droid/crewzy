@@ -217,6 +217,7 @@
       counts + '<p class="od-meta">Quy trình sẵn sàng: ' + r.flows.san_sang + '/' + r.flows.tong + '</p>' + sch + apps + miss +
       '<div class="od-actions">' + primary + '<a class="btn btn-ghost od-ghost" href="chat.html?q=' + encodeURIComponent('Giao việc cho phòng ' + r.name + ': ') + '">Giao việc</a></div>';
   }
+  function savedLink() { try { var l = localStorage.getItem('vpai.aiLink') || ''; return /\/mcp\/aHR0c/.test(l) ? '' : l; } catch (e) { return ''; } }
   function brainDetail() {
     var b = state.brain;
     var ai = b.ai_ngoai;
@@ -228,7 +229,10 @@
       (b.nguoi_lam_gan_nhat ? '<li><span class="od-dot" style="background:#22D3EE"></span>Làm việc gần nhất: ' + esc(b.nguoi_lam_gan_nhat.ten) + ' · ' + ago(b.nguoi_lam_gan_nhat.luc) + '</li>' : '') +
       '<li><span class="od-dot" style="background:#F5A524"></span>' + state.kpis.cho_duyet + ' việc chờ bạn duyệt · ' + state.kpis.ai_lam + ' đang làm · ' + state.kpis.cho_ai + ' chờ AI nhận</li></ul>' +
       (state.kpis.cho_ai && !state.kpis.ai_lam ? '<p class="od-meta">Việc chờ AI nhận: bảo AI của bạn "làm việc Crewzy", hoặc mở phiếu và bấm Làm ngay bằng Trợ lý Crewzy.</p>' : '') +
-      (ai ? '' : '<div class="od-ai-grid">' + ais.map(function (a) { return '<a class="od-ai" href="ket-noi.html?tab=ai&ai=' + a[0] + '"><img src="https://logos.composio.dev/api/' + a[1] + '" alt=""><span>' + a[2] + '</span></a>'; }).join('') + '</div>') +
+      (ai ? '' : '<div class="od-ai-grid">' + ais.map(function (a) {
+        // Đã có link Crewzy: bấm Claude là mở thẳng màn thêm connector (điền sẵn); còn lại sang tab Cài 1 lần bấm.
+        var href = a[0] === 'claude' && savedLink() ? 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Crewzy&connectorUrl=' + encodeURIComponent(savedLink()) : 'ket-noi.html?tab=ai#cai-dat';
+        return '<a class="od-ai" href="' + href + '"><img src="https://logos.composio.dev/api/' + a[1] + '" alt=""><span>' + a[2] + '</span></a>'; }).join('') + '</div>') +
       '<div class="od-actions"><a class="btn btn-primary" href="chat.html">Giao việc cho Trợ lý</a><a class="btn btn-ghost od-ghost" href="ket-noi.html?tab=ai">' + (ai ? 'Link nối AI' : 'Nối AI của bạn') + '</a></div>';
   }
 
@@ -278,7 +282,7 @@
     var steps = [
       { done: s.brand.filled >= 4, t: 'Điền Brain thương hiệu', d: 'Sản phẩm, khách hàng, giọng văn, giá. AI đọc trước mọi việc.', href: 'thuong-hieu.html', cta: 'Điền ngay' },
       { done: s.apps >= 3, t: 'Nối 3 app bạn dùng', d: s.apps ? 'Đã nối: ' + s.app_names.slice(0, 4).join(', ') : 'Chọn ngành để biết nên nối app nào trước.', href: 'ket-noi.html' + (nganh ? '?nganh=' + nganh : ''), cta: 'Kết nối' },
-      { done: s.ai_linked || s.jobs > 0, t: 'Chọn bộ não AI', d: 'Dùng Trợ lý Crewzy ngay, hoặc dán link vào Claude, ChatGPT của bạn.', href: 'ket-noi.html?tab=ai', cta: 'Nối AI' },
+      { done: s.ai_linked || s.jobs > 0, t: 'Chọn bộ não AI', d: 'Cài Crewzy vào Claude, ChatGPT… bằng 1 lần bấm, hoặc dùng Trợ lý Crewzy ngay.', href: 'ket-noi.html?tab=ai#cai-dat', cta: 'Cài vào AI' },
       { done: s.jobs > 0, t: 'Chạy quy trình đầu tiên', d: 'Gợi ý: Trả lời bình luận hoặc Lịch nội dung 7 ngày.', href: 'quy-trinh.html' + (nganh ? '?nganh=' + nganh : ''), cta: 'Chạy' },
       { done: s.schedules > 0, t: 'Hẹn giờ để văn phòng tự chạy', d: 'Ví dụ: trả lời bình luận mỗi giờ, báo cáo sáng thứ Hai.', href: 'quy-trinh.html', cta: 'Hẹn giờ' }
     ];

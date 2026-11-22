@@ -62,6 +62,16 @@
 
 <!-- ===== AI của bạn ===== -->
 <section data-view="ai" hidden style="display:flex;flex-direction:column;gap:18px">
+<div class="card ai-install" id="cai-dat">
+<div class="ai-install-head">
+<p class="label-mono">Cài 1 lần bấm</p>
+<h2>Dùng Crewzy trong <span class="hl">AI của bạn</span></h2>
+<p class="muted">Bấm Cài đặt: điện thoại mở thẳng app (đã cài), máy tính mở trang AI đó với tên <b>Crewzy</b> và link đã điền sẵn. Bạn chỉ bấm <b>Kết nối</b>.</p>
+</div>
+<p data-install-msg role="status" class="ai-install-msg" hidden></p>
+<div class="ai-install-grid" data-install-grid></div>
+<p class="muted" style="margin:0;font-size:12px;line-height:1.5">Link Crewzy như chìa khoá riêng của bạn (đã gắn sẵn trong nút), không gửi cho người khác. Xem cách làm tay ở phần dưới.</p>
+</div>
 <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:16px">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
 <h2 style="margin:0;font-size:18px;font-weight:600">Nối Crewzy vào AI bạn đang dùng</h2>
@@ -190,5 +200,6 @@
 <script src="assets/ai-prompts.js"></script>
 <script src="assets/mcp-servers.js"></script>
 <script src="assets/connect.js"></script>
+<script src="assets/ai-install.js"></script>
 </body>
 </html>
