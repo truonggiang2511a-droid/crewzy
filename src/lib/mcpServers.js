@@ -16,18 +16,21 @@ export const saveServers = (env, uid, list) => kvPutJson(env, key(uid), list.sli
 
 export const MAX_STORED_TOOLS = 80;
 export function publicServer(s) {
-  const names = (s.toolNames || []).slice(0, MAX_STORED_TOOLS);
+  const names = (s.toolNames || []).filter((n) => !isInternalTool(n)).slice(0, MAX_STORED_TOOLS);
   const disabled = (s.disabled || []).filter((n) => names.includes(n));
-  return { id: s.id, name: s.name, url: s.url, auth: s.auth, tools: s.tools || 0, toolNames: names, toolDesc: s.toolDesc || {},
+  return { id: s.id, name: s.name, url: s.url, auth: s.auth, tools: Math.max(0, (s.tools || 0) - (s.toolNames || []).filter(isInternalTool).length), toolNames: names, toolDesc: s.toolDesc || {},
     off: !!s.off, disabled, active: s.off ? 0 : Math.min(names.length - disabled.length, MAX_TOOLS_PER_SERVER), maxActive: MAX_TOOLS_PER_SERVER,
     addedAt: s.addedAt, error: s.error || '' };
 }
 // Lưu tên + mô tả ngắn công cụ để trang Kết nối vẽ công tắc.
 export function toolMeta(tools) {
-  const list = tools.slice(0, MAX_STORED_TOOLS);
+  const list = tools.filter((t) => !isInternalTool(t.name)).slice(0, MAX_STORED_TOOLS);
   return { toolNames: list.map((t) => t.name), toolDesc: Object.fromEntries(list.map((t) => [t.name, String(t.title || t.description || '').replace(/\s+/g, ' ').slice(0, 120)])) };
 }
-const isOn = (s, toolName) => !s.off && !(s.disabled || []).includes(toolName);
+// Công cụ nội bộ của máy chủ ngoài (vd HyperFrames internal_widget_event, internal_prepare_…_download: "chỉ widget gọi,
+// AI không bao giờ gọi") → luôn ẩn khỏi AI và khỏi công tắc trên trang Kết nối.
+export const isInternalTool = (name) => /^internal[_-]/i.test(String(name || ''));
+const isOn = (s, toolName) => !s.off && !isInternalTool(toolName) && !(s.disabled || []).includes(toolName);
 
 export function newServerId() {
   const b = crypto.getRandomValues(new Uint8Array(4));

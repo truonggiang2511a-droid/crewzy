@@ -86,7 +86,19 @@ for (const w of WORKFLOWS) {
 const vid = (await call('CREWZY_QUY_TRINH', { id: 'video_theo_phong_cach' })).data;
 assert.ok(vid.cac_buoc.some((b) => b.includes('CREWZY_TAO_ANH')), 'bước dự phòng vẫn phải còn tạo ảnh');
 assert.ok(vid.cac_buoc.some((b) => /Trợ lý AI/.test(b)), 'bước dự phòng phải chỉ khách sang Trợ lý AI để làm video bằng credit');
-assert.ok(!(await call('CREWZY_QUY_TRINH', {})).text.match(HIDDEN_RE));
+const listRes = await call('CREWZY_QUY_TRINH', {});
+assert.ok(!listRes.text.match(HIDDEN_RE));
+// Danh sách phải gọn dưới 12.000 ký tự (chat cắt kết quả công cụ ở 12.000) và vẫn nói rõ quy trình cần chạy trước.
+assert.ok(listRes.text.length < 10000, 'danh sách quy trình dài ' + listRes.text.length);
+assert.ok(listRes.data.quy_trinh.find((q) => q.id === 'video_theo_phong_cach').thieu.some((t) => /Cần chạy trước: Soi Reels/.test(t)));
+
+// Công cụ nội bộ của máy chủ MCP ngoài (internal_*) không bao giờ đưa cho AI hay lên công tắc.
+const { isInternalTool, publicServer, toolMeta } = await import('../src/lib/mcpServers.js');
+assert.ok(isInternalTool('internal_widget_event') && isInternalTool('internal-x') && !isInternalTool('compose'));
+const ps = publicServer({ id: 's1', tools: 3, toolNames: ['compose', 'internal_widget_event', 'render_video'] });
+assert.deepEqual(ps.toolNames, ['compose', 'render_video']);
+assert.equal(ps.tools, 2);
+assert.deepEqual(toolMeta([{ name: 'internal_a' }, { name: 'b' }]).toolNames, ['b']);
 
 // 5. Nộp báo cáo (trạng thái xong) rồi đọc lại đầy đủ nội dung theo id — để quy trình sau dùng kết quả quy trình trước.
 const sub = await call('CREWZY_NOP_KET_QUA', { tieu_de: 'Sổ tay phong cách video', noi_dung: '# Sổ tay\nHook 3 giây: câu hỏi.', loai: 'bao_cao', trang_thai: 'xong', quy_trinh: 'doi_thu_reels' });

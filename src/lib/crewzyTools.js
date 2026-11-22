@@ -169,8 +169,11 @@ async function workflowTool(env, uid, args, connected, surface) {
   if (!id) {
     return { data: { quy_trinh: WORKFLOWS.map((w) => {
       const r = readiness(w, ctx);
-      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: tx(w.mo_ta), lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: r.thieu_nhom, thieu_du_lieu: short(r), san_sang: r.san_sang };
-    }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết. Khách mới: bắt đầu bằng brain_tu_website.' } };
+      // Gọn: danh sách đầy đủ từng vượt 12.000 ký tự (chat cắt kết quả) → chỉ tên, mô tả ngắn, thiếu gì; cách bổ sung xem khi gọi kèm id.
+      const thieu = [...r.thieu_nhom, ...r.thieu_du_lieu.map((x) => (x.ten.length > 80 ? x.ten.slice(0, 77) + '…' : x.ten))];
+      const mo = tx(w.mo_ta);
+      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: mo.length > 110 ? mo.slice(0, 107) + '…' : mo, san_sang: r.san_sang, thieu: thieu.length ? thieu : undefined };
+    }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết, app/dữ liệu còn thiếu và cách bổ sung. Khách mới: bắt đầu bằng brain_tu_website.' } };
   }
   const w = workflowById(id);
   if (!w) return { error: 'Không có quy trình ' + id + '. Gọi CREWZY_QUY_TRINH không kèm id để xem danh sách.' };

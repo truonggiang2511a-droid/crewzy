@@ -39,7 +39,7 @@
     PICKS = (list || []).filter(function (p) { return !p.ngoai; });
     var out = (list || []).filter(function (p) { return p.ngoai; });
     $('[data-mcp-picks]').innerHTML = PICKS.map(function (p, i) {
-      return '<button type="button" class="btn btn-ghost" data-mcp-pick="' + i + '" style="gap:8px">' + icon(p) + esc(p.name) +
+      return '<button type="button" class="btn btn-ghost wrap" data-mcp-pick="' + i + '" style="gap:8px">' + icon(p) + esc(p.name) +
         '<span class="muted" style="font-size:12px;font-weight:400">' + (p.auth === 'none' ? 'Không cần đăng nhập' : 'Đăng nhập ' + esc(p.name)) + '</span></button>';
     }).join('');
     var box = $('[data-mcp-outside]');

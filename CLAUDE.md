@@ -402,6 +402,13 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   phản biện: màn đồng ý hiện tên Composio; Meta hạn chế/thu hồi app chung thì mọi khách hỏng cùng lúc; Composio khuyên dùng app riêng khi chạy thật).
   Giữ 5 tài khoản/công cụ (Composio cho 2–10); 1 lần nối Facebook dùng được mọi Fanpage nick đó quản lý.
 - 22/11/2026: Giang dặn bớt phản biện, tập trung tự nghĩ cách làm mới, gợi ý gỡ rối và đề xuất ý tưởng → viết lại mục 0.
+- 22/11/2026: Rà toàn bộ trên bản thật: 176/176 app ready ra link kết nối (thử bằng uid test-audit-2211, xargs -P 8 gọi /api/connect),
+  danh mục/quy trình/ngành/MCP khớp nhau (chỉ tiktok, threads, tiktok_ads còn 'soon'), mọi API < 0,25 giây, 9 trang không lỗi console.
+  Sửa: (1) CREWZY_QUY_TRINH không id dài > 12.000 ký tự → chat cắt, AI chỉ đọc nửa danh sách → bản gọn (mo_ta ≤110 ký tự, thieu ngắn), ~7.400 ký tự;
+  (2) máy chủ MCP ngoài lộ công cụ nội bộ (HyperFrames internal_*: "AI không bao giờ gọi") → isInternalTool ẩn khỏi AI và công tắc;
+  (3) điện thoại tràn ngang: .seg.hrow ở Quy trình (911px, do .hrow max-width:none !important đè .seg) và nút dài (Điền nhanh MCP,
+  "Nối 1 app: …") → thêm .seg.hrow max-width 100% và lớp .btn.wrap cho nút được xuống dòng. Kiểm bằng Playwright 360/390/1440: hết tràn.
+  Cách dò phần tử tràn: duyệt body *, lấy phần tử có right > innerWidth mà không nằm trong cha overflow auto/hidden (script trong lịch sử chat).
 
 ## 6. Việc tiếp theo
 

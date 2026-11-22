@@ -143,7 +143,7 @@
       var miss = firstMissing(w);
       var kenh = (w.kenh || []).map(function (k) { return '<span class="pill" style="font-size:11px">' + esc((data.channels || {})[k] || k) + '</span>'; }).join('');
       var groups = (w.cong_cu || []).map(groupRow).join('');
-      var fix = miss ? (miss.app ? '<a class="btn btn-primary" href="ket-noi.html?app=' + miss.app + '">Nối 1 app: ' + esc(miss.group.vai) + '</a>' : '<a class="btn btn-primary" href="ket-noi.html?tab=mcp">Nối ' + esc(miss.group.vai.toLowerCase()) + '</a>') : '';
+      var fix = miss ? (miss.app ? '<a class="btn btn-primary wrap" href="ket-noi.html?app=' + miss.app + '">Nối 1 app: ' + esc(miss.group.vai) + '</a>' : '<a class="btn btn-primary wrap" href="ket-noi.html?tab=mcp">Nối ' + esc(miss.group.vai.toLowerCase()) + '</a>') : '';
       if (!fix && lack.length) fix = needBtn(lack[0], 'btn btn-primary');
       var needBox = lack.length || soft.length ? '<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:8px;background:' + (lack.length ? '#FFF6F4' : '#F7F7F8') + '">' +
         '<p style="margin:0;font-size:12px;font-weight:600">' + (lack.length ? 'Cần có trước khi chạy để ra kết quả thật' : 'Nên có để kết quả tốt hơn') + '</p>' +
