@@ -40,7 +40,9 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 ```
 public/                 Trang tĩnh (Workers static assets, binding ASSETS, html_handling "none" → giữ đuôi .html); CLAUDE.md, README không lên mạng
 public/_headers          X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục) + header an toàn · public/404.html
-public/index.html        Màn 1 · Văn phòng: 9 phòng, trạng thái, bảng tin phiếu việc
+public/index.html        Màn 1 · Văn phòng: số liệu, SƠ ĐỒ MẠNG phòng ban (office.js), chi tiết phòng, bảng tin phiếu việc chạy liên tục
+public/assets/office.js  Vẽ SVG: Bộ não AI ở tâm, 8 phòng trên elip, đường nhánh FLOWS có hạt sáng chạy (animateMotion), huy hiệu app
+                         (sáng khi đã kết nối, lấy thật từ /api/status); phòng ban + bảng tin là dữ liệu mẫu; tôn trọng prefers-reduced-motion
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn
 public/quy-trinh.html    Quy trình: 7 mẫu theo phòng ban, logo app cần có, Chạy → chat.html?q=<câu lệnh>
@@ -190,6 +192,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   nên chat trong app phải dùng khoá API của khách hoặc credit của app (Netlify AI Gateway). Deploy bằng Netlify MCP: tạm dời
   node_modules ra ngoài repo trước khi chạy lệnh (đỡ tải lên), deploy xong nhớ trả lại — dùng `trap '…mv lại…' EXIT` trong cùng
   lệnh, vì lệnh bị ngắt giữa chừng từng để quên node_modules ở ngoài.
+- 22/11/2026: Giang muốn Văn phòng "kiểu công nghệ, đường nhánh toả giữa các phòng, như doanh nghiệp chạy 24/24" → làm sơ đồ mạng
+  nền tối trong khung sáng (giữ phần còn lại sáng kiểu Composio cho dễ đọc). Bài học SVG: hạt animateMotion có begin dương nằm ở (0,0)
+  trước khi chạy → dùng begin âm. Logo app đặt vòng ngoài đè lên chữ → gắn huy hiệu sát nút.
 - 22/11/2026: Chuyển từ Netlify sang Cloudflare Workers + đổi tên Crewzy. Bỏ Netlify AI Gateway (credit app dùng khoá Anthropic của Giang),
   Blobs → KV, node:crypto → Web Crypto, edge function → route /mcp/*. Workers assets mặc định đổi /x.html → /x (307) nên đặt
   html_handling "none" và cho '/' chạy Worker trả index.html. Giữ prefix vpai-/vpai. trong mã để không mất dữ liệu cũ.
