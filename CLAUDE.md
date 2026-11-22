@@ -8,7 +8,7 @@ crewzy.ai còn trống, crewzy.com đã có người đăng ký). Tên hiển th
 (Claude hoặc ChatGPT) làm bộ não rồi bấm Run. Giao diện trông như văn phòng có các phòng đang làm việc thật.
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
-**Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 171 app qua Composio + danh bạ 29 máy chủ MCP, Trợ lý AI, link nối AI (MCP),
+**Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 176 app qua Composio + danh bạ 36 máy chủ MCP, 23 quy trình (có video trọn gói), Trợ lý AI, link nối AI (MCP),
 Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng và Việc chờ duyệt vẫn là dữ liệu mẫu.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
@@ -49,7 +49,8 @@ public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, 
                          ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
 public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
                          nối, MCP ngoài (Apify/Firecrawl/OpenArt), Chạy ngay · Giao cho AI của tôi · Hẹn giờ (hộp thoại), danh sách Lịch đang hẹn
-public/thuong-hieu.html  Brain thương hiệu: 11 mục, lưu /api/brand, AI đọc mỗi lượt chat
+public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (refs: video/ảnh mẫu, giọng mẫu, nhạc, logo, tư liệu; dán link hoặc tải file
+                         qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
 public/assets/style.css  Bộ màu (tham khảo Composio: --accent #0007CD, nền #FAFAFA, viền #E8E8E8, chữ #1A1A1A), menu .sb, .btn .card .pill .seg .field, điện thoại ≤760px
@@ -70,7 +71,10 @@ src/lib/mcpDirectory.js   DANH BẠ MÁY CHỦ MCP (nguồn duy nhất): id, lin
 src/lib/industries.js     GÓI THEO NGÀNH (7 ngành): app nên nối (5–7, theo thứ tự), MCP, quy trình nên chạy → Kết nối "Bạn kinh doanh gì?" (?nganh=)
                           + thanh tiến độ, Quy trình lọc ?nganh=; lựa chọn lưu localStorage crewzy.nganh dùng chung 2 trang
 src/lib/common.js         APP_NAME, TOOLKITS, Web Crypto (HMAC phiên, ký link MCP, xác minh ID token Google), resolveUid, KV
-src/lib/brand.js          Mục Brain thương hiệu, cleanBrand, brandText (KV brand:<uid>)
+src/lib/brand.js          Mục Brain (BRAND_FIELDS gồm visual, video_style, audio, voice_provider, voice_id), REF_TYPES, cleanBrand (refs chỉ ghi
+                          khi gửi lên → phiếu brain của AI không xoá refs), brandText, brandPack (gói cho quy trình: tóm tắt, mẫu, giọng, nhạc, thiếu)
+src/routes/upload.js      POST /api/upload (trang Brain, ≤24MB ảnh/video/âm thanh) · PUT /api/upload/<mã ký> (AI trên máy curl -T, mã từ
+                          CREWZY_TAI_LEN, 2 giờ, dùng 1 lần, src/lib/uploads.js); 40 file/ngày/khách (KV upcount:*); lưu media:<id>
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
 src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
@@ -157,6 +161,23 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   ElevenLabs, Zoom, Rube; Linkup lệch phiên bản giao thức. Thẻ MCP ở Kết nối → ?tab=mcp&ten=&url= điền sẵn; máy chủ ngoai có nút Sao chép link.
   Quy trình: nhóm công cụ G thêm app mới + nhóm tim_khach_b2b, chao_hang, doanh_thu, bao_gia, ghi_hop; thêm 2 quy trình tim_khach_doanh_nghiep,
   bao_gia_sau_cuoc_goi (20 quy trình). Mọi app trong G đều có trong catalog (kiểm bằng script trong nhật ký).
+- Video + thương hiệu sâu (22/11, Giang: "quy trình edit video đăng các nền tảng, HyperFrames, Remotion, đọc kỹ thương hiệu trước, video viral/ảnh mẫu
+  khách thích, giọng khách, Vbee/ElevenLabs, tự trả lời bình luận, luồng brand → đối thủ → ý tưởng → edit/render → nội dung → duyệt → đăng đúng định dạng"):
+  3 quy trình mới video_tron_goi (2 giai đoạn: nộp 3 ý tưởng rồi DỪNG chờ khách chọn, sau đó dựng), edit_video_co_san, anh_quang_cao_theo_mau;
+  cờ media:true (QUY_TRINH báo thiếu phong cách/giọng), tu_dong:true (tra_loi_binh_luan đổi thành mọi nền tảng). WORKFLOW_RULES bắt đầu bằng BƯỚC 0
+  đọc thuong_hieu; CREWZY_QUY_TRINH trả thêm doc_truoc, thuong_hieu (brandPack), dinh_dang_kenh (formatsFor: chỉ kênh đã nối).
+  PLATFORM_FORMATS/FORMATS trong workflows.js: YouTube chỉ video, Instagram không bài chữ, TikTok video/ảnh cuộn… AI bỏ kênh không nhận định dạng.
+  Nhóm công cụ mới: dung_video (san_co: credit Crewzy + Remotion/HyperFrames/ffmpeg trên máy khách), giong_doc, cat_clip.
+  CREWZY_TAI_LEN: AI trên máy (Claude Code/Codex) dựng xong → xin put_url → curl -T → link_sau_khi_tai. Đã thử thật: PUT ra /api/media 200,
+  dùng lại link báo 409. Lịch: lap 'moi_gio' (gio→den, chỉ chế độ crewzy, mốc chống trùng theo giờ runKey), tu_dong (prompt "TỰ TRẢ LỜI ĐÃ BẬT":
+  tự trả lời khen/hỏi giá/FAQ, câu nhạy cảm chờ duyệt). AUTO_RUNS_PER_TICK 6. 15 lượt/ngày mỗi khách khung 8–22 giờ (tính vào 30 lượt).
+  MCP đã thử ra trang đăng nhập: HyperFrames https://mcp.heygen.com/mcp/hyperframes, HeyGen https://mcp.heygen.com/mcp/v1/, ElevenLabs
+  https://api.elevenlabs.io/v1/mcp (CIMD), Shotstack https://mcp.shotstack.io/, InVideo, Captions, OpusClip, Reap. Descript MCP, Submagic lỗi 530.
+  HyperFrames ghi trong tài liệu: compose/render tắt với client CLI/IDE — CHƯA biết có nhận Crewzy không (cần tài khoản HeyGen để thử).
+  Composio thêm (đã thử ra link): descript_mcp, captions, luma_labs, cartesia, fish_audio → 187 app, 176 ready.
+  Remotion KHÔNG có MCP render trên mây (@remotion/mcp chỉ tra tài liệu, chạy máy) → dùng trong Claude Code/Codex của khách (npx skills add
+  remotion-dev/skills, npx remotion render) rồi CREWZY_TAI_LEN. Giấy phép Remotion: miễn phí cá nhân/công ty ≤3 người, lớn hơn mua license.
+  Vbee, FPT.AI: không có MCP/Composio → khách tải giọng mẫu vào Brain (giong_mau) hoặc ghi tên giọng; muốn đọc thẳng phải làm kết nối API riêng.
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,
