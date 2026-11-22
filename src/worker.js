@@ -14,17 +14,20 @@ import mcpGateway from './routes/mcpGateway.js';
 import mcpServers from './routes/mcpServers.js';
 import jobs from './routes/jobs.js';
 import workflows from './routes/workflows.js';
+import billing from './routes/billing.js';
 import { runAgent, takeAppQuota } from './routes/chat.js';
 import { runDueSchedules } from './lib/schedules.js';
 import { submitResult } from './lib/jobs.js';
 import { serveImage } from './lib/crewzyTools.js';
 import { serveMedia } from './lib/media.js';
 import { markWorking } from './lib/jobs.js';
+import { gate, makeMeter, prices } from './lib/billing.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
   '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
+  '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 
 export default {
@@ -55,14 +58,21 @@ export default {
         await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: máy chủ chưa bật credit của Crewzy. Hãy giao cho AI của bạn hoặc bấm Làm ngay bằng Trợ lý Crewzy.', trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
         return;
       }
-      const over = await takeAppQuota(env, uid).catch(() => null);
+      // Gói và credit (khi bật): hết hạn gói hoặc hết credit thì không tự chạy; còn thì trừ theo token + công cụ như chat.
+      const blocked = await gate(env, uid, { needCredits: prices(env).min_start }).catch(() => null);
+      if (blocked) {
+        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: ' + blocked.error, trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
+        return;
+      }
+      const meter = await makeMeter(env, uid).catch(() => null);
+      const over = meter ? null : await takeAppQuota(env, uid).catch(() => null);
       if (over) {
         await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: ' + over, trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
         return;
       }
       await markWorking(env, uid, job.id, 'Trợ lý Crewzy (hẹn giờ)').catch(() => {});
       const texts = [];
-      await runAgent({ env, uid, origin, mode: 'app', messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000 });
+      await runAgent({ env, uid, origin, mode: 'app', messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));

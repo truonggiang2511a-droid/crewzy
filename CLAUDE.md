@@ -54,6 +54,12 @@ public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (re
                          qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
+public/bat-dau.html      Thiết lập 4 bước BẮT BUỘC khi bật gói (assets/bat-dau.js): Brain (3 mục + tự điền từ website) → kết nối ≥1 kênh
+                         (/api/connect?back=bat-dau quay lại đây) → AI (link MCP: Claude 1 bấm/chép link, tự nhận khi aiseen có; hoặc Trợ lý Crewzy)
+                         → chọn gói + VietQR (assets/pay.js), tự hỏi trạng thái đơn tới khi paid → "Vào Văn phòng". Không có menu trái
+public/goi.html          Gói và credit (assets/goi.js): tóm tắt gói/hạn/credit, gia hạn, nạp credit, bảng giá, sổ credit, đơn; khu quản trị (ADMIN_EMAILS):
+                         cấp credit/ngày theo email, 100 tài khoản, 30 giao dịch SePay gần nhất
+public/assets/pay.js     Dùng chung: thẻ gói/nạp, tạo đơn, hiện QR (vietqr.app → lỗi thì qr.sepay.vn) + thông tin chuyển khoản có nút Chép, hỏi trạng thái 4 giây/lần
 public/assets/style.css  Phong cách composio.dev (22/11): Geist + JetBrains Mono (cả hai có bộ chữ tiếng Việt), nền #F6F6F6, thẻ trắng viền #E5E5E5 bo 12px,
                          chữ #0F0F0F, nút .btn = mono in hoa góc vuông (chính màu đen), .btn.chip = chip lọc chữ thường bo tròn, .hl = chữ xanh #0007CD
                          trong tiêu đề, nhãn mono in hoa (.label-mono, kpi, sb-label), --highlight #D4FF4A; khung Văn phòng tối trung tính #0F0F0F
@@ -107,13 +113,21 @@ src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; 
 src/routes/workflows.js   GET /api/workflows · GET /api/workflows/status?uid= (sẵn sàng thật) · GET/POST /api/schedules (tao | bat | tat | xoa)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
+src/lib/billing.js        GÓI + CREDIT (nguồn duy nhất): billingOn (DB + GOOGLE_CLIENT_ID + BILLING≠off), gói/nạp/giá mặc định (đổi bằng PLANS_JSON,
+                          TOPUPS_JSON, PRICES_JSON), onboarding() 4 bước, charge (nguyên tử: UPDATE … WHERE credits>=n + ledger WHERE changes()>0),
+                          chargeAfter (token AI, có thể âm, RETURNING), grant (cộng dồn hạn gói), toolPrice, tokenCredits, makeMeter, gate, ADMIN_EMAILS
+src/routes/billing.js     /api/billing · /api/billing/order (tạo đơn mã CZ+8 ký tự, dùng lại đơn chờ 24 giờ, ≤5 đơn chờ) · /api/billing/admin ·
+                          /api/sepay/webhook (Apikey, INSERT OR IGNORE theo id SePay, khớp mã trong content/code/description, kiểm đủ tiền,
+                          đánh dấu paid có điều kiện status='pending', luôn trả {success:true} khi khoá đúng) · /api/onboarding · /api/onboarding/brand-from-web
+migrations/0001_billing.sql  D1 crewzy-db: accounts, orders, payments, ledger (đã áp lên D1 thật 22/11 qua Cloudflare MCP d1_database_query)
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
 src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
 src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
 wrangler.jsonc            Worker "crewzy", nodejs_compat, AI binding AI (Workers AI), KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data),
-                          R2 binding MEDIA (bucket crewzy-media, tạo 22/11, vùng ENAM), keep_vars
+                          R2 binding MEDIA (bucket crewzy-media, tạo 22/11, vùng ENAM), D1 binding DB (crewzy-db 42d830fe-378c-44f5-8d9f-7f3a42b1ca70, APAC), keep_vars
 scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
 scripts/r2test.mjs        Thử lưu media vào R2 (bucket giả): PUT, đọc lại, Range, link dùng 1 lần, file 30MB, file cũ KV vẫn mở, không R2 → KV
+scripts/billingtest.mjs   Thử gói/credit/SePay/4 bước bằng node:sqlite giả D1 (webhook chống trùng, thiếu tiền, trừ nguyên tử, admin, cộng dồn hạn)
 scripts/gatewaytest.mjs   Thử cổng MCP như AI ngoài (KV + Composio giả): tools/list, chặn APP_ONLY_TOOLS, quy trình không nhắc công cụ ẩn, đọc phiếu theo id
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
@@ -409,6 +423,19 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   (3) điện thoại tràn ngang: .seg.hrow ở Quy trình (911px, do .hrow max-width:none !important đè .seg) và nút dài (Điền nhanh MCP,
   "Nối 1 app: …") → thêm .seg.hrow max-width 100% và lớp .btn.wrap cho nút được xuống dòng. Kiểm bằng Playwright 360/390/1440: hết tràn.
   Cách dò phần tử tràn: duyệt body *, lấy phần tử có right > innerWidth mà không nằm trong cha overflow auto/hidden (script trong lịch sử chat).
+- 22/11/2026: Giang: "đăng nhập Gmail, tính credit hoặc gói, khách vào bắt buộc điền thương hiệu → kết nối kênh → kết nối AI → thanh toán
+  trước khi dùng, chặt chẽ và hiệu quả". Làm: D1 crewzy-db + src/lib/billing.js + routes/billing.js + bat-dau.html + goi.html.
+  CÔNG TẮC: billingOn chỉ bật khi đã đặt GOOGLE_CLIENT_ID (chưa đặt → app chạy như cũ, không ai bị chặn); tắt khẩn cấp BILLING=off.
+  ĐẶT ADMIN_EMAILS TRƯỚC khi đặt GOOGLE_CLIENT_ID, không thì Giang cũng bị bắt thanh toán. Chặn ở máy chủ: /api/chat (gói còn hạn + ≥5 credit,
+  credit thay trần 30 lượt/ngày), cổng MCP tools/call (initialize/tools/list vẫn qua để bước AI ghi aiseen), cron tự chạy; trình duyệt chỉ dẫn đường
+  (auth.js chuyển về bat-dau.html, trừ bat-dau/dang-nhap/goi/ket-noi). Trừ credit TRƯỚC khi chạy công cụ (Composio, MCP ngoài, ảnh 3, video 15/giây,
+  MULTI_EXECUTE theo số công cụ, workbench 3; meta tìm công cụ + CREWZY_* đọc/ghi: miễn phí); token Claude của Giang trừ SAU mỗi bước theo usage
+  (USD 1/5 mỗi triệu token × 26.000đ × 2, 1 credit = 100đ), âm thì dừng lượt. Gói mặc định: Cơ bản 299k/3.000, Tăng trưởng 699k/8.000,
+  Doanh nghiệp 1,49tr/20.000 (30 ngày); nạp 1.000/120k, 3.000/330k, 10.000/990k. Credit giữ lại khi hết hạn, dùng tiếp khi gia hạn.
+  Đã thử: npm test (billingtest 10 nhóm), wrangler dev --local với D1 local (npx wrangler d1 migrations apply crewzy-db --local) + phiên tự ký
+  (signSession) + Playwright: vào / → bat-dau → lưu Brain → (kênh Metricool đặt sẵn trong KV) → Trợ lý Crewzy → chọn Tăng trưởng → curl webhook
+  → trang tự sang "Xong", Gói hiện 8.000 credit; admin không bị chặn, cấp 500 credit được. Chưa thử webhook SePay thật và ảnh QR thật
+  (sandbox chặn mạng ra vietqr.app). Tự điền Brain từ website dùng readWebsite + Claude Haiku (khoá của Giang, ~1 lượt nhỏ).
 
 ## 6. Việc tiếp theo
 
@@ -416,8 +443,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 
 - Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.
 - Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.
-- Bắt buộc trước khi bán: (đăng nhập Google đã có, chờ GOOGLE_CLIENT_ID) lưu và thu hồi link nối AI,
-  giới hạn lượt gọi công cụ theo credit (mọi lượt gọi đang tính vào tài khoản Composio của Giang).
+- Giang bật gói (theo thứ tự): ADMIN_EMAILS → SEPAY_WEBHOOK_KEY, SEPAY_BANK, SEPAY_ACCOUNT, SEPAY_ACCOUNT_NAME (+ trên my.sepay.vn tạo webhook
+  https://crewzy.truonggiang2511a.workers.dev/api/sepay/webhook, xác thực API Key) → GOOGLE_CLIENT_ID. Sau đó thử 1 đơn 2.000đ bằng PLANS_JSON tạm.
+- Còn: lưu và thu hồi link nối AI (lộ link = người khác dùng được, giờ ít nhất phải có gói còn hạn mới gọi được công cụ).
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.
 - Trợ lý AI: trừ credit theo từng khách thay cho trần chung 150 lượt/ngày; nút "Duyệt" bấm được thay cho gõ "đồng ý"; trả lời chạy chữ dần (stream).

@@ -14,6 +14,7 @@ import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
+import { billingOn, gate, makeMeter, prices } from '../lib/billing.js';
 
 const APP_DAILY_CAP = 300;          // tổng lượt chat/ngày chế độ credit của app (cả app)
 const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit của app cho MỖI khách
@@ -152,7 +153,7 @@ export async function takeAppQuota(env, uid) {
 }
 
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
-async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system }) {
+async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, onUsage }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
@@ -160,6 +161,11 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await client.messages.create({ model, max_tokens: MAX_OUTPUT_TOKENS, system, tools: anthropicTools, messages: convo });
+    // Khoá AI của Giang (chế độ app): trừ credit theo token thật sau mỗi bước; hết credit thì dừng.
+    if (onUsage && (await onUsage(res.usage)) === 'stop') {
+      emit({ type: 'text', text: 'Đã hết credit nên em dừng ở đây. Vào Gói và credit để nạp thêm rồi nhắn "tiếp tục".' });
+      return;
+    }
     if (res.stop_reason === 'max_tokens') {
       emit({ type: 'text', text: 'Nội dung dài quá một lượt trả lời, anh/chị nhắn "tiếp tục" để em làm nốt nhé.' });
       return;
@@ -218,7 +224,7 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
 
 // Chạy một lượt AI có công cụ (Composio + Crewzy + MCP ngoài). Dùng cho khung chat và cho hẹn giờ tự chạy (cron).
 // emit(event): {type:'tool'|'text'|'image'|'video'|'audio', ...}. Lỗi thì ném ra cho nơi gọi xử lý.
-export async function runAgent({ env, uid, origin, mode, key, orModel, messages, emit, timeBudgetMs = TIME_BUDGET_MS }) {
+export async function runAgent({ env, uid, origin, mode, key, orModel, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null }) {
   const composioKey = getApiKey(env);
   const deadline = Date.now() + timeBudgetMs;
     const composio = new Composio({ apiKey: composioKey });
@@ -242,6 +248,11 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
     const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
     const exec = async (name, args) => {
+      // Gói và credit: trừ trước khi chạy công cụ tốn tiền (Composio, MCP ngoài, ảnh, video); hết credit thì báo AI.
+      if (meter) {
+        const no = await meter.tool(name, args);
+        if (no) return { error: no };
+      }
       if (isCrewzyTool(name)) {
         const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs, agent: 'Trợ lý Crewzy' });
         if (out && out.image) emit({ type: 'image', url: out.image });
@@ -281,7 +292,8 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
       await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
     } else {
       const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-      await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system });
+      const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat') : null;
+      await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system, onUsage });
     }
 }
 
@@ -306,9 +318,15 @@ export default async (req, env) => {
   const composioKey = getApiKey(env);
   if (!composioKey) return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });
 
+  // Gói và credit (khi bật): phải còn hạn gói + đủ credit tối thiểu; credit thay cho trần lượt miễn phí mỗi ngày.
+  const email = who.session && who.session.email;
+  const blocked = await gate(env, uid, { email, needCredits: prices(env).min_start }).catch((e) => { console.error('gate failed', e && e.message); return null; });
+  if (blocked) return Response.json({ error: blocked.error, can: blocked.can }, { status: blocked.status });
+  const meter = await makeMeter(env, uid, { email }).catch((e) => { console.error('meter failed', e && e.message); return null; });
+
   if (mode === 'app') {
     if (!env.ANTHROPIC_API_KEY) return Response.json({ error: 'Chế độ credit của app chưa bật, hãy dùng khoá riêng.' }, { status: 400 });
-    try {
+    if (!billingOn(env)) try {
       const over = await takeAppQuota(env, uid);
       if (over) return Response.json({ error: over }, { status: 429 });
     } catch (e) {
@@ -320,7 +338,7 @@ export default async (req, env) => {
     async start(controller) {
       const emit = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       try {
-        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, messages, emit, timeBudgetMs: TIME_BUDGET_MS });
+        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, messages, emit, timeBudgetMs: TIME_BUDGET_MS, meter });
         emit({ type: 'done' });
       } catch (err) {
         console.error('chat failed', mode, err && err.message);

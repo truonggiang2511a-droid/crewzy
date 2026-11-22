@@ -13,6 +13,7 @@ import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
+import { billingOn, gate, makeMeter } from '../lib/billing.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
@@ -113,6 +114,18 @@ export default async (request, env, ctx) => {
     const p = MCP_PROMPTS.find((x) => x.name === (rpc.params && rpc.params.name));
     if (!p) return Response.json({ jsonrpc: '2.0', id: rpc.id, error: { code: -32602, message: 'Không có câu lệnh này' } }, sid);
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { description: p.description, messages: [{ role: 'user', content: { type: 'text', text: p.text } }] } }, sid);
+  }
+
+  // Gói và credit (khi bật): mọi tools/call cần gói còn hạn; công cụ tốn tiền trừ credit TRƯỚC khi chạy (kể cả gửi sang Composio).
+  // initialize / tools/list vẫn cho qua để bước "Kết nối AI" lúc bắt đầu ghi nhận được AI của khách.
+  if (rpc && rpc.method === 'tools/call' && rpc.params && uid && billingOn(env) && !(isCrewzyTool(rpc.params.name) && !MCP_TOOL_NAMES.has(rpc.params.name))) {
+    const sid = { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } };
+    const fail = (text) => Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: 'Lỗi: ' + text }], isError: true } }, sid);
+    const blocked = await gate(env, uid).catch((e) => { console.error('gateway gate failed', e && e.message); return null; });
+    if (blocked) return fail(`${blocked.error} Mở ${reqUrl.origin}/goi.html để thanh toán. Báo khách điều này, không thử lại công cụ.`);
+    const meter = await makeMeter(env, uid).catch(() => null);
+    const no = meter ? await meter.tool(rpc.params.name, rpc.params.arguments || {}) : null;
+    if (no) return fail(no + ` (${reqUrl.origin}/goi.html)`);
   }
 
   // Công cụ của Crewzy: tự trả lời, không gửi Composio.

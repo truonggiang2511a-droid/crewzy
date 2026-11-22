@@ -8,6 +8,7 @@
 import {
   UID_PATTERN, SESSION_DAYS, kvGetJson, kvPutJson, getGoogleClientId, readSession, signSession, sessionCookie, verifyGoogleIdToken, safeDetail,
 } from '../lib/common.js';
+import { ensureAccount, onboarding, isAdminEmail, billingOn } from '../lib/billing.js';
 
 const publicUser = (s) => (s ? { email: s.email || '', name: s.name || '', picture: s.picture || '' } : null);
 
@@ -32,7 +33,11 @@ export default async (req, env) => {
 
   if (path.endsWith('/me')) {
     const session = await readSession(req, env);
-    return Response.json({ required: !!clientId, clientId, user: publicUser(session) }, { headers: { 'cache-control': 'no-store' } });
+    let ob = null;
+    if (session && billingOn(env)) {
+      try { ob = await onboarding(env, session.uid, { email: session.email, admin: isAdminEmail(env, session.email) }); } catch (e) { console.error('onboarding check failed', e && e.message); }
+    }
+    return Response.json({ required: !!clientId, clientId, user: publicUser(session), billing: billingOn(env), onboarding: ob, admin: !!(session && isAdminEmail(env, session.email)) }, { headers: { 'cache-control': 'no-store' } });
   }
 
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -54,6 +59,7 @@ export default async (req, env) => {
     }
     try {
       const uid = await findOrCreateUid(env, claims, body && body.localUid);
+      await ensureAccount(env, uid, claims.email || '').catch((e) => console.error('account create failed', e && e.message));
       const session = {
         uid, sub: String(claims.sub), email: claims.email || '', name: claims.name || '', picture: claims.picture || '',
         exp: Date.now() + SESSION_DAYS * 86400 * 1000,

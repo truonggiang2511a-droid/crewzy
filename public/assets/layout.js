@@ -39,7 +39,7 @@
     ] },
     { label: 'Theo dõi', links: [
       { href: '#', text: 'Kết quả', icon: 'chart', soon: true },
-      { href: '#', text: 'Gói và credit', icon: 'card', soon: true }
+      { href: 'goi.html', text: 'Gói và credit', icon: 'card' }
     ] }
   ];
 
@@ -74,7 +74,7 @@
     { href: 'ket-noi.html', text: 'Kết nối app và AI', sub: 'Facebook, Gmail, Claude, ChatGPT…', icon: 'apps' },
     { href: 'thuong-hieu.html', text: 'Brain thương hiệu', sub: 'Giọng văn, sản phẩm, mẫu video và ảnh', icon: 'brain' },
     { href: '#', text: 'Kết quả', sub: 'Sắp có', icon: 'chart', soon: true },
-    { href: '#', text: 'Gói và credit', sub: 'Sắp có', icon: 'card', soon: true }
+    { href: 'goi.html', text: 'Gói và credit', sub: 'Hạn gói, credit, thanh toán', icon: 'card' }
   ];
   function renderMobile(page) {
     if (document.querySelector('.mbar')) return;

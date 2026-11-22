@@ -41,6 +41,9 @@
     .then(function (r) { return r.json(); })
     .then(function (me) {
       if (me.required && !me.user) { goLogin(); return me; }
+      // Gói và credit bật: chưa xong 4 bước (Brain → kênh → AI → thanh toán) thì đưa về trang Thiết lập. Máy chủ cũng chặn API, đây chỉ để dẫn đường.
+      var free = ['bat-dau.html', 'dang-nhap.html', 'goi.html', 'ket-noi.html'];
+      if (me.user && me.billing && me.onboarding && !me.onboarding.done && free.indexOf(page) < 0) { location.replace('bat-dau.html'); return me; }
       if (me.user) {
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(function () { renderUser(me.user); }, 0); });
         else renderUser(me.user);

@@ -36,7 +36,7 @@ export function fromB64Url(text) {
 export const b64UrlText = (text) => toB64Url(enc.encode(text));
 export const textFromB64Url = (b64) => new TextDecoder().decode(fromB64Url(b64));
 
-function sameText(a, b) {
+export function sameText(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);

@@ -17,6 +17,10 @@
     { "binding": "KV", "id": "cefc3dfec3b248929a490ff8cd5cc216" }
   ],
   // R2: ảnh/video/âm thanh tải lên, MCP ngoài, video credit (src/lib/media.js). Miễn phí 10GB, không tính băng thông.
+  // D1: tài khoản, gói, credit, đơn thanh toán, giao dịch SePay (src/lib/billing.js, migrations/0001_billing.sql).
+  "d1_databases": [
+    { "binding": "DB", "database_name": "crewzy-db", "database_id": "42d830fe-378c-44f5-8d9f-7f3a42b1ca70", "migrations_dir": "migrations" }
+  ],
   "r2_buckets": [
     { "binding": "MEDIA", "bucket_name": "crewzy-media" }
   ],

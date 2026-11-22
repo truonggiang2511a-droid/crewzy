@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Gói và credit · Crewzy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/layout.js"></script>
+<script src="assets/auth.js"></script>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Điều hướng chính" data-sidebar></nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
+<div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+<div><h1>Gói và <span class="hl">credit</span></h1><p>Hạn gói, số credit còn lại, lịch sử dùng và thanh toán.</p></div>
+</div>
+<section class="card" style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px" data-summary><p class="muted">Đang tải…</p></section>
+<section style="display:flex;flex-direction:column;gap:12px">
+<div class="seg hrow" role="group" aria-label="Mua"><button type="button" aria-pressed="true" data-tab="goi">Gia hạn / đổi gói</button><button type="button" aria-pressed="false" data-tab="nap">Nạp thêm credit</button></div>
+<div data-plans></div>
+<div data-order></div>
+</section>
+<section class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:500">Bảng giá thao tác</h2>
+<div data-prices class="muted" style="font-size:14px"></div>
+</section>
+<section class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:500">Lịch sử credit</h2>
+<div data-ledger style="overflow-x:auto"></div>
+</section>
+<section class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:500">Đơn thanh toán</h2>
+<div data-orders style="overflow-x:auto"></div>
+</section>
+<section class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px" data-admin hidden>
+<h2 style="margin:0;font-size:18px;font-weight:500">Quản trị: cấp credit, gia hạn</h2>
+<form data-grant style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;flex:2 1 220px">Email khách<input class="field" name="email" type="email" required></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;flex:1 1 110px">Credit<input class="field" name="credits" type="number" value="0"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;flex:1 1 110px">Số ngày<input class="field" name="days" type="number" value="30"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;flex:1 1 150px">Gói<select class="field" name="plan" data-plan-select><option value="">Giữ nguyên</option></select></label>
+<button type="submit" class="btn btn-primary">Cấp</button>
+</form>
+<p class="ob-msg" data-grant-msg style="margin:0;font-size:14px"></p>
+<div data-accounts style="overflow-x:auto"></div>
+<div data-payments style="overflow-x:auto"></div>
+</section>
+</main>
+</div>
+<script src="assets/pay.js"></script>
+<script src="assets/goi.js"></script>
+</body>
+</html>
