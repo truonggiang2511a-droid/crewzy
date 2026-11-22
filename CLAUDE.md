@@ -52,7 +52,13 @@ public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn
                          nối, MCP ngoài (Apify/Firecrawl/OpenArt), Chạy ngay · Giao cho AI của tôi · Hẹn giờ (hộp thoại), danh sách Lịch đang hẹn
 public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (refs: video/ảnh mẫu, giọng mẫu, nhạc, logo, tư liệu; dán link hoặc tải file
                          qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
-public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
+public/chat.html         Màn 4 · Trợ lý AI kiểu Claude/ChatGPT (23/11, assets/chat.js): main lưới 3 hàng (đầu · khung chat cuộn · ô soạn) nên ô soạn KHÔNG đè tin;
+                         ô soạn tự giãn ≤220px; nút + (tải ảnh/video/tài liệu → /api/upload vào Kho, chọn từ Kho, Ứng dụng: đã nối + tìm + Kết nối
+                         /api/connect?back=chat, lấy ảnh từ web); micro → /api/giong-noi (MediaRecorder, dự phòng SpeechRecognition) rồi gửi luôn;
+                         loa = đọc to bằng speechSynthesis vi-VN (crewzy.tts); bước công cụ gom "Đã làm N bước"; chọn AI/bộ não trong hộp thoại;
+                         ?q= gửi sẵn, ?dinh_kem=<link>&loai= đính kèm sẵn (từ Kho). Tin user có files [{url,kind,name}] (chỉ link /api/media|/api/img)
+public/kho.html          Kho lưu trữ (assets/kho.js): lưới ảnh/video/tài liệu/link từ /api/kho, lọc, tìm, tải nhiều file/kéo thả, dán link, đổi tên,
+                         Dùng (→ chat), xoá (xoá cả file R2 của chính khách), thanh dung lượng theo gói
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
 public/bat-dau.html      Thiết lập 4 bước BẮT BUỘC khi bật gói (assets/bat-dau.js): Brain (3 mục + tự điền từ website) → kết nối ≥1 kênh
                          (/api/connect?back=bat-dau quay lại đây) → AI (link MCP: Claude 1 bấm/chép link, tự nhận khi aiseen có; hoặc Trợ lý Crewzy)
@@ -131,6 +137,10 @@ src/lib/activity.js       VIỆC AI ĐÃ LÀM: classify(tên công cụ) → dan
                           (uid, day, kind, n; migrations/0002_activity.sql, ĐÃ áp lên D1 thật 22/11). Chat ghi khi công cụ chạy không lỗi, cổng MCP ghi lúc gọi.
                           buildResults (giờ tiết kiệm theo DEFAULT_MINUTES, 50.000đ/giờ; RESULT_MINUTES_JSON, RESULT_HOUR_VND), runWeeklyReports (cron thứ Hai
                           ≥8 giờ VN, cờ KV weekly:<ngày>, phiếu 'Báo cáo tuần Crewzy' loai bao_cao, không gọi AI; WEEKLY_REPORT=off). Phiếu nguoi_lam 'Crewzy…' không tính.
+src/lib/library.js        KHO (D1 library, migrations/0003_library.sql ĐÃ áp lên D1 thật 23/11): addItem (UNIQUE uid+url), listItems, usageBytes, removeItem,
+                          CREWZY_KHO + CREWZY_LUU_KHO (AI đọc kho, lưu ảnh web/fanpage vào kho qua rehostUrl). Tự vào kho: upload (tai_len, PUT của AI = ket_qua),
+                          ảnh/video AI tạo (ai_tao). Ảnh Nhanh giờ lưu R2 (putMedia) thay KV img 90 ngày khi có MEDIA
+src/routes/kho.js         GET/POST /api/kho · src/routes/voice.js POST /api/giong-noi (Whisper large v3 turbo, language vi, ≤3MB, 150 lần/ngày, 1 credit)
 src/routes/results.js     GET /api/results?thang=YYYY-MM | ?tuan=1 · Test: scripts/resultstest.mjs
 src/routes/billing.js     /api/billing · /api/billing/order (tạo đơn mã CZ+8 ký tự, dùng lại đơn chờ 24 giờ, ≤5 đơn chờ) · /api/billing/admin ·
                           /api/sepay/webhook (Apikey, INSERT OR IGNORE theo id SePay, khớp mã trong content/code/description, kiểm đủ tiền,
@@ -492,6 +502,21 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026 (tối): Màn Kết quả + biên nhận tháng + nhắc gia hạn + báo cáo tuần tự động (Giang: "làm luôn" đề xuất 1+2) để khách thấy giá trị và gia hạn.
   Nhắc gia hạn chỉ trong app (thanh đầu trang + thẻ menu: còn ≤3 ngày, hết hạn, credit <10% gói; Đóng = ẩn tới hôm sau). CHƯA gửi email: cần nhà cung cấp
   email (vd Resend, Giang tạo khoá RESEND_API_KEY + xác minh tên miền). Số việc chỉ đếm từ 22/11; cổng MCP đếm cả lần gọi lỗi (không đọc được kết quả).
+- 23/11/2026: Giang: "gói cao nhiều tính năng hơn (khách sẽ chọn MCP hết), ô chat có Voice, sửa lỗi ô chat xê dịch/chữ che, ô chat như Claude/ChatGPT
+  (tải ảnh/video, app đã nối, tìm app để nối), AI đọc ảnh web/fanpage làm content trong chat, Kho lưu trữ như Lumi, model ảnh/video đẹp".
+  (1) GÓI = TÍNH NĂNG: billing.js PLAN_FEATURES {tro_ly, opus, anh_dep, video, video_dep, lich, tu_tra_loi, kho_gb, mcp_ngoai}; MCP For You không Trợ lý/
+  không hẹn giờ/không ảnh-video đẹp; Cơ bản có Trợ lý (Sonnet/Haiku), 3 lịch; Tăng trưởng + Opus, ảnh Đẹp, video Nhanh, tự trả lời; Doanh nghiệp + video Đẹp.
+  dung_thu = Tăng trưởng. Chặn ở máy chủ: runAgent (tro_ly, Opus→Sonnet), applyFeatures trước meter (hạ Đẹp→Nhanh, chặn video), createSchedule, upload (kho_gb),
+  /api/giong-noi. Thẻ gói có khong[] (✕ xám). /api/billing trả tinh_nang. Lỗi gốc ô chat: ô gợi ý flex-wrap + textarea resize trong main flex 100vh → chồng nhau.
+  (2) Model (tra docs Cloudflare 23/11): ảnh Đẹp bytedance/seedream-4.5 0,04 USD (image_input ≤ nhiều ảnh mẫu, aspect 3:4/9:16/1:1/16:9, size 2K) = 25 credit;
+  video Đẹp bytedance/seedance-2.0-fast 720p 0,12 USD/giây (image | reference_images ≤4, 4–12 giây, generate_audio) = 65 credit/giây; video Nhanh LTX nâng 15→17
+  credit/giây (trước lỗ nhẹ). Cả hai cần AI Gateway Unified Billing (Giang nạp trên Cloudflare). Phương án khác đã xem: Kling v3 0,112–0,168/giây (ảnh chỉ base64),
+  Veo 3.1, Kling v4 0,157–0,235, Seedance 2.0 0,15, Pixverse v6 0,045–0,06, Kling v3 image 0,027, Seedream 4.0 0,03, Seedream 5 Pro 0,045, Recraft v4.1 0,035.
+  Giọng nói: STT = @cf/openai/whisper-large-v3-turbo (Cloudflare tự chạy, không cần nạp). TTS = speechSynthesis của máy (miễn phí, giọng vi-VN có sẵn trên
+  Chrome/Android/iOS); Inworld TTS / ElevenLabs v3 qua AI Gateway có thể thêm sau (chưa xác minh tiếng Việt của Inworld).
+  (3) AI nhìn ảnh: CREWZY_DOC_WEB trả anh[] (og:image + img/srcset, bỏ svg/icon/1px, ≤24); CREWZY_XEM_ANH lưu ảnh sang R2 rồi gửi Claude dạng image url
+  (link Crewzy luôn mở được → không làm hỏng cả lượt nếu web chặn hotlink); ảnh khách gửi trong chat: chỉ tin user CUỐI gửi dạng ảnh (Claude image, OpenAI
+  image_url, Gemini/Grok chữ). Test: scripts/librarytest.mjs.
 
 ## 6. Việc tiếp theo
 

@@ -30,7 +30,7 @@ export default async (req, env) => {
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
     });
     const request = await session.authorize(toolkit, {
-      callbackUrl: url.searchParams.get('back') === 'bat-dau' ? `${url.origin}/bat-dau.html?ket_noi=${toolkit}` : `${url.origin}/ket-noi.html?ket_noi=${toolkit}`,
+      callbackUrl: url.searchParams.get('back') === 'bat-dau' ? `${url.origin}/bat-dau.html?ket_noi=${toolkit}` : url.searchParams.get('back') === 'chat' ? `${url.origin}/chat.html?ket_noi=${toolkit}` : `${url.origin}/ket-noi.html?ket_noi=${toolkit}`,
       alias: `${toolkit}-${Date.now().toString(36)}`,
     });
     if (!request.redirectUrl) {

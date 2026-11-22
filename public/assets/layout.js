@@ -20,6 +20,7 @@
     flow: '<rect x="3" y="4" width="6" height="5" rx="1.2"/><rect x="15" y="15" width="6" height="5" rx="1.2"/><path d="M6 9v4a2 2 0 0 0 2 2h7"/>',
     brain: '<path d="M12 3.5 14.2 9l5.3 2-5.3 2L12 18.5 9.8 13l-5.3-2 5.3-2z"/><path d="M19 3v3M17.5 4.5h3"/>',
     chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/>',
+    box: '<path d="M3 7h18v13H3z"/><path d="M3 7l2-4h14l2 4M9 11h6"/>',
     card: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     close: '<path d="M6 6l12 12M18 6 6 18"/>'
@@ -35,7 +36,8 @@
     { label: 'Thiết lập', links: [
       { href: 'ket-noi.html', text: 'Kết nối', icon: 'apps' },
       { href: 'quy-trinh.html', text: 'Quy trình', icon: 'flow' },
-      { href: 'thuong-hieu.html', text: 'Brain thương hiệu', icon: 'brain' }
+      { href: 'thuong-hieu.html', text: 'Brain thương hiệu', icon: 'brain' },
+      { href: 'kho.html', text: 'Kho lưu trữ', icon: 'box' }
     ] },
     { label: 'Theo dõi', links: [
       { href: 'ket-qua.html', text: 'Kết quả', icon: 'chart' },
@@ -73,6 +75,7 @@
   var MORE = [
     { href: 'ket-noi.html', text: 'Kết nối app và AI', sub: 'Facebook, Gmail, Claude, ChatGPT…', icon: 'apps' },
     { href: 'thuong-hieu.html', text: 'Brain thương hiệu', sub: 'Giọng văn, sản phẩm, mẫu video và ảnh', icon: 'brain' },
+    { href: 'kho.html', text: 'Kho lưu trữ', sub: 'Ảnh, video, tài liệu của bạn', icon: 'box' },
     { href: 'ket-qua.html', text: 'Kết quả', sub: 'Việc AI đã làm, giờ tiết kiệm', icon: 'chart' },
     { href: 'goi.html', text: 'Gói và credit', sub: 'Hạn gói, credit, thanh toán', icon: 'card' }
   ];

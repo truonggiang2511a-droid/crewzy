@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kho lưu trữ · Crewzy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/layout.js"></script>
+<script src="assets/auth.js"></script>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+<nav aria-label="Điều hướng chính" data-sidebar></nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
+<div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+<div><h1>Kho <span class="hl">lưu trữ</span></h1><p>Ảnh sản phẩm, video, logo, tài liệu của bạn. AI dùng hình thật trong Kho để làm bài đăng, ảnh quảng cáo và video.</p></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost" data-add-link>Dán link</button><button type="button" class="btn btn-primary" data-upload>Tải lên</button></div>
+</div>
+<section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px" aria-label="Dung lượng">
+<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span data-usage-text class="muted">Đang tải…</span><a href="goi.html" style="font-size:13px">Thêm dung lượng</a></div>
+<div style="height:8px;border-radius:99px;background:#EEE;overflow:hidden"><div data-usage-bar style="height:100%;width:0;background:var(--text);border-radius:99px;transition:width .3s"></div></div>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+<div class="hrow" role="group" aria-label="Lọc theo loại" data-filters style="display:flex;gap:6px">
+<button type="button" class="btn chip" aria-pressed="true" data-f="">Tất cả</button>
+<button type="button" class="btn chip" aria-pressed="false" data-f="image">Ảnh</button>
+<button type="button" class="btn chip" aria-pressed="false" data-f="video">Video</button>
+<button type="button" class="btn chip" aria-pressed="false" data-f="audio">Âm thanh</button>
+<button type="button" class="btn chip" aria-pressed="false" data-f="doc">Tài liệu</button>
+<button type="button" class="btn chip" aria-pressed="false" data-f="link">Link</button>
+</div>
+<input type="search" class="field" data-q placeholder="Tìm theo tên…" aria-label="Tìm trong Kho" style="flex:1 1 200px;min-height:40px;max-width:320px">
+</div>
+<div data-drop class="card" style="padding:16px;border-style:dashed;text-align:center;font-size:14px" hidden>Thả file vào đây để tải lên Kho</div>
+<section data-grid class="kho-grid" aria-live="polite"><p class="muted">Đang tải…</p></section>
+<div style="text-align:center"><button type="button" class="btn btn-ghost" data-more hidden>Xem thêm</button></div>
+<input type="file" data-file multiple accept="image/*,video/*,audio/*,.pdf,.docx,.xlsx,.pptx,.txt,.csv" hidden>
+</main>
+</div>
+<script src="assets/kho.js"></script>
+</body>
+</html>

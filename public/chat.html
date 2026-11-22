@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="robots" content="noindex">
 <title>Trợ lý AI · Crewzy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,77 +14,97 @@
 <script src="assets/auth.js"></script>
 </head>
 <body>
-<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #FAFAFA; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1A1A1A">
-
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Điều hướng chính" data-sidebar></nav>
 
-<main data-chat-main="" style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 20px 24px 76px; display: flex; flex-direction: column; gap: 14px; height: 100vh; height: 100dvh; max-width: 1000px">
+<main data-chat-main class="cz-chat">
+<header class="cz-top">
+<h1 class="cz-title">Trợ lý <span class="hl">AI</span></h1>
+<div class="cz-top-actions">
+<button type="button" class="cz-model" data-settings-open aria-haspopup="dialog" title="Chọn AI và bộ não"><span data-model-name>Trợ lý Crewzy</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<button type="button" class="cz-icon" data-tts aria-pressed="false" title="Đọc to câu trả lời"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path data-tts-wave d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span class="sr-only">Đọc to câu trả lời</span></button>
+<button type="button" class="cz-icon" data-chat-clear title="Cuộc trò chuyện mới"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="sr-only">Cuộc trò chuyện mới</span></button>
+</div>
+</header>
 
-<div style="display: flex; flex-direction: column; gap: 10px">
-<div class="chat-head" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
-<div>
-<h1 style="margin: 0; font-size: 30px; letter-spacing: -.03em">Trợ lý <span class="hl">AI</span></h1>
-<p class="chat-intro" style="margin: 4px 0 0; font-size: 14px; color: #4A4A4A">Ra lệnh bằng tiếng Việt. AI dùng các ứng dụng bạn đã <a href="ket-noi.html">kết nối</a> để làm việc. Việc đăng bài, gửi tin, chi tiền luôn hỏi bạn trước.</p>
+<div id="chat-log" class="cz-log" role="log" aria-live="polite" aria-label="Cuộc trò chuyện"><div class="cz-thread" data-thread></div></div>
+
+<form data-chat-form class="cz-composer" novalidate>
+<div class="cz-attach" data-attach-list hidden></div>
+<label for="chat-input" class="sr-only">Tin nhắn cho Trợ lý AI</label>
+<textarea id="chat-input" rows="1" placeholder="Giao việc cho AI, hoặc bấm micro để nói…" enterkeyhint="send"></textarea>
+<div class="cz-bar">
+<div class="cz-bar-l">
+<button type="button" class="cz-icon" data-plus aria-haspopup="menu" aria-expanded="false" title="Thêm ảnh, file, ứng dụng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="sr-only">Thêm</span></button>
+<button type="button" class="cz-pill" data-apps-open title="Ứng dụng AI đang dùng được"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span data-apps-count>Ứng dụng</span></button>
 </div>
-<button type="button" data-chat-clear="" class="btn btn-ghost">Cuộc trò chuyện mới</button>
+<div class="cz-bar-r">
+<span class="cz-rec" data-rec hidden><i aria-hidden="true"></i><span data-rec-time>0:00</span></span>
+<button type="button" class="cz-icon" data-mic title="Nói để ra lệnh" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg><span class="sr-only">Nói để ra lệnh</span></button>
+<button type="submit" class="cz-send" data-chat-send aria-label="Gửi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
 </div>
-<div class="chat-ai" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 12px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px">
-<div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px">
-<label for="ai-mode" style="font-size: 12px; font-weight: 600; color: #4A4A4A">AI đang dùng</label>
-<select id="ai-mode" style="min-height: 40px; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1A1A1A">
+</div>
+<div class="cz-menu" data-plus-menu role="menu" hidden>
+<button type="button" role="menuitem" data-act="file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 15-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/></svg><span><b>Tải ảnh, video, tài liệu</b><small>AI xem được ảnh, file tự lưu vào Kho</small></span></button>
+<button type="button" role="menuitem" data-act="kho"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v13H3zM3 7l2-4h14l2 4M9 11h6"/></svg><span><b>Chọn từ Kho lưu trữ</b><small>Ảnh sản phẩm, logo, video đã có</small></span></button>
+<button type="button" role="menuitem" data-act="apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg><span><b>Ứng dụng và kết nối thêm</b><small>Xem app đã nối, tìm app mới để nối</small></span></button>
+<button type="button" role="menuitem" data-act="web"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span><b>Lấy ảnh từ website, fanpage</b><small>AI đọc web, chọn ảnh đẹp làm content</small></span></button>
+</div>
+<input type="file" data-file multiple accept="image/*,video/*,audio/*,.pdf,.docx,.xlsx,.pptx,.txt,.csv" hidden>
+</form>
+<p class="cz-foot">AI luôn hỏi anh/chị trước khi đăng bài, gửi tin, chi tiền.</p>
+</main>
+</div>
+
+<dialog class="cz-dialog" data-settings aria-labelledby="set-title">
+<form method="dialog" class="cz-dialog-in">
+<div class="cz-dialog-head"><h2 id="set-title">AI làm việc cho bạn</h2><button class="cz-icon" value="close" aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<label class="cz-field"><span>AI đang dùng</span>
+<select id="ai-mode" class="field">
 <option value="app">Trợ lý Crewzy · dùng credit</option>
 <option value="claude">Claude · khoá API riêng</option>
 <option value="openai">ChatGPT · khoá API riêng</option>
 <option value="gemini">Gemini · khoá API riêng</option>
 <option value="grok">Grok · khoá API riêng</option>
 <option value="openrouter">OpenRouter · đăng nhập tài khoản</option>
-</select>
-</div>
-<div data-brain-box="" style="display: none; flex-direction: column; gap: 4px; min-width: 200px">
-<label for="ai-brain" style="font-size: 12px; font-weight: 600; color: #4A4A4A">Bộ não</label>
-<select id="ai-brain" style="min-height: 40px; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1A1A1A">
+</select></label>
+<label class="cz-field" data-brain-box><span>Bộ não</span>
+<select id="ai-brain" class="field">
 <option value="manh">Mạnh nhất · Claude Opus 5.5</option>
 <option value="can_bang">Cân bằng · Claude Sonnet 5.5</option>
 <option value="tiet_kiem">Tiết kiệm · Claude Haiku 5.5</option>
-</select>
-</div>
-<div data-key-box="" style="display: none; flex: 1; min-width: 220px; flex-direction: column; gap: 4px">
-<label for="ai-key" style="font-size: 12px; font-weight: 600; color: #4A4A4A">Khoá API</label>
-<input id="ai-key" type="password" autocomplete="off" placeholder="Dán khoá API của bạn" style="min-height: 40px; box-sizing: border-box; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px">
-</div>
-<div data-or-box="" style="display: none; flex: 1; min-width: 220px; flex-direction: column; gap: 4px">
-<label for="or-model" data-or-model-label="" style="font-size: 12px; font-weight: 600; color: #4A4A4A">Model</label>
-<select id="or-model" style="min-height: 40px; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1A1A1A">
+</select></label>
+<label class="cz-field" data-key-box hidden><span>Khoá API</span><input id="ai-key" class="field" type="password" autocomplete="off" placeholder="Dán khoá API của bạn"></label>
+<div class="cz-field" data-or-box hidden>
+<span data-or-model-label>Model</span>
+<select id="or-model" class="field">
 <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (giỏi, mặc định)</option>
 <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (nhanh, rẻ)</option>
 <option value="google/gemini-4-neon">Gemini 4 Neon (nhanh)</option>
 </select>
-<button type="button" data-or-login="" style="display: none; min-height: 40px; padding: 0 14px; border-radius: 2px; border: 0; background: var(--primary); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Đăng nhập OpenRouter</button>
+<button type="button" data-or-login class="btn btn-primary" hidden>Đăng nhập OpenRouter</button>
 </div>
-<p data-mode-note="" style="margin: 0; flex-basis: 100%; font-size: 12px; color: #6B6B6B">Trợ lý Crewzy dùng Claude Opus 5.5, trừ credit theo lượng chữ AI đọc và viết.</p>
-</div>
-</div>
-
-<div id="chat-log" role="log" aria-live="polite" aria-label="Cuộc trò chuyện" style="flex: 1; min-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #FFFFFF; border: 1px solid #E8E8E8; border-radius: 8px"></div>
-
-<div data-suggest="" style="display: flex; flex-wrap: wrap; gap: 8px">
-<button type="button" data-suggest-text="Làm 1 ảnh quảng cáo dọc 4:5 cho sản phẩm chính trong Brain thương hiệu, chưa đăng" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Làm ảnh quảng cáo</button>
-<button type="button" data-suggest-text="Làm 1 video dọc 9:16 dài 6 giây giới thiệu sản phẩm chính trong Brain thương hiệu: tạo ảnh sản phẩm trước rồi làm ảnh chuyển động, viết kèm caption, nộp vào Việc chờ duyệt" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Làm video ngắn</button>
-<button type="button" data-suggest-text="Liệt kê các Fanpage em đang quản lý được" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Liệt kê các Fanpage</button>
-<button type="button" data-suggest-text="Em đang kết nối được những ứng dụng nào của anh/chị?" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Đã kết nối những gì?</button>
-<button type="button" data-suggest-text="Đọc 10 dòng đầu trong Google Sheet khách hàng của tôi" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Đọc Google Sheet</button>
-<button type="button" data-suggest-text="Xem lịch hẹn tuần này trên Google Calendar" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Lịch tuần này</button>
-<button type="button" data-suggest-text="Soạn giúp tôi 1 bài đăng Facebook giới thiệu sản phẩm, chưa đăng, cho tôi xem trước" style="min-height: 40px; padding: 0 12px; border-radius: 99px; border: 1px solid #D6D6D6; background: #FFFFFF; color: #1A1A1A; font-family: inherit; font-size: 13px; cursor: pointer">Soạn bài đăng</button>
-</div>
-
-<form data-chat-form="" style="display: flex; gap: 8px; align-items: flex-end">
-<label for="chat-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Tin nhắn cho Trợ lý AI</label>
-<textarea id="chat-input" rows="2" placeholder="Ví dụ: Đăng bài này lên Fanpage lúc 8 giờ tối nay…" style="flex: 1; min-height: 48px; max-height: 160px; box-sizing: border-box; padding: 12px; border: 1px solid #D6D6D6; border-radius: 8px; font-family: inherit; font-size: 15px; resize: vertical; color: #1A1A1A"></textarea>
-<button type="submit" data-chat-send="" style="min-height: 48px; padding: 0 20px; border-radius: 2px; border: 0; background: var(--primary); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .04em; font-size: 13px !important; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Gửi</button>
+<p class="muted" data-mode-note style="margin:0;font-size:13px"></p>
+<p class="muted" style="margin:0;font-size:12px">Đã có Claude hoặc ChatGPT? <a href="ket-noi.html?tab=ai">Nối Crewzy vào AI của bạn</a>.</p>
 </form>
+</dialog>
 
-</main>
+<dialog class="cz-dialog cz-dialog-lg" data-apps aria-labelledby="apps-title">
+<div class="cz-dialog-in">
+<div class="cz-dialog-head"><h2 id="apps-title">Ứng dụng</h2><button type="button" class="cz-icon" data-close aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<input type="search" class="field" data-apps-q placeholder="Tìm ứng dụng: Facebook, Gmail, Google Sheets…" aria-label="Tìm ứng dụng">
+<div class="cz-apps" data-apps-list><p class="muted">Đang tải…</p></div>
 </div>
+</dialog>
+
+<dialog class="cz-dialog cz-dialog-lg" data-kho aria-labelledby="kho-title">
+<div class="cz-dialog-in">
+<div class="cz-dialog-head"><h2 id="kho-title">Chọn từ Kho lưu trữ</h2><button type="button" class="cz-icon" data-close aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<div class="cz-kho" data-kho-list><p class="muted">Đang tải…</p></div>
+<p class="muted" style="margin:0;font-size:12px"><a href="kho.html">Mở trang Kho</a> để tải thêm, đổi tên hoặc xoá.</p>
+</div>
+</dialog>
+
 <script src="assets/openrouter.js"></script>
 <script src="assets/chat.js"></script>
 </body>
