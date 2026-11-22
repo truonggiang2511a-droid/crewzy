@@ -1,0 +1,33 @@
+// Gói gợi ý theo ngành (nguồn duy nhất): app nên nối trước (thứ tự = ưu tiên, chỉ app 'ready'), MCP nên nối, quy trình nên chạy.
+// Dùng ở Kết nối (chọn "Bạn kinh doanh gì?" → mục "Nên nối cho …") và Quy trình (lọc theo ngành). Trả qua /api/catalog.
+// Sửa ngành: giữ mỗi ngành 5–7 app — khách không rành công nghệ chỉ cần nối chừng đó là chạy được các quy trình ra khách.
+export const INDUSTRIES = [
+  { id: 'bat_dong_san', name: 'Bất động sản, môi giới',
+    vi_sao: 'Khách tới từ video, Fanpage và quảng cáo; tiền nằm ở chỗ trả lời nhanh và gọi lại đúng lúc.',
+    apps: ['facebook', 'metaads', 'youtube', 'instagram', 'googlesheets', 'googlecalendar', 'gmail'], mcp: ['metricool', 'apify'],
+    workflows: ['tra_loi_binh_luan', 'lead_vao_crm', 'nhac_cham_soc_deal', 'lich_noi_dung_tuan', 'video_theo_phong_cach', 'theo_doi_quang_cao', 'bao_cao_tuan'] },
+  { id: 'spa_lam_dep', name: 'Spa, thẩm mỹ, salon',
+    vi_sao: 'Khách hỏi giá qua bình luận, tin nhắn; giữ khách bằng nhắc lịch và chăm sóc sau dịch vụ.',
+    apps: ['facebook', 'instagram', 'metaads', 'googlesheets', 'calendly', 'googlecalendar', 'google_maps'], mcp: ['metricool'],
+    workflows: ['tra_loi_binh_luan', 'lead_vao_crm', 'cham_soc_sau_mua', 'lich_noi_dung_tuan', 'doi_thu_reels', 'bao_cao_tuan'] },
+  { id: 'ban_online', name: 'Bán hàng online',
+    vi_sao: 'Nhiều kênh, nhiều mẫu quảng cáo; cần nội dung đều mỗi ngày và trả lời hỏi giá ngay.',
+    apps: ['facebook', 'instagram', 'metaads', 'googlesheets', 'youtube', 'canva', 'gmail'], mcp: ['openart', 'apify'],
+    workflows: ['mot_noi_dung_nhieu_kenh', 'tra_loi_binh_luan', 'doi_thu_quang_cao', 'mau_quang_cao_moi', 'cham_soc_sau_mua', 'bao_cao_tuan'] },
+  { id: 'nha_hang_cafe', name: 'Nhà hàng, quán cà phê',
+    vi_sao: 'Khách tìm trên Google Maps và Instagram; món mới, ưu đãi phải lên đều và trả lời đánh giá nhanh.',
+    apps: ['facebook', 'instagram', 'google_maps', 'metaads', 'canva', 'googlesheets'], mcp: ['metricool', 'openart'],
+    workflows: ['lich_noi_dung_tuan', 'tra_loi_binh_luan', 'doi_thu_reels', 'theo_doi_quang_cao', 'ban_tin_sang'] },
+  { id: 'giao_duc', name: 'Giáo dục, khoá học',
+    vi_sao: 'Khách đăng ký học thử qua form, quảng cáo; chốt được nhờ gọi lại và email nuôi dưỡng.',
+    apps: ['facebook', 'youtube', 'metaads', 'googlesheets', 'gmail', 'zoom', 'brevo'], mcp: ['heygen'],
+    workflows: ['lead_vao_crm', 'nhac_cham_soc_deal', 'video_theo_phong_cach', 'cham_soc_sau_mua', 'tra_loi_email_khach', 'bao_cao_tuan'] },
+  { id: 'dat_lich', name: 'Dịch vụ đặt lịch (phòng khám, gym, sửa chữa)',
+    vi_sao: 'Tiền đến từ lịch hẹn: trả lời nhanh, nhắc hẹn, xin đánh giá sau khi xong.',
+    apps: ['facebook', 'metaads', 'calendly', 'googlecalendar', 'googlesheets', 'gmail', 'google_maps'], mcp: [],
+    workflows: ['tra_loi_binh_luan', 'lead_vao_crm', 'cham_soc_sau_mua', 'ban_tin_sang', 'bao_cao_tuan'] },
+  { id: 'b2b_agency', name: 'Công ty B2B, agency, dịch vụ doanh nghiệp',
+    vi_sao: 'Khách là doanh nghiệp: tìm đúng người, chào hàng bằng email, báo giá nhanh sau cuộc gọi.',
+    apps: ['linkedin', 'gmail', 'hubspot', 'apollo', 'lemlist', 'calendly', 'pandadoc'], mcp: ['exa', 'firecrawl'],
+    workflows: ['tim_khach_doanh_nghiep', 'bao_gia_sau_cuoc_goi', 'nhac_cham_soc_deal', 'tra_loi_email_khach', 'doi_thu_website', 'bao_cao_tuan'] },
+];

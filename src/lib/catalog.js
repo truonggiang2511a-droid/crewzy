@@ -7,6 +7,7 @@
 
 import { EXTRA_APPS, EXTRA_CATEGORIES } from './catalogExtra.js';
 import { MCP_DIRECTORY } from './mcpDirectory.js';
+import { INDUSTRIES } from './industries.js';
 
 const BASE_CATEGORIES = [
   { id: 'social', name: 'Mạng xã hội' },
@@ -254,5 +255,6 @@ export function skillText(slugs) {
 // Dữ liệu gửi cho giao diện.
 export function publicCatalog() {
   return { categories: CATEGORIES, apps: APPS.map(({ slug, name, cat, status, desc, note, can, try: tryCmds, rules }) => ({ slug, name, cat, status, desc, note: note || '', can, try: tryCmds, rules })),
-    mcp: MCP_DIRECTORY.map(({ id, name, url, auth, cat, desc, ngoai, logo, letter, bg, alt }) => ({ id, name, url, auth, cat, desc, ngoai: !!ngoai, logo: logo || '', letter: letter || name[0], bg: bg || '#555', alt: alt || '' })) };
+    mcp: MCP_DIRECTORY.map(({ id, name, url, auth, cat, desc, ngoai, logo, letter, bg, alt }) => ({ id, name, url, auth, cat, desc, ngoai: !!ngoai, logo: logo || '', letter: letter || name[0], bg: bg || '#555', alt: alt || '' })),
+    industries: INDUSTRIES };
 }

@@ -11,6 +11,21 @@
   var names = {};
   var dep = new URLSearchParams(location.search).get('phong') || 'all';
   var channel = new URLSearchParams(location.search).get('kenh') || 'all';
+  // Ngành: ?nganh= hoặc lựa chọn đã lưu ở trang Kết nối (localStorage crewzy.nganh). Chọn ngành → chỉ hiện quy trình nên chạy, theo thứ tự ưu tiên.
+  var industries = [];
+  var nganh = new URLSearchParams(location.search).get('nganh') || (function () { try { return localStorage.getItem('crewzy.nganh') || 'all'; } catch (e) { return 'all'; } })();
+  function saveNganh() { try { if (nganh === 'all') localStorage.removeItem('crewzy.nganh'); else localStorage.setItem('crewzy.nganh', nganh); } catch (e) {} }
+  function chip(attr, id, label, on) {
+    return '<button type="button" ' + attr + '="' + id + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--accent)' : '#D6D6D6') + ';background:' + (on ? 'var(--accent)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(label) + '</button>';
+  }
+  function renderIndustries() {
+    var box = $('[data-industries]'); if (!box) return;
+    box.innerHTML = [chip('data-nganh', 'all', 'Tất cả', nganh === 'all')].concat(industries.map(function (x) { return chip('data-nganh', x.id, x.name, nganh === x.id); })).join('');
+    var cur = industries.filter(function (x) { return x.id === nganh; })[0];
+    var note = $('[data-industry-note]');
+    note.hidden = !cur;
+    if (cur) note.innerHTML = esc(cur.vi_sao) + ' Chạy theo thứ tự từ trái sang phải. <a href="ket-noi.html?nganh=' + cur.id + '">Xem app nên nối</a>';
+  }
   var catalogStatus = {};
   var sched = { schedules: [], days: {}, modes: {} };
   var MCP_INFO = {
@@ -93,8 +108,11 @@
   function render() {
     renderDeps();
     renderChannels();
+    renderIndustries();
     var depName = {}; data.departments.forEach(function (d) { depName[d.id] = d.name; });
-    var list = data.workflows.filter(function (w) { return (dep === 'all' || w.phong === dep) && (channel === 'all' || (w.kenh || []).indexOf(channel) >= 0); });
+    var cur = industries.filter(function (x) { return x.id === nganh; })[0];
+    var list = data.workflows.filter(function (w) { return (dep === 'all' || w.phong === dep) && (channel === 'all' || (w.kenh || []).indexOf(channel) >= 0) && (!cur || cur.workflows.indexOf(w.id) >= 0); });
+    if (cur) list.sort(function (a, b) { return cur.workflows.indexOf(a.id) - cur.workflows.indexOf(b.id); });
     if (!list.length) { listEl.innerHTML = '<p class="muted" style="margin:0">Chưa có quy trình cho lựa chọn này.</p>'; return; }
     listEl.innerHTML = list.map(function (w) {
       var ready = groupsReady(w);
@@ -121,6 +139,7 @@
     var q = [];
     if (dep !== 'all') q.push('phong=' + dep);
     if (channel !== 'all') q.push('kenh=' + channel);
+    if (nganh !== 'all') q.push('nganh=' + nganh);
     history.replaceState(null, '', 'quy-trinh.html' + (q.length ? '?' + q.join('&') : ''));
   }
 
@@ -170,6 +189,8 @@
     var t = e.target;
     var d = t.closest('[data-dep]');
     if (d) { dep = d.getAttribute('data-dep'); syncUrl(); render(); return; }
+    var ng = t.closest('[data-nganh]');
+    if (ng) { nganh = ng.getAttribute('data-nganh'); saveNganh(); syncUrl(); render(); return; }
     var c = t.closest('[data-channel]');
     if (c) { channel = c.getAttribute('data-channel'); syncUrl(); render(); return; }
     var a = t.closest('[data-assign]');
@@ -202,6 +223,8 @@
   ]).then(function (r) {
     data = r[0];
     (r[1].apps || []).forEach(function (a) { names[a.slug] = a.name; catalogStatus[a.slug] = a.status; });
+    industries = r[1].industries || [];
+    if (nganh !== 'all' && !industries.some(function (x) { return x.id === nganh; })) nganh = 'all';
     accounts = (r[2] && r[2].accounts) || {};
     mcpUrls = ((r[3] && r[3].servers) || []).map(function (s) { return s.url; });
     var b = (r[4] && r[4].brand) || {};

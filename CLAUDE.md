@@ -47,7 +47,7 @@ public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ
                          Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, Duyệt/Sửa/Làm lại/Từ chối/Đăng/Xoá, ?id= làm nổi
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
                          ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
-public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 18 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
+public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
                          nối, MCP ngoài (Apify/Firecrawl/OpenArt), Chạy ngay · Giao cho AI của tôi · Hẹn giờ (hộp thoại), danh sách Lịch đang hẹn
 public/thuong-hieu.html  Brain thương hiệu: 11 mục, lưu /api/brand, AI đọc mỗi lượt chat
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
@@ -67,6 +67,8 @@ src/lib/catalog.js        NGUỒN DUY NHẤT danh mục app: thể loại, mô t
                           (gộp thêm src/lib/catalogExtra.js: 107 app + 6 thể loại mở rộng; /api/catalog trả thêm mcp = danh bạ MCP)
 src/lib/mcpDirectory.js   DANH BẠ MÁY CHỦ MCP (nguồn duy nhất): id, link, auth none|oauth, ngoai (chỉ nhận Claude/ChatGPT) → thẻ MCP ở Kết nối,
                           Điền nhanh ở tab MCP khác, MCP_HOSTS + chip MCP trong Quy trình
+src/lib/industries.js     GÓI THEO NGÀNH (7 ngành): app nên nối (5–7, theo thứ tự), MCP, quy trình nên chạy → Kết nối "Bạn kinh doanh gì?" (?nganh=)
+                          + thanh tiến độ, Quy trình lọc ?nganh=; lựa chọn lưu localStorage crewzy.nganh dùng chung 2 trang
 src/lib/common.js         APP_NAME, TOOLKITS, Web Crypto (HMAC phiên, ký link MCP, xác minh ID token Google), resolveUid, KV
 src/lib/brand.js          Mục Brain thương hiệu, cleanBrand, brandText (KV brand:<uid>)
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)

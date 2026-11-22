@@ -12,6 +12,8 @@
   var MCP_CAT = { id: 'mcp', name: 'Máy chủ MCP (nối thẳng)' };
   var accounts = {};
   var state = { filter: 'all', cat: 'all', q: '' };
+  // Ngành của khách: ?nganh= hoặc đã chọn trước (localStorage crewzy.nganh, dùng chung với trang Quy trình).
+  state.nganh = new URLSearchParams(location.search).get('nganh') || store('crewzy.nganh') || '';
 
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var listEl = $('[data-apps-list]');
@@ -105,7 +107,35 @@
     }).join('');
   }
 
+  function industry() { return (catalog.industries || []).filter(function (x) { return x.id === state.nganh; })[0]; }
+  function industryApps(ind) {
+    return ind.apps.map(function (s) { return catalog.apps.find(function (a) { return a.slug === s; }); }).filter(Boolean)
+      .concat(ind.mcp.map(function (id) { return catalog.mcp.find(function (m) { return m.id === id; }); }).filter(Boolean));
+  }
+  function renderIndustry() {
+    var box = $('[data-industry]'); if (!box) return;
+    var list = catalog.industries || [];
+    var ind = industry();
+    var chips = list.map(function (x) {
+      var on = x.id === state.nganh;
+      return '<button type="button" data-nganh="' + x.id + '" aria-pressed="' + on + '" class="btn ' + (on ? 'btn-primary' : 'btn-ghost') + '" style="min-height:34px;font-size:13px;font-weight:500">' + esc(x.name) + '</button>';
+    }).join('');
+    var head = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between"><p style="margin:0;font-weight:600;font-size:15px">Bạn kinh doanh gì?</p>' +
+      '<span class="muted" style="font-size:13px">' + (ind ? 'Chỉ cần nối các app gợi ý bên dưới là chạy được quy trình ra khách.' : 'Chọn ngành để biết nên nối app nào trước, khỏi phải xem hết ' + allItems().length + ' app.') + '</span></div>';
+    var prog = '';
+    if (ind) {
+      var apps = ind.apps.filter(function (s) { return catalog.apps.some(function (a) { return a.slug === s; }); });
+      var done = apps.filter(function (s) { return accounts[s] > 0; }).length;
+      prog = '<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><div style="flex:1;min-width:180px;height:8px;border-radius:99px;background:#EFEFEF;overflow:hidden"><div style="height:100%;width:' + Math.round(done * 100 / Math.max(apps.length, 1)) + '%;background:var(--ok)"></div></div>' +
+        '<span style="font-size:13px;font-weight:600">Đã nối ' + done + '/' + apps.length + ' app gợi ý</span>' +
+        '<a class="btn btn-ghost" href="quy-trinh.html?nganh=' + ind.id + '" style="min-height:34px;font-size:13px">Quy trình nên chạy (' + ind.workflows.length + ') ›</a>' +
+        '<button type="button" class="btn btn-ghost" data-nganh="" style="min-height:34px;font-size:13px">Bỏ chọn</button></div>';
+    }
+    box.innerHTML = head + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + chips + '</div>' + prog;
+  }
+
   function renderList() {
+    renderIndustry();
     var connectedN = catalog.apps.filter(function (a) { return accounts[a.slug] > 0; }).length;
     $('[data-count-all]').textContent = allItems().length;
     $('[data-count-connected]').textContent = connectedN;
@@ -116,9 +146,11 @@
         (state.filter === 'connected' ? 'Bạn chưa kết nối ứng dụng nào' : 'Không tìm thấy ứng dụng') + '</p><p class="muted" style="margin:6px 0 0;font-size:14px">' +
         (state.filter === 'connected' ? 'Bắt đầu với Facebook Fanpage hoặc Gmail.' : 'Thử tên khác, hoặc nhắn để được bổ sung.') + '</p></div>';
     } else if (state.filter === 'all' && state.cat === 'all' && !state.q) {
-      var featured = FEATURED.map(function (s) { return catalog.apps.find(function (a) { return a.slug === s; }); }).filter(Boolean);
-      html = section('Nên kết nối trước', featured) + catalog.categories.map(function (c) {
-        return section(c.name, apps.filter(function (a) { return a.kind !== 'mcp' && a.cat === c.id && FEATURED.indexOf(a.slug) === -1; }));
+      var ind = industry();
+      var featured = ind ? industryApps(ind) : FEATURED.map(function (s) { return catalog.apps.find(function (a) { return a.slug === s; }); }).filter(Boolean);
+      var fslugs = featured.map(function (a) { return a.slug; });
+      html = section(ind ? 'Nên nối cho ' + ind.name.toLowerCase() + ' (theo thứ tự)' : 'Nên kết nối trước', featured) + catalog.categories.map(function (c) {
+        return section(c.name, apps.filter(function (a) { return a.kind !== 'mcp' && a.cat === c.id && fslugs.indexOf(a.slug) === -1; }));
       }).join('') + section(MCP_CAT.name, catalog.mcp);
     } else {
       html = grid(apps);
@@ -194,6 +226,14 @@
     var t = e.target;
     var c = t.closest('[data-connect]');
     if (c) { e.stopPropagation(); if (!c.disabled) connect(c.getAttribute('data-connect'), c); return; }
+    var ng = t.closest('[data-nganh]');
+    if (ng) {
+      state.nganh = ng.getAttribute('data-nganh');
+      store('crewzy.nganh', state.nganh || null);
+      state.cat = 'all'; state.q = ''; state.filter = 'all';
+      var se = $('[data-search]'); if (se) se.value = '';
+      renderList(); return;
+    }
     var cat = t.closest('[data-cat]');
     if (cat) { state.cat = cat.getAttribute('data-cat'); renderList(); return; }
     var f = t.closest('[data-filter]');
