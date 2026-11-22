@@ -4,6 +4,7 @@
 // CREWZY_BRAIN: đọc Brain thương hiệu + danh sách app đã kết nối (cho AI bên ngoài như Claude/ChatGPT/Gemini/Grok).
 import { getBrand, brandText } from './brand.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
+import { rehostUrl } from './media.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -49,6 +50,79 @@ CREWZY_TOOL_DEFS.push({
     parameters: { type: 'object', properties: { giay: { type: 'number', description: 'Số giây chờ, từ 5 đến 30.' } }, required: ['giay'] },
   },
 });
+
+// Video bằng credit của Crewzy (chỉ Trợ lý trong app, không đưa ra link MCP vì tốn tiền thật của Giang).
+// Model bên thứ ba trên Cloudflare (env.AI.run + AI Gateway "default", trả bằng credit Unified Billing nạp trên dashboard):
+// LTX-2.3 Fast 0,03 USD/giây 720p (mặc định) → dự phòng Grok Imagine Video 0,05 USD/giây 480p. Video tải về lưu /api/media.
+export const VIDEO_TOOL = {
+  type: 'function',
+  function: {
+    name: 'CREWZY_TAO_VIDEO',
+    description: 'Tạo một video ngắn (6–10 giây, có âm thanh) từ mô tả, hoặc làm ảnh chuyển động từ link ảnh (ví dụ ảnh vừa tạo bằng CREWZY_TAO_ANH). Mất khoảng 1–3 phút. Viết mô tả bằng tiếng Anh: chủ thể, hành động, bối cảnh, góc máy, ánh sáng. Không yêu cầu chữ trong video. Trả về link video dùng để đăng Reels/TikTok/Facebook.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Mô tả video bằng tiếng Anh, 20–100 từ.' },
+        kho: { type: 'string', enum: ['doc', 'ngang'], description: 'doc = 9:16 (Reels, TikTok, Shorts, mặc định), ngang = 16:9.' },
+        giay: { type: 'number', enum: [6, 8, 10], description: 'Độ dài, mặc định 6 giây.' },
+        anh: { type: 'string', description: 'Link ảnh https làm khung hình đầu (không bắt buộc).' },
+      },
+      required: ['prompt'],
+    },
+  },
+};
+const VIDEO_USER_DAILY = 3;   // video/ngày mỗi khách
+const VIDEO_APP_DAILY = 30;   // video/ngày cả app (chặn tiền chạy quá tay)
+
+async function runVideoModel(env, { prompt, kho, giay, anh }) {
+  const gateway = { gateway: { id: env.AI_GATEWAY_ID || 'default' } };
+  const errors = [];
+  try {
+    const input = { prompt, duration: giay, fps: 24, resolution: kho === 'ngang' ? '1280x720' : '720x1280', generate_audio: true };
+    if (anh) input.image_uri = anh;
+    const out = await env.AI.run('lightricks/ltx-2-3-fast', input, gateway);
+    const url = out && (out.result && out.result.video || out.video);
+    if (url) return { url, model: 'ltx-2-3-fast' };
+    errors.push('ltx: ' + JSON.stringify(out).slice(0, 200));
+  } catch (e) { errors.push('ltx: ' + (e && e.message)); }
+  try {
+    const input = { prompt, duration: giay, aspect_ratio: kho === 'ngang' ? '16:9' : '9:16', resolution: '480p' };
+    if (anh) input.image = { url: anh };
+    const out = await env.AI.run('xai/grok-imagine-video', input, gateway);
+    const url = out && (out.result && out.result.video || out.video);
+    if (url) return { url, model: 'grok-imagine-video' };
+    errors.push('grok: ' + JSON.stringify(out).slice(0, 200));
+  } catch (e) { errors.push('grok: ' + (e && e.message)); }
+  const text = errors.join(' | ');
+  console.error('video failed', text);
+  if (/credit|balance|402|payment|billing|insufficient/i.test(text)) throw new Error('Máy chủ chưa nạp credit làm video (AI Gateway → Unified Billing trên Cloudflare).');
+  throw new Error('Chưa tạo được video: ' + text.slice(0, 200));
+}
+
+export async function createVideo(env, uid, origin, args) {
+  if (!env.AI) return { error: 'Máy chủ chưa bật Workers AI (binding AI).' };
+  if (env.CREWZY_VIDEO === 'off') return { error: 'Tính năng làm video đang tắt.' };
+  const prompt = String((args && args.prompt) || '').trim().slice(0, 2000);
+  if (prompt.length < 5) return { error: 'Thiếu mô tả video.' };
+  const giay = [6, 8, 10].includes(Number(args && args.giay)) ? Number(args.giay) : 6;
+  const kho = args && args.kho === 'ngang' ? 'ngang' : 'doc';
+  const anh = /^https:\/\//.test((args && args.anh) || '') ? args.anh : '';
+  const day = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const uKey = `vidcount:${day}:${uid}`;
+  const aKey = `vidcount:${day}:all`;
+  const [u, a] = await Promise.all([env.KV.get(uKey), env.KV.get(aKey)]);
+  if (Number(u || 0) >= VIDEO_USER_DAILY) return { error: `Hôm nay đã làm đủ ${VIDEO_USER_DAILY} video, quay lại ngày mai.` };
+  if (Number(a || 0) >= VIDEO_APP_DAILY) return { error: 'Hôm nay app đã hết lượt làm video, quay lại ngày mai.' };
+  const { url, model } = await runVideoModel(env, { prompt, kho, giay, anh });
+  const ttl = { expirationTtl: 2 * 86400 };
+  await Promise.all([env.KV.put(uKey, String(Number(u || 0) + 1), ttl), env.KV.put(aKey, String(Number(a || 0) + 1), ttl)]);
+  const saved = await rehostUrl(env, uid, origin, url).catch(() => null);
+  const link = saved && saved.link || url;
+  return {
+    data: { url: link, giay, kho: kho === 'doc' ? 'dọc 9:16' : 'ngang 16:9', model, ghi_chu: 'Video lưu 90 ngày. Dùng link này để đăng Reels/TikTok/Facebook hoặc nộp vào phiếu việc.' },
+    video: link,
+  };
+}
 
 // Phiếu việc: AI của khách nhận việc và nộp kết quả về Crewzy (src/lib/jobs.js).
 CREWZY_TOOL_DEFS.push(...JOB_TOOL_DEFS);
@@ -127,6 +201,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
+    if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_CHO') {

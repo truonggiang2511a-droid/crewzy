@@ -11,7 +11,7 @@ import { Composio } from '@composio/core';
 import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
-import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
@@ -44,6 +44,9 @@ Quy tắc bắt buộc:
 - Nếu ứng dụng chưa kết nối, nói người dùng vào trang Kết nối công cụ (ket-noi.html) để kết nối, hoặc đưa link kết nối từ COMPOSIO_MANAGE_CONNECTIONS.
 - Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.
 - Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.
+- Video ngắn (Reels/TikTok/Shorts): dùng CREWZY_TAO_VIDEO (mặc định dọc 9:16, 6 giây); muốn đẹp và đúng sản phẩm thì tạo ảnh trước
+  bằng CREWZY_TAO_ANH rồi đưa link ảnh vào trường anh để làm ảnh chuyển động. Hiện link video cho khách.
+- Khách bảo "đăng luôn" ngay trong cuộc trò chuyện thì đó là đồng ý: đăng, rồi nộp phiếu với trang_thai da_dang kèm link bài.
 - Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
   hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
   rồi tạo design từ ảnh (CANVA_POST_DESIGNS) và gửi link chỉnh sửa. Đăng bài có ảnh thì dùng đúng link ảnh đã tạo.
@@ -96,6 +99,7 @@ function geminiSafeTool(t) {
 
 function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
+  if (name === 'CREWZY_TAO_VIDEO') return 'Đang làm video (1–3 phút)';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
   if (name === 'CREWZY_VIEC_CAN_LAM') return 'Xem việc Crewzy đang giao';
   if (name === 'CREWZY_NOP_KET_QUA') return 'Nộp kết quả vào Việc chờ duyệt';
@@ -244,7 +248,7 @@ export default async (req, env) => {
           session.tools(), buildSystem(env, composio, uid),
           loadExternalTools(env, uid).catch((e) => { console.error('external mcp failed', e && e.message); return { defs: [], names: [], failed: [] }; }),
         ]);
-        let tools = [...composioTools, ...CREWZY_TOOL_DEFS, ...ext.defs];
+        let tools = [...composioTools, ...CREWZY_TOOL_DEFS, VIDEO_TOOL, ...ext.defs];
         if (mode === 'gemini') tools = tools.map(geminiSafeTool);
         let system = built.system;
         if (ext.names.length || ext.failed.length) {
@@ -260,6 +264,7 @@ export default async (req, env) => {
           if (isCrewzyTool(name)) {
             const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names });
             if (out && out.image) emit({ type: 'image', url: out.image });
+            if (out && out.video) emit({ type: 'video', url: out.video });
             return out;
           }
           if (ext.run) {

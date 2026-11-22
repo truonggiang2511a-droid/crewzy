@@ -155,6 +155,13 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   OpenArt (https://mcp.openart.ai/mcp, ảnh + video) nhận Crewzy: DCR ra link đăng nhập openart.ai (scope full_access) — chưa đăng nhập thử.
   Định dạng kết quả của OpenArt chưa xem được (cần tài khoản) → media.js đoán theo khoá JSON (url, video_url, image…) + content-type khi tải.
   Công cụ MCP ngoài CHƯA có trong link nối AI (/mcp/*) — Claude/ChatGPT tự thêm connector đó được.
+- Video bằng credit Crewzy (22/11, Giang: "credit Crewzy phải làm được ảnh và video, không chỉ chat"): CREWZY_TAO_VIDEO (chỉ Trợ lý trong app)
+  gọi model bên thứ ba qua env.AI.run(..., {gateway:{id: AI_GATEWAY_ID||'default'}}): lightricks/ltx-2-3-fast (0,03 USD/giây 720p, dọc 720x1280,
+  có âm thanh, image_uri cho ảnh chuyển động) → dự phòng xai/grok-imagine-video (0,05 USD/giây 480p). Model bên thứ ba BẮT BUỘC AI Gateway +
+  Unified Billing: Giang nạp credit ở Cloudflare dashboard → AI Gateway (phí 5%). Trần 3 video/khách/ngày, 30/app/ngày (KV vidcount:*),
+  tắt bằng biến CREWZY_VIDEO=off. Video tải về lưu /api/media (≤24MB). Chưa nạp credit → báo "Máy chủ chưa nạp credit làm video".
+  Cloudflare còn có Kling v3 (0,112 USD/giây), Veo 3, Seedance 2.x, Runway Gen-4.5, Pixverse, Vidu… cùng cách gọi.
+  Quy tắc mới: khách bảo "đăng luôn" trong chat (app hoặc AI của khách) = đồng ý, đăng ngay rồi nộp phiếu da_dang.
 - Workers AI (tra 22/11/2026): miễn phí 10.000 neurons/ngày (reset 7 giờ sáng VN), vượt thì 0,011 USD/1.000 neurons (chỉ gói Workers Paid,
   gói Free hết là báo lỗi). flux-2-klein-4b: 26,05 neurons mỗi ô 512×512 đầu ra → ảnh 4:5 (6 ô) ≈ 156 neurons ≈ 60 ảnh/ngày miễn phí,
   sau đó ≈ 0,0017 USD/ảnh. Chat chế độ app dùng khoá Anthropic, không tính vào Workers AI.
