@@ -1,17 +1,9 @@
 // Tab "MCP khác" ở trang Kết nối: khách điền tên máy chủ + link MCP → Kết nối (giống Add custom connector của Claude).
 // Gọi /api/mcp-servers; máy chủ cần đăng nhập thì chuyển sang trang đăng nhập của app đó, xong quay về ?tab=mcp&mcp=ok|err.
 (function () {
-  // Máy chủ MCP công khai hay dùng (đã thử nối qua Crewzy ngày 22/11/2026; xem CLAUDE.md).
-  // Canva KHÔNG có ở đây: MCP của Canva chỉ nhận Claude/ChatGPT/localhost → khách dùng Canva ở tab Ứng dụng (Composio).
-  var PICKS = [
-    { name: 'OpenArt', url: 'https://mcp.openart.ai/mcp', logo: '', letter: 'O', note: 'Ảnh + video AI' },
-    { name: 'Apify', url: 'https://mcp.apify.com', logo: '', letter: 'A', note: 'Soi Reels, TikTok, quảng cáo đối thủ' },
-    { name: 'Firecrawl', url: 'https://mcp.firecrawl.dev/mcp', logo: '', letter: 'F', note: 'Đọc website đối thủ' },
-    { name: 'Notion', url: 'https://mcp.notion.com/mcp', logo: 'notion', note: 'Đăng nhập Notion' },
-    { name: 'Linear', url: 'https://mcp.linear.app/mcp', logo: 'linear', note: 'Đăng nhập Linear' },
-    { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', logo: 'github', note: 'Không cần đăng nhập' },
-    { name: 'Context7', url: 'https://mcp.context7.com/mcp', logo: 'context7', note: 'Không cần đăng nhập' }
-  ];
+  // Danh bạ máy chủ MCP lấy từ /api/catalog (src/lib/mcpDirectory.js, đã thử nối 22/11/2026).
+  // Máy chủ ngoai (Canva, vidIQ, HubSpot…) chỉ nhận Claude/ChatGPT → hiện riêng, khách sao chép link thêm vào AI của họ.
+  var PICKS = [];
   var AUTH_LABEL = { none: 'Không cần đăng nhập', token: 'Dùng token', oauth: 'Đã đăng nhập' };
 
   var $ = function (s, el) { return (el || document).querySelector(s); };
@@ -39,13 +31,27 @@
     });
   }
 
-  $('[data-mcp-picks]').innerHTML = PICKS.map(function (p, i) {
-    return '<button type="button" class="btn btn-ghost" data-mcp-pick="' + i + '" style="gap:8px">' +
-      (p.logo ? '<img src="https://logos.composio.dev/api/' + p.logo + '" alt="" style="width:20px;height:20px;border-radius:4px">' : '<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;background:#111;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">' + p.letter + '</span>') + esc(p.name) +
-      '<span class="muted" style="font-size:12px;font-weight:400">' + esc(p.note) + '</span></button>';
-  }).join('') +
-    '<a class="btn btn-ghost" href="ket-noi.html?app=canva" style="gap:8px"><img src="https://logos.composio.dev/api/canva" alt="" style="width:20px;height:20px;border-radius:4px">Canva' +
-    '<span class="muted" style="font-size:12px;font-weight:400">Nối ở tab Ứng dụng</span></a>';
+  function icon(p) {
+    return p.logo ? '<img src="https://logos.composio.dev/api/' + esc(p.logo) + '" alt="" style="width:20px;height:20px;border-radius:4px">'
+      : '<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;background:' + esc(p.bg || '#111') + ';color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">' + esc(p.letter || p.name[0]) + '</span>';
+  }
+  function directory(list) {
+    PICKS = (list || []).filter(function (p) { return !p.ngoai; });
+    var out = (list || []).filter(function (p) { return p.ngoai; });
+    $('[data-mcp-picks]').innerHTML = PICKS.map(function (p, i) {
+      return '<button type="button" class="btn btn-ghost" data-mcp-pick="' + i + '" style="gap:8px">' + icon(p) + esc(p.name) +
+        '<span class="muted" style="font-size:12px;font-weight:400">' + (p.auth === 'none' ? 'Không cần đăng nhập' : 'Đăng nhập ' + esc(p.name)) + '</span></button>';
+    }).join('');
+    var box = $('[data-mcp-outside]');
+    if (box) {
+      box.hidden = !out.length;
+      $('[data-mcp-outside-list]').innerHTML = out.map(function (p) {
+        return '<span class="btn btn-ghost" style="gap:8px;cursor:default;flex-wrap:wrap;max-width:100%;height:auto;padding-top:6px;padding-bottom:6px">' + icon(p) + esc(p.name) +
+          '<button type="button" class="btn btn-ghost" data-mcp-copy="' + esc(p.url) + '" style="min-height:28px;padding:0 8px;font-size:12px">Sao chép link</button>' +
+          (p.alt ? '<a href="ket-noi.html?app=' + esc(p.alt) + '" style="font-size:12px">hoặc nối qua Composio</a>' : '') + '</span>';
+      }).join('');
+    }
+  }
 
   function render(servers) {
     if (!servers.length) {
@@ -110,6 +116,12 @@
       say('');
       return;
     }
+    var cp = t.closest('[data-mcp-copy]');
+    if (cp) {
+      var link = cp.getAttribute('data-mcp-copy');
+      (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { cp.textContent = 'Đã chép'; }, function () { window.prompt('Sao chép link MCP:', link); });
+      return;
+    }
     var rm = t.closest('[data-mcp-remove]');
     if (rm) {
       rm.disabled = true;
@@ -136,5 +148,14 @@
     history.replaceState(null, '', 'ket-noi.html?tab=mcp');
   }
 
-  window.crewzyMcp = { show: function () { if (!loaded) { loaded = true; load(); } } };
+  // Bấm thẻ MCP ở lưới Kết nối → ?tab=mcp&ten=&url= : điền sẵn ô, khách chỉ bấm Kết nối.
+  function prefill(params) {
+    if (!params || !params.get('url')) return;
+    form.name.value = params.get('ten') || '';
+    form.url.value = params.get('url');
+    say('Đã điền sẵn ' + (params.get('ten') || 'máy chủ') + '. Bấm Kết nối để nối vào Crewzy.', true);
+    form.scrollIntoView({ block: 'center' });
+  }
+  if (window.crewzyCatalog) directory(window.crewzyCatalog.mcp);
+  window.crewzyMcp = { directory: directory, show: function (params) { prefill(params); if (!loaded) { loaded = true; load(); } } };
 })();

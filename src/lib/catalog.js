@@ -5,7 +5,10 @@
 // composio.create() của MỌI người (chat, link nối AI) với lỗi "require auth configs but none exist".
 // logo: lấy từ https://logos.composio.dev/api/<slug>; app 'soon' không có trên Composio thì giao diện hiện chữ cái đầu.
 
-export const CATEGORIES = [
+import { EXTRA_APPS, EXTRA_CATEGORIES } from './catalogExtra.js';
+import { MCP_DIRECTORY } from './mcpDirectory.js';
+
+const BASE_CATEGORIES = [
   { id: 'social', name: 'Mạng xã hội' },
   { id: 'ads', name: 'Quảng cáo & đo lường' },
   { id: 'chat', name: 'Nhắn tin & chăm khách' },
@@ -17,9 +20,10 @@ export const CATEGORIES = [
   { id: 'care', name: 'Chăm sóc khách hàng' },
   { id: 'work', name: 'Quản lý công việc' },
 ];
+export const CATEGORIES = [...BASE_CATEGORIES, ...EXTRA_CATEGORIES];
 
 // can: AI làm được gì · try: câu lệnh mẫu (bấm để thử trong Trợ lý AI) · rules: luật riêng khi AI dùng app này
-export const APPS = [
+const BASE_APPS = [
   // ---------- Mạng xã hội ----------
   { slug: 'facebook', name: 'Facebook Fanpage', cat: 'social', status: 'ready',
     desc: 'Đăng bài, đọc và trả lời bình luận, tin nhắn Fanpage.',
@@ -231,6 +235,8 @@ export const APPS = [
     can: ['Tìm kiếm và trích nội dung trang'], try: ['Tìm tin mới nhất về đối thủ'], rules: [] },
 ];
 
+export const APPS = [...BASE_APPS, ...EXTRA_APPS.filter((a) => !BASE_APPS.some((b) => b.slug === a.slug))];
+
 export const appBySlug = (slug) => APPS.find((a) => a.slug === slug);
 export const READY_SLUGS = APPS.filter((a) => a.status === 'ready').map((a) => a.slug);
 
@@ -247,5 +253,6 @@ export function skillText(slugs) {
 
 // Dữ liệu gửi cho giao diện.
 export function publicCatalog() {
-  return { categories: CATEGORIES, apps: APPS.map(({ slug, name, cat, status, desc, note, can, try: tryCmds, rules }) => ({ slug, name, cat, status, desc, note: note || '', can, try: tryCmds, rules })) };
+  return { categories: CATEGORIES, apps: APPS.map(({ slug, name, cat, status, desc, note, can, try: tryCmds, rules }) => ({ slug, name, cat, status, desc, note: note || '', can, try: tryCmds, rules })),
+    mcp: MCP_DIRECTORY.map(({ id, name, url, auth, cat, desc, ngoai, logo, letter, bg, alt }) => ({ id, name, url, auth, cat, desc, ngoai: !!ngoai, logo: logo || '', letter: letter || name[0], bg: bg || '#555', alt: alt || '' })) };
 }

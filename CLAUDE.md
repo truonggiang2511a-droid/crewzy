@@ -8,7 +8,7 @@ crewzy.ai còn trống, crewzy.com đã có người đăng ký). Tên hiển th
 (Claude hoặc ChatGPT) làm bộ não rồi bấm Run. Giao diện trông như văn phòng có các phòng đang làm việc thật.
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
-**Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 19 app qua Composio, Trợ lý AI, link nối AI (MCP),
+**Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 171 app qua Composio + danh bạ 29 máy chủ MCP, Trợ lý AI, link nối AI (MCP),
 Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng và Việc chờ duyệt vẫn là dữ liệu mẫu.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
@@ -64,6 +64,9 @@ public/assets/openrouter.js  Đăng nhập OpenRouter (OAuth PKCE) trên trình 
 scripts/page.py           Khung trang HTML mới (head + menu + main): from page import page
 src/worker.js             Worker: '/' → index.html, /api/* → src/routes, /mcp/* → cổng MCP, còn lại → ASSETS
 src/lib/catalog.js        NGUỒN DUY NHẤT danh mục app: thể loại, mô tả, status ready/soon, Skill (can/try/rules); TOOLKITS = app ready
+                          (gộp thêm src/lib/catalogExtra.js: 107 app + 6 thể loại mở rộng; /api/catalog trả thêm mcp = danh bạ MCP)
+src/lib/mcpDirectory.js   DANH BẠ MÁY CHỦ MCP (nguồn duy nhất): id, link, auth none|oauth, ngoai (chỉ nhận Claude/ChatGPT) → thẻ MCP ở Kết nối,
+                          Điền nhanh ở tab MCP khác, MCP_HOSTS + chip MCP trong Quy trình
 src/lib/common.js         APP_NAME, TOOLKITS, Web Crypto (HMAC phiên, ký link MCP, xác minh ID token Google), resolveUid, KV
 src/lib/brand.js          Mục Brain thương hiệu, cleanBrand, brandText (KV brand:<uid>)
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
@@ -81,7 +84,7 @@ src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoà
 src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của khách): KV jobs:<uid> (≤150), trạng thái cho_lam → cho_duyet → da_duyet → da_dang
                           (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM, CREWZY_NOP_KET_QUA (tự lưu ảnh/video về /api/media); MCP_PROMPTS
 src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
-src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (8 phòng, có Nghiên cứu đối thủ), WORKFLOWS (18 quy trình: bước,
+src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (8 phòng, có Nghiên cứu đối thủ), WORKFLOWS (20 quy trình: bước,
                           lịch gợi ý, loại kết quả), CHANNELS (12 kênh/nền tảng), nhóm công cụ G + TOOLSETS (mỗi quy trình: kenh + cong_cu = các vai trò,
                           mỗi vai trò nhiều app thay thế, bat_buoc/san_co), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm CHỈ ở đây
 src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; cron */15 (wrangler triggers) → tạo phiếu việc; che_do 'crewzy' thì
@@ -139,6 +142,19 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   google_search_console, google_maps, vidiq_mcp (vidIQ qua Composio bằng khoá API!), apify, firecrawl, semrush, ahrefs, serpapi, perplexityai, tavily.
   Thêm thể loại research, email, care, work. KHÔNG nối nhanh được: twitter, shopify, googleforms (cần app riêng); wordpress, google_forms,
   sendinblue, convertkit, activecampaign, zoho_crm, surveymonkey, tidio, google_slides, googlesearchconsole (slug sai hoặc lỗi 400).
+- Mở rộng lần 2 (22/11, Giang: "thêm nhiều kết nối, quy trình có gì thì kết nối cũng phải có"): lấy 1.842 toolkit qua API v3 /toolkits,
+  lọc theo thể loại kinh doanh, thử 132 slug song song bằng /api/connect?thu=1 (route tạm /api/probe-toolkits + ?thu=1 ĐÃ GỠ) → 116 ra link,
+  đưa 107 vào catalogExtra.js (bỏ trùng googlesuper, ahrefs_mcp, semrush_mcp, notion_mcp, canva_mcp, microsoft_365; bỏ amazon 0 công cụ, affinity, twitch)
+  → 182 app, 171 ready, 16 thể loại (thêm Phân tích, Website & bản tin, Tìm khách & chào hàng, Gọi điện & SMS, Thanh toán & kế toán, Ảnh video ghi âm).
+  KHÔNG ra link (cần auth config): buffer, microsoft_advertising, linkedin_ads, constant_contact, aweber, zoominfo, docusign, sign_now, zoho_bookings,
+  ebay, paypal, xero, help_scout, livechat, smartsheet, vimeo. Composio KHÔNG có: hootsuite, later, metricool, ghost, substack, woocommerce, etsy,
+  trustpilot, drip, keap, acuity, loom, descript, deepl, highlevel (slug highlevel_location chưa thử).
+  Máy chủ MCP thử qua /api/mcp-servers: không đăng nhập = Firecrawl, DeepWiki, Context7, Hugging Face; ra trang đăng nhập = OpenArt, Apify, Notion,
+  Linear, Metricool (ai.metricool.com/mcp), HeyGen, monday, ClickUp, Miro, Atlassian, Wix, Webflow, Stripe, Zapier, Exa; chặn link quay về của
+  Crewzy (ghi ngoai) = vidIQ, Canva, HubSpot, Airtable, Figma, Asana, Intercom, Gamma, Semrush, Similarweb, PayPal, Square, Box; lỗi 404/530 = Jina,
+  ElevenLabs, Zoom, Rube; Linkup lệch phiên bản giao thức. Thẻ MCP ở Kết nối → ?tab=mcp&ten=&url= điền sẵn; máy chủ ngoai có nút Sao chép link.
+  Quy trình: nhóm công cụ G thêm app mới + nhóm tim_khach_b2b, chao_hang, doanh_thu, bao_gia, ghi_hop; thêm 2 quy trình tim_khach_doanh_nghiep,
+  bao_gia_sau_cuoc_goi (20 quy trình). Mọi app trong G đều có trong catalog (kiểm bằng script trong nhật ký).
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,

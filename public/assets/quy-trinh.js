@@ -36,9 +36,12 @@
       (required && !on ? '<span aria-hidden="true" style="position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:50%;background:#D93025;border:2px solid #fff"></span>' : '') + '</a>';
   }
   function mcpChip(m, on) {
-    var i = MCP_INFO[m] || { name: m, letter: m[0].toUpperCase(), bg: '#555', note: '' };
-    return '<a href="ket-noi.html?tab=mcp" title="' + esc(i.name + ' · ' + i.note + (on ? ' · đã nối' : ' · cần nối ở MCP khác')) + '" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 2px;border-radius:99px;border:1px solid var(--line, #E8E8E8);font-size:12px;color:inherit;text-decoration:none;' + (on ? '' : 'opacity:.55') + '">' +
-      '<span style="width:20px;height:20px;border-radius:50%;background:' + i.bg + ';color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">' + i.letter + '</span>' + esc(i.name) + '</a>';
+    var i = (data.mcpInfo && data.mcpInfo[m]) || MCP_INFO[m] || { name: m, letter: m[0].toUpperCase(), bg: '#555', note: '' };
+    var href = i.ngoai ? 'ket-noi.html?tab=ai' : 'ket-noi.html?tab=mcp' + (i.url ? '&ten=' + encodeURIComponent(i.name) + '&url=' + encodeURIComponent(i.url) : '');
+    var pic = i.logo ? '<img src="https://logos.composio.dev/api/' + esc(i.logo) + '" alt="" style="width:20px;height:20px;border-radius:50%">'
+      : '<span style="width:20px;height:20px;border-radius:50%;background:' + i.bg + ';color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">' + esc(i.letter) + '</span>';
+    return '<a href="' + href + '" title="' + esc(i.name + ' · ' + i.note + (on ? ' · đã nối' : i.ngoai ? ' · thêm trong AI của bạn' : ' · bấm để nối MCP')) + '" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 2px;border-radius:99px;border:1px solid var(--line, #E8E8E8);font-size:12px;color:inherit;text-decoration:none;' + (on ? '' : 'opacity:.55') + '">' +
+      pic + esc(i.name) + '</a>';
   }
   function mcpOn(m) { var host = data.mcpHosts[m] || m; return mcpUrls.some(function (u) { return u.indexOf(host) >= 0; }); }
 

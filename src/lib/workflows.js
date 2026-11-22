@@ -16,7 +16,8 @@ export const DEPARTMENTS = [
 ];
 
 // mcp: tên máy chủ MCP ngoài khách cần nối ở Kết nối → MCP khác (khớp theo tên miền trong link).
-export const MCP_HOSTS = { apify: 'apify.com', firecrawl: 'firecrawl.dev', openart: 'openart.ai', vidiq: 'vidiq.com' };
+import { MCP_HOSTS, MCP_DIRECTORY } from './mcpDirectory.js';
+export { MCP_HOSTS };
 
 export const WORKFLOWS = [
   // ---------- Thương hiệu ----------
@@ -138,6 +139,27 @@ export const WORKFLOWS = [
       'Soạn tin/email chào riêng cho từng khách nóng và ấm theo Brain thương hiệu.',
       'Nộp bằng CREWZY_NOP_KET_QUA (loai cham_soc, lien_ket = link Sheet) để duyệt trước khi gửi.',
     ] },
+  { id: 'tim_khach_doanh_nghiep', phong: 'ban_hang', ten: 'Tìm khách doanh nghiệp và soạn chuỗi email chào hàng',
+    mo_ta: 'Tìm công ty đúng ngành, khu vực (Apollo, Hunter, Google Maps), lấy người phụ trách, soạn chuỗi 3 email chào hàng riêng từng công ty để bạn duyệt rồi mới gửi (mẫu "lead generation → cold email" hay dùng trên n8n/Make).',
+    lich: 'Thứ Hai và thứ Năm, 9:00', loai: 'cham_soc',
+    hoi: 'Ngành, khu vực, cỡ công ty và chức danh người muốn tiếp cận',
+    buoc: [
+      'Đọc Brain thương hiệu: sản phẩm, khách lý tưởng, lợi ích chính. Thiếu ngành/khu vực thì hỏi khách.',
+      'Tìm 10–20 công ty đúng tiêu chí bằng app đã nối (Apollo, Lusha, Google Maps, Apify) và người phụ trách đúng chức danh; email lấy từ Apollo/Hunter (chỉ email công việc).',
+      'Bỏ công ty đã có trong CRM hoặc đã chào trong 90 ngày. Ghi danh sách vào CRM hoặc bảng "Khách doanh nghiệp".',
+      'Soạn chuỗi 3 email ngắn cho từng công ty (chào, nhắc sau 3 ngày, chốt sau 7 ngày), mỗi email nêu một lợi ích thật, không bịa số liệu.',
+      'Nộp CREWZY_NOP_KET_QUA (loai cham_soc) kèm danh sách + email nháp. Chỉ khi phiếu được duyệt mới đưa vào lemlist/Instantly/Smartlead/Reply.io hoặc Gmail để gửi.',
+    ] },
+  { id: 'bao_gia_sau_cuoc_goi', phong: 'ban_hang', ten: 'Tóm tắt cuộc gọi và soạn báo giá',
+    mo_ta: 'Đọc bản ghi cuộc gọi/cuộc họp với khách (Fireflies, Gong, Aircall), tóm tắt nhu cầu, cập nhật CRM và soạn báo giá nháp (PandaDoc, Qwilr, Google Docs).',
+    lich: 'Mỗi ngày 17:30', loai: 'cham_soc',
+    buoc: [
+      'Lấy bản ghi các cuộc gọi/cuộc họp với khách trong ngày từ app đã nối.',
+      'Tóm tắt mỗi cuộc: khách là ai, nhu cầu, ngân sách nếu khách nói, phản đối, hẹn bước tiếp theo. Không suy đoán thêm.',
+      'Cập nhật ghi chú và bước tiếp theo vào CRM đã nối.',
+      'Khách cần báo giá: soạn báo giá nháp từ bảng giá trong Brain thương hiệu (không tự đặt giá mới) bằng PandaDoc/Qwilr/Google Docs.',
+      'Nộp CREWZY_NOP_KET_QUA (loai cham_soc, lien_ket = link báo giá) để duyệt trước khi gửi khách.',
+    ] },
   { id: 'nhac_cham_soc_deal', phong: 'ban_hang', ten: 'Nhắc khách chưa được chăm sóc',
     mo_ta: 'Tìm khách/deal chưa liên hệ quá 3 và 7 ngày, gợi ý bước tiếp theo và soạn tin nhắn để sale gửi.',
     lich: 'Thứ Hai đến thứ Sáu, 8:30', loai: 'cham_soc',
@@ -218,23 +240,28 @@ export const CHANNELS = {
   zalo: 'Zalo', website: 'Website & SEO', email: 'Email', ads: 'Quảng cáo', crm: 'CRM & bán hàng', noi_bo: 'Nội bộ',
 };
 const G = {
-  luu: { vai: 'Nơi lưu kết quả, lịch', apps: ['googlesheets', 'notion', 'airtable', 'googledocs', 'clickup', 'trello', 'asana', 'monday', 'googledrive', 'one_drive', 'dropbox'] },
-  tai_lieu: { vai: 'Nơi lưu báo cáo, tài liệu', apps: ['googledocs', 'notion', 'googleslides', 'googledrive', 'one_drive', 'dropbox'] },
-  kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'webflow', 'reddit', 'tiktok', 'threads'] },
-  fanpage: { vai: 'Fanpage / kênh có bình luận', apps: ['facebook', 'instagram', 'youtube'] },
-  nhan_noi_bo: { vai: 'Gửi báo cáo nội bộ', apps: ['telegram', 'slack', 'microsoft_teams', 'discord', 'gmail', 'outlook', 'whatsapp'] },
-  crm: { vai: 'CRM / danh sách khách', apps: ['hubspot', 'pipedrive', 'salesforce', 'zoho', 'googlesheets', 'airtable', 'notion'] },
-  nguon_khach: { vai: 'Nguồn khách mới', apps: ['gmail', 'outlook', 'facebook', 'instagram', 'typeform', 'googlesheets', 'calendly', 'intercom', 'crisp'] },
-  hop_thu: { vai: 'Hộp thư / công cụ hỗ trợ', apps: ['gmail', 'outlook', 'zendesk', 'intercom', 'freshdesk', 'gorgias', 'crisp'] },
-  email_mkt: { vai: 'Gửi email / tin chăm sóc', apps: ['gmail', 'outlook', 'mailchimp', 'brevo', 'klaviyo', 'kit', 'mailerlite', 'sendgrid', 'whatsapp', 'telegram'] },
+  luu: { vai: 'Nơi lưu kết quả, lịch', apps: ['googlesheets', 'notion', 'airtable', 'googledocs', 'clickup', 'trello', 'asana', 'monday', 'coda', 'basecamp', 'wrike', 'excel', 'googledrive', 'one_drive', 'dropbox', 'box'], mcp: ['notion', 'monday', 'clickup'] },
+  tai_lieu: { vai: 'Nơi lưu báo cáo, tài liệu', apps: ['googledocs', 'notion', 'googleslides', 'confluence', 'coda', 'onenote', 'googledrive', 'one_drive', 'dropbox', 'box', 'share_point'], mcp: ['notion'] },
+  kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'sprout_social', 'webflow', 'wix', 'framer', 'reddit', 'line', 'tiktok', 'threads'], mcp: ['metricool', 'wix', 'webflow'] },
+  fanpage: { vai: 'Fanpage / kênh có bình luận', apps: ['facebook', 'instagram', 'youtube', 'sprout_social'] },
+  nhan_noi_bo: { vai: 'Gửi báo cáo nội bộ', apps: ['telegram', 'slack', 'microsoft_teams', 'discord', 'gmail', 'outlook', 'whatsapp', 'line'] },
+  crm: { vai: 'CRM / danh sách khách', apps: ['hubspot', 'pipedrive', 'salesforce', 'zoho', 'close', 'copper', 'freshsales', 'attio', 'nutshell', 'capsule_crm', 'agile_crm', 'folk', 'centralstationcrm', 'active_campaign', 'googlesheets', 'airtable', 'notion'] },
+  nguon_khach: { vai: 'Nguồn khách mới', apps: ['gmail', 'outlook', 'facebook', 'instagram', 'typeform', 'jotform', 'tally', 'paperform', 'googlesheets', 'calendly', 'cal', 'savvycal', 'intercom', 'crisp', 'front', 'aircall', 'dialpad'] },
+  tim_khach_b2b: { vai: 'Tìm khách doanh nghiệp', apps: ['apollo', 'hunter', 'lusha', 'google_maps', 'dataforseo'], mcp: ['apify', 'exa'] },
+  chao_hang: { vai: 'Gửi chuỗi email chào hàng', apps: ['lemlist', 'instantly', 'smartlead', 'reply_io', 'apollo', 'gmail', 'outlook'] },
+  hop_thu: { vai: 'Hộp thư / công cụ hỗ trợ', apps: ['gmail', 'outlook', 'zendesk', 'intercom', 'freshdesk', 'zoho_desk', 'front', 'gorgias', 'crisp', 're_amaze', 'gleap'] },
+  email_mkt: { vai: 'Gửi email / tin chăm sóc', apps: ['gmail', 'outlook', 'mailchimp', 'brevo', 'klaviyo', 'active_campaign', 'getresponse', 'send_pulse', 'omnisend', 'customerio', 'kit', 'mailerlite', 'moosend', 'benchmark_email', 'beehiiv', 'sendgrid', 'whatsapp', 'telegram', 'line', 'twilio', 'clicksend'] },
   quang_cao: { vai: 'Tài khoản quảng cáo', apps: ['metaads', 'googleads', 'tiktok_ads'] },
-  do_luong: { vai: 'Số liệu website, kênh', apps: ['google_analytics', 'google_search_console', 'facebook', 'instagram', 'youtube', 'stripe'] },
-  lich: { vai: 'Lịch, cuộc hẹn', apps: ['googlecalendar', 'outlook', 'calendly', 'zoom', 'googlemeet'] },
-  anh_video: { vai: 'Làm ảnh, video', apps: ['canva', 'heygen', 'elevenlabs', 'figma'], mcp: ['openart'], san_co: 'Crewzy có sẵn tạo ảnh và video (credit của app)' },
+  do_luong: { vai: 'Số liệu website, kênh', apps: ['google_analytics', 'google_search_console', 'posthog', 'mixpanel', 'amplitude', 'facebook', 'instagram', 'youtube', 'sprout_social', 'stripe', 'square', 'bigcommerce'], mcp: ['metricool'] },
+  doanh_thu: { vai: 'Doanh thu, đơn hàng', apps: ['stripe', 'square', 'clover', 'bigcommerce', 'gumroad', 'lemon_squeezy', 'quickbooks', 'zoho_books', 'googlesheets'], mcp: ['stripe'] },
+  bao_gia: { vai: 'Báo giá, hợp đồng', apps: ['pandadoc', 'qwilr', 'dropbox_sign', 'googledocs', 'zoho_invoice'] },
+  lich: { vai: 'Lịch, cuộc hẹn', apps: ['googlecalendar', 'outlook', 'calendly', 'cal', 'savvycal', 'zoom', 'googlemeet', 'webex'] },
+  ghi_hop: { vai: 'Ghi âm, chép lời cuộc gọi/họp', apps: ['fireflies', 'gong', 'aircall', 'dialpad', 'assemblyai', 'rev'] },
+  anh_video: { vai: 'Làm ảnh, video', apps: ['canva', 'heygen', 'elevenlabs', 'figma', 'runway', 'fal_ai', 'synthesia', 'bannerbear', 'creatomate', 'shotstack', 'placid', 'remove_bg', 'cloudinary', 'pexels', 'unsplash', 'openai', 'gemini'], mcp: ['openart', 'heygen'], san_co: 'Crewzy có sẵn tạo ảnh và video (credit của app)' },
   soi_video: { vai: 'Soi video đối thủ (Reels, TikTok, YouTube)', apps: ['vidiq_mcp', 'apify', 'youtube'], mcp: ['apify', 'vidiq'] },
-  soi_web: { vai: 'Đọc website, SEO đối thủ', apps: ['firecrawl', 'semrush', 'ahrefs', 'serpapi', 'tavily', 'perplexityai', 'google_maps'], mcp: ['firecrawl'] },
+  soi_web: { vai: 'Đọc website, SEO đối thủ', apps: ['firecrawl', 'semrush', 'ahrefs', 'dataforseo', 'moz', 'serpapi', 'tavily', 'perplexityai', 'google_maps'], mcp: ['firecrawl', 'exa'] },
   soi_qc: { vai: 'Thư viện quảng cáo đối thủ', apps: ['apify'], mcp: ['apify'] },
-  doc_web_minh: { vai: 'Đọc website của mình', apps: ['firecrawl', 'tavily', 'webflow'], mcp: ['firecrawl'] },
+  doc_web_minh: { vai: 'Đọc website của mình', apps: ['firecrawl', 'tavily', 'webflow', 'wix', 'framer'], mcp: ['firecrawl'] },
 };
 const req = (g) => ({ ...G[g], bat_buoc: true });
 const opt = (g) => ({ ...G[g], bat_buoc: false });
@@ -251,13 +278,15 @@ const TOOLSETS = {
   theo_doi_quang_cao: { kenh: ['ads', 'facebook'], cong_cu: [req('quang_cao'), opt('nhan_noi_bo')] },
   mau_quang_cao_moi: { kenh: ['ads', 'facebook', 'instagram'], cong_cu: [opt('quang_cao'), opt('anh_video')] },
   lead_vao_crm: { kenh: ['crm', 'email', 'facebook'], cong_cu: [req('nguon_khach'), req('crm'), opt('email_mkt')] },
+  tim_khach_doanh_nghiep: { kenh: ['crm', 'email', 'linkedin'], cong_cu: [req('tim_khach_b2b'), opt('crm'), opt('chao_hang')] },
+  bao_gia_sau_cuoc_goi: { kenh: ['crm', 'email'], cong_cu: [req('ghi_hop'), opt('crm'), opt('bao_gia')] },
   nhac_cham_soc_deal: { kenh: ['crm'], cong_cu: [req('crm'), opt('email_mkt'), opt('nhan_noi_bo')] },
   tra_loi_binh_luan: { kenh: ['facebook', 'instagram', 'youtube'], cong_cu: [req('fanpage')] },
   tra_loi_email_khach: { kenh: ['email'], cong_cu: [req('hop_thu')] },
   cham_soc_sau_mua: { kenh: ['email', 'crm', 'zalo'], cong_cu: [req('crm'), req('email_mkt')] },
-  bao_cao_tuan: { kenh: ['ads', 'website', 'facebook', 'crm', 'noi_bo'], cong_cu: [opt('do_luong'), opt('quang_cao'), opt('crm'), opt('tai_lieu'), opt('nhan_noi_bo')] },
+  bao_cao_tuan: { kenh: ['ads', 'website', 'facebook', 'crm', 'noi_bo'], cong_cu: [opt('do_luong'), opt('quang_cao'), opt('doanh_thu'), opt('crm'), opt('tai_lieu'), opt('nhan_noi_bo')] },
   de_xuat_chien_luoc: { kenh: ['noi_bo'], cong_cu: [opt('tai_lieu')] },
-  ban_tin_sang: { kenh: ['noi_bo', 'email'], cong_cu: [opt('lich'), opt('hop_thu'), opt('quang_cao'), req('nhan_noi_bo')] },
+  ban_tin_sang: { kenh: ['noi_bo', 'email'], cong_cu: [opt('lich'), opt('hop_thu'), opt('quang_cao'), opt('doanh_thu'), req('nhan_noi_bo')] },
 };
 for (const w of WORKFLOWS) Object.assign(w, TOOLSETS[w.id] || { kenh: [], cong_cu: [] });
 
@@ -265,7 +294,8 @@ export const workflowById = (id) => WORKFLOWS.find((w) => w.id === id) || null;
 
 // Danh sách cho giao diện (không lộ gì nhạy cảm).
 export function publicWorkflows() {
-  return { departments: DEPARTMENTS, workflows: WORKFLOWS, mcpHosts: MCP_HOSTS, channels: CHANNELS };
+  return { departments: DEPARTMENTS, workflows: WORKFLOWS, mcpHosts: MCP_HOSTS, channels: CHANNELS,
+    mcpInfo: Object.fromEntries(MCP_DIRECTORY.map((m) => [m.id, { name: m.name, url: m.url, note: m.desc, ngoai: !!m.ngoai, logo: m.logo || '', letter: m.letter || m.name[0], bg: m.bg || '#555' }])) };
 }
 
 // Kiểm tra từng nhóm công cụ: nhóm có app/MCP đã nối thì đạt; nhóm bắt buộc chưa có gì → thiếu.

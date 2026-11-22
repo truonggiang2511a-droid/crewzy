@@ -8,7 +8,8 @@
   var LOGO_ALIAS = { tiktokshop: 'tiktok' };
 
   var uid = window.vpaiUid();
-  var catalog = { categories: [], apps: [] };
+  var catalog = { categories: [], apps: [], mcp: [] };
+  var MCP_CAT = { id: 'mcp', name: 'Máy chủ MCP (nối thẳng)' };
   var accounts = {};
   var state = { filter: 'all', cat: 'all', q: '' };
 
@@ -34,13 +35,22 @@
 
   function logo(app, size) {
     var s = size || 40;
+    if (app.kind === 'mcp' && !app.logo) {
+      return '<span class="app-logo app-logo-letter" style="width:' + s + 'px;height:' + s + 'px;background:' + app.bg + '" aria-hidden="true">' + esc(app.letter) + '</span>';
+    }
+    if (app.kind === 'mcp') return '<img class="app-logo" src="https://logos.composio.dev/api/' + app.logo + '" alt="" loading="lazy" style="width:' + s + 'px;height:' + s + 'px">';
     if (LETTER[app.slug]) {
       return '<span class="app-logo app-logo-letter" style="width:' + s + 'px;height:' + s + 'px;background:' + LETTER[app.slug][1] + '" aria-hidden="true">' + LETTER[app.slug][0] + '</span>';
     }
     return '<img class="app-logo" src="https://logos.composio.dev/api/' + (LOGO_ALIAS[app.slug] || app.slug) + '" alt="" loading="lazy" style="width:' + s + 'px;height:' + s + 'px">';
   }
 
+  function mcpHref(m) { return m.ngoai ? 'ket-noi.html?tab=ai' : 'ket-noi.html?tab=mcp&ten=' + encodeURIComponent(m.name) + '&url=' + encodeURIComponent(m.url); }
   function statusHtml(app) {
+    if (app.kind === 'mcp') {
+      return app.ngoai ? '<span class="pill" title="Máy chủ này chỉ nhận Claude, ChatGPT…: thêm link MCP trong AI của bạn">Trong AI của bạn</span>'
+        : '<a class="btn btn-primary" href="' + mcpHref(app) + '" data-mcp-go style="min-height:34px;padding:0 12px;font-size:13px;text-decoration:none">Nối MCP</a>';
+    }
     var n = accounts[app.slug] || 0;
     if (app.status !== 'ready') return '<span class="pill">Sắp có</span>';
     if (n > 0) return '<span class="pill pill-ok"><span class="dot"></span>' + n + ' tài khoản</span>';
@@ -49,11 +59,13 @@
 
   function card(app) {
     var soon = app.status !== 'ready';
-    return '<div class="card" data-app="' + app.slug + '" role="button" tabindex="0" aria-label="Xem ' + esc(app.name) + '" style="display:flex;gap:12px;padding:14px;cursor:pointer;min-height:96px' + (soon ? ';background:#FCFCFC' : '') + '">' +
+    var extra = app.kind === 'mcp' ? '<p class="muted" style="margin:2px 0 0;font-size:12px">MCP · ' + (app.ngoai ? 'dán link vào Claude/ChatGPT' : app.auth === 'none' ? 'không cần đăng nhập' : 'đăng nhập ' + esc(app.name)) + '</p>' : '';
+    var attr = app.kind === 'mcp' ? 'data-mcp-card="' + esc(mcpHref(app)) + '"' : 'data-app="' + app.slug + '"';
+    return '<div class="card" ' + attr + ' role="button" tabindex="0" aria-label="Xem ' + esc(app.name) + '" style="display:flex;gap:12px;padding:14px;cursor:pointer;min-height:96px' + (soon ? ';background:#FCFCFC' : '') + '">' +
       '<div style="' + (soon ? 'opacity:.55;filter:grayscale(.4)' : '') + '">' + logo(app) + '</div>' +
       '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><p style="margin:0;font-weight:600;font-size:15px">' + esc(app.name) + '</p>' + statusHtml(app) + '</div>' +
-      '<p class="muted" style="margin:0;font-size:13px;line-height:1.45">' + esc(app.desc) + '</p></div></div>';
+      '<p class="muted" style="margin:0;font-size:13px;line-height:1.45">' + esc(app.desc) + '</p>' + extra + '</div></div>';
   }
 
   function grid(apps) {
@@ -65,9 +77,12 @@
     return '<div style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:17px;font-weight:600">' + esc(title) + '</h2>' + grid(apps) + '</div>';
   }
 
+  function allItems() { return catalog.apps.concat(catalog.mcp); }
   function matches(app) {
     if (state.filter === 'connected' && !(accounts[app.slug] > 0)) return false;
-    if (state.cat !== 'all' && app.cat !== state.cat) return false;
+    if (state.cat === 'mcp') { if (app.kind !== 'mcp') return false; }
+    else if (app.kind === 'mcp' && state.cat !== 'all') return false;
+    if (state.cat !== 'all' && state.cat !== 'mcp' && app.cat !== state.cat) return false;
     if (state.q) {
       var q = state.q.toLowerCase();
       if ((app.name + ' ' + app.desc + ' ' + app.slug).toLowerCase().indexOf(q) === -1) return false;
@@ -78,7 +93,7 @@
   function renderCats() {
     var counts = {};
     catalog.apps.forEach(function (a) { counts[a.cat] = (counts[a.cat] || 0) + 1; });
-    var items = [{ id: 'all', name: 'Tất cả ứng dụng', n: catalog.apps.length }].concat(catalog.categories.map(function (c) { return { id: c.id, name: c.name, n: counts[c.id] || 0 }; }));
+    var items = [{ id: 'all', name: 'Tất cả ứng dụng', n: allItems().length }].concat(catalog.categories.map(function (c) { return { id: c.id, name: c.name, n: counts[c.id] || 0 }; }), [{ id: 'mcp', name: MCP_CAT.name, n: catalog.mcp.length }]);
     $('[data-cat-list]').innerHTML = items.map(function (c) {
       var on = state.cat === c.id;
       return '<button type="button" data-cat="' + c.id + '" aria-pressed="' + on + '" style="display:flex;justify-content:space-between;align-items:center;min-height:38px;padding:0 10px;border:0;border-radius:6px;font:inherit;font-size:14px;text-align:left;cursor:pointer;background:' + (on ? '#EFEFEF' : 'transparent') + ';color:var(--text);font-weight:' + (on ? 600 : 400) + '">' + esc(c.name) + '<span class="muted" style="font-size:12px">' + c.n + '</span></button>';
@@ -92,9 +107,9 @@
 
   function renderList() {
     var connectedN = catalog.apps.filter(function (a) { return accounts[a.slug] > 0; }).length;
-    $('[data-count-all]').textContent = catalog.apps.length;
+    $('[data-count-all]').textContent = allItems().length;
     $('[data-count-connected]').textContent = connectedN;
-    var apps = catalog.apps.filter(matches);
+    var apps = allItems().filter(matches);
     var html;
     if (!apps.length) {
       html = '<div class="card" style="padding:28px;text-align:center;box-shadow:none;border-style:dashed"><p style="margin:0;font-weight:600">' +
@@ -103,8 +118,8 @@
     } else if (state.filter === 'all' && state.cat === 'all' && !state.q) {
       var featured = FEATURED.map(function (s) { return catalog.apps.find(function (a) { return a.slug === s; }); }).filter(Boolean);
       html = section('Nên kết nối trước', featured) + catalog.categories.map(function (c) {
-        return section(c.name, apps.filter(function (a) { return a.cat === c.id && FEATURED.indexOf(a.slug) === -1; }));
-      }).join('');
+        return section(c.name, apps.filter(function (a) { return a.kind !== 'mcp' && a.cat === c.id && FEATURED.indexOf(a.slug) === -1; }));
+      }).join('') + section(MCP_CAT.name, catalog.mcp);
     } else {
       html = grid(apps);
     }
@@ -146,7 +161,7 @@
     mcpView.hidden = view !== 'mcp';
     var tabName = view === 'ai' || view === 'mcp' ? view : 'apps';
     document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tab') === tabName)); });
-    if (view === 'mcp' && window.crewzyMcp) window.crewzyMcp.show();
+    if (view === 'mcp' && window.crewzyMcp) window.crewzyMcp.show(new URLSearchParams(location.search));
     if (view === 'detail') { renderDetail(slug, notice); window.scrollTo(0, 0); }
   }
 
@@ -190,10 +205,16 @@
     var tab = t.closest('[data-tab]');
     if (tab) { var tn = tab.getAttribute('data-tab'); go(tn === 'apps' ? '' : '?tab=' + tn); return; }
     if (t.closest('[data-back]')) { e.preventDefault(); go(''); return; }
+    var mg = t.closest('[data-mcp-go]');
+    if (mg) { e.preventDefault(); go(mg.getAttribute('href').replace('ket-noi.html', '')); return; }
+    var mc = t.closest('[data-mcp-card]');
+    if (mc) { go(mc.getAttribute('data-mcp-card').replace('ket-noi.html', '')); return; }
     var a = t.closest('[data-app]');
     if (a) go('?app=' + a.getAttribute('data-app'));
   });
   document.addEventListener('keydown', function (e) {
+    var mk = e.target.closest && e.target.closest('[data-mcp-card]');
+    if (mk && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(mk.getAttribute('data-mcp-card').replace('ket-noi.html', '')); return; }
     var a = e.target.closest && e.target.closest('[data-app]');
     if (a && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go('?app=' + a.getAttribute('data-app')); }
   });
@@ -218,6 +239,9 @@
   Promise.all([getJson('/api/catalog'), refreshStatus()]).then(function (r) {
     if (!r[0].ok) throw new Error(r[0].body.error || 'Không tải được danh sách ứng dụng.');
     catalog = r[0].body;
+    catalog.mcp = (catalog.mcp || []).map(function (m) { return Object.assign({ kind: 'mcp', slug: 'mcp-' + m.id, status: 'ready' }, m); });
+    window.crewzyCatalog = catalog;
+    if (window.crewzyMcp && window.crewzyMcp.directory) window.crewzyMcp.directory(catalog.mcp);
     renderList();
     if (justConnected) {
       history.replaceState(null, '', 'ket-noi.html?app=' + encodeURIComponent(justConnected));
