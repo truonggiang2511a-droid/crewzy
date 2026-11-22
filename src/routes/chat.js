@@ -11,13 +11,14 @@ import { Composio } from '@composio/core';
 import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
-import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool, storeImageBytes } from '../lib/crewzyTools.js';
+import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
+import { collectMedia } from '../lib/media.js';
 
 const APP_DAILY_CAP = 300;          // tổng lượt chat/ngày chế độ credit của app (cả app)
 const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit của app cho MỖI khách
-const MAX_STEPS = 8;                // số vòng gọi công cụ tối đa mỗi lượt
-const TIME_BUDGET_MS = 60000;       // dừng sớm, nhắn khách gõ "tiếp tục"
+const MAX_STEPS = 16;               // số vòng gọi công cụ tối đa mỗi lượt (đủ để chờ video tạo xong)
+const TIME_BUDGET_MS = 150000;      // dừng sớm, nhắn khách gõ "tiếp tục"
 const MAX_TOOL_RESULT_CHARS = 12000;
 const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
 // Gemini và Grok gọi qua cổng tương thích OpenAI (đã tra tài liệu 22/11/2026).
@@ -46,7 +47,10 @@ Quy tắc bắt buộc:
 - Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
   hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
   rồi tạo design từ ảnh (CANVA_POST_DESIGNS) và gửi link chỉnh sửa. Đăng bài có ảnh thì dùng đúng link ảnh đã tạo.
-- Chỉ nói "không làm được" khi công cụ thật sự báo lỗi; nói rõ lỗi gì và cách khắc phục.`;
+- Chỉ nói "không làm được" khi công cụ thật sự báo lỗi; nói rõ lỗi gì và cách khắc phục.
+- Công cụ tạo ảnh/video của app khác (OpenArt, Higgsfield…) thường trả mã việc trước: gọi CREWZY_CHO (10–30 giây) rồi gọi công cụ
+  xem trạng thái của app đó, lặp tới khi có kết quả. Crewzy tự lưu ảnh/video thành link cố định trong trường media_crewzy
+  và hiện cho khách xem; khi đăng Facebook/Instagram/YouTube luôn dùng link trong media_crewzy (link gốc của nhà cung cấp hay hết hạn).`;
 
 // Lời dặn đầy đủ cho một lượt: lời dặn chung + Brain thương hiệu + Skill các app đã kết nối.
 async function buildSystem(env, composio, uid) {
@@ -91,6 +95,7 @@ function geminiSafeTool(t) {
 function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
+  if (name === 'CREWZY_CHO') return 'Đang chờ kết quả (' + Math.round(Number((input && input.giay) || 15)) + ' giây)';
   if (name === 'COMPOSIO_SEARCH_TOOLS') return 'Tìm công cụ phù hợp';
   if (name === 'COMPOSIO_GET_TOOL_SCHEMAS') return 'Xem cách dùng công cụ';
   if (name === 'COMPOSIO_MANAGE_CONNECTIONS') return 'Kiểm tra kết nối ứng dụng';
@@ -243,6 +248,7 @@ export default async (req, env) => {
             + (ext.names.length ? 'Đang dùng được: ' + ext.names.join(', ') + '. Công cụ của chúng có tiền tố m…_ và ghi [tên máy chủ] ở đầu mô tả; gọi thẳng, không cần COMPOSIO_SEARCH_TOOLS.' : '')
             + (ext.failed.length ? '\nTạm không nối được: ' + ext.failed.join(', ') + ' (nhắc khách vào Kết nối → MCP khác để kiểm tra).' : '');
         }
+        const seenMedia = new Set();
         const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
         const origin = new URL(req.url).origin;
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
@@ -255,14 +261,14 @@ export default async (req, env) => {
           if (ext.run) {
             const res = await ext.run(name, args);
             if (res) {
-              // Ảnh do máy chủ MCP trả về: lưu lại thành link công khai và hiện trong khung chat.
-              const links = [];
-              for (const img of (res.images || []).slice(0, 4)) {
-                try { const url = await storeImageBytes(env, uid, origin, img.data, img.mimeType); links.push(url); emit({ type: 'image', url }); }
-                catch (e) { console.error('store mcp image failed', e && e.message); }
-              }
+              // Ảnh/video máy chủ MCP trả về (dạng dữ liệu hoặc link): lưu thành link cố định của Crewzy, hiện trong chat.
+              const media = res.raw ? await collectMedia(env, uid, origin, res.raw, seenMedia) : [];
+              delete res.raw;
               delete res.images;
-              if (links.length) res.anh = links;
+              for (const m of media) emit({ type: m.kind === 'video' ? 'video' : m.kind === 'audio' ? 'audio' : 'image', url: m.link });
+              if (media.length) {
+                res.media_crewzy = media.map((m) => ({ loai: m.kind, link: m.link, ...(m.goc ? { ghi_chu: 'File lớn hơn 24MB, đây là link gốc của nhà cung cấp, có thể hết hạn' } : {}) }));
+              }
               return res;
             }
           }

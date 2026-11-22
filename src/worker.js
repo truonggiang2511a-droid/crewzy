@@ -11,6 +11,7 @@ import status from './routes/status.js';
 import mcpGateway from './routes/mcpGateway.js';
 import mcpServers from './routes/mcpServers.js';
 import { serveImage } from './lib/crewzyTools.js';
+import { serveMedia } from './lib/media.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
@@ -26,6 +27,7 @@ export default {
       if (pathname === '/') return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
       if (pathname.startsWith('/mcp/')) return await mcpGateway(request, env, ctx);
       if (pathname.startsWith('/api/img/')) return await serveImage(request, env);
+      if (pathname.startsWith('/api/media/')) return await serveMedia(request, env);
       const handler = ROUTES[pathname];
       if (handler) return await handler(request, env, ctx);
       if (pathname.startsWith('/api/')) return Response.json({ error: 'Không có API này.' }, { status: 404 });

@@ -12,7 +12,7 @@ import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTool
 
 const plain = (status, text) => new Response(text, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
-const MCP_TOOLS = CREWZY_TOOL_DEFS.map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters }));
+const MCP_TOOLS = CREWZY_TOOL_DEFS.filter((t) => t.function.name !== 'CREWZY_CHO').map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters }));
 
 async function connectedApps(env, uid) {
   try {

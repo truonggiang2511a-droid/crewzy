@@ -64,3 +64,24 @@ const res = mcpResultToTool(await conn.callTool('create-page', { title: 'A' }));
 assert.equal(res.data, 'đã tạo');
 assert.equal(res.images.length, 1);
 console.log('mcptest OK');
+
+// Lấy ảnh/video từ kết quả MCP: link trong JSON, dữ liệu base64, bỏ link không phải media.
+import { findMediaCandidates, collectMedia, serveMedia } from '../src/lib/media.js';
+const sample = { content: [{ type: 'text', text: JSON.stringify({ status: 'completed', video_url: 'https://cdn.example.com/out/abc', page: 'https://openart.ai/job/1', thumb: 'https://cdn.example.com/t.jpg?sig=1' }) }, { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' }] };
+const cands = findMediaCandidates(sample);
+assert.equal(cands.filter((c) => c.url).map((c) => c.url).join(','), 'https://cdn.example.com/out/abc,https://cdn.example.com/t.jpg?sig=1');
+const kv = new Map();
+const env = { KV: { put: async (k, v, o) => kv.set(k, { v, m: o.metadata }), getWithMetadata: async (k) => { const x = kv.get(k); return x ? { value: x.v.buffer.slice(x.v.byteOffset, x.v.byteOffset + x.v.byteLength), metadata: x.m } : { value: null }; } } };
+globalThis.fetch = async (url) => {
+  if (String(url).includes('/out/abc')) return new Response(new Uint8Array(1000), { headers: { 'content-type': 'video/mp4', 'content-length': '1000' } });
+  if (String(url).includes('t.jpg')) return new Response(new Uint8Array(10), { headers: { 'content-type': 'image/jpeg' } });
+  return new Response('x', { headers: { 'content-type': 'text/html' } });
+};
+const media = await collectMedia(env, 'u1', 'https://crewzy.test', sample, new Set());
+assert.deepEqual(media.map((m) => m.kind).sort(), ['image', 'image', 'video']);
+const vid = media.find((m) => m.kind === 'video');
+assert.match(vid.link, /^https:\/\/crewzy\.test\/api\/media\/[a-f0-9]{24}\.mp4$/);
+const part = await serveMedia(new Request(vid.link, { headers: { range: 'bytes=0-99' } }), env);
+assert.equal(part.status, 206);
+assert.equal(part.headers.get('content-range'), 'bytes 0-99/1000');
+console.log('mediatest OK');

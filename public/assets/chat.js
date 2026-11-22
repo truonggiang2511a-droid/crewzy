@@ -59,6 +59,10 @@
     html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, function (m, alt, url) {
       return '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="' + alt + '" style="display:block;max-width:100%;width:320px;border-radius:8px;margin:6px 0;border:1px solid #E8E8E8"></a>';
     });
+    // Link video .mp4/.webm/.mov → hiện trình phát
+    html = html.replace(/(^|\s)(https?:\/\/[^\s<)"']+\.(mp4|webm|mov)(\?[^\s<)"']*)?)(?=\s|$)/g, function (m, pre, url) {
+      return pre + '<video src="' + url + '" controls playsinline preload="metadata" style="display:block;width:320px;max-width:100%;border-radius:8px;margin:6px 0;background:#000"></video>';
+    });
     html = html.replace(/(^|[^"'])(https?:\/\/[^\s<)"']+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     return html;
   }
@@ -75,6 +79,14 @@
       el.style.cssText = 'align-self: flex-start; display: flex; flex-direction: column; gap: 6px; max-width: 90%';
       el.innerHTML = '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(item.text) + '" alt="Ảnh AI vừa tạo" style="display:block;width:320px;max-width:100%;border-radius:10px;border:1px solid #E8E8E8"></a>' +
         '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener" download style="font-size:13px">Mở ảnh cỡ lớn / tải về</a>';
+    } else if (item.kind === 'video') {
+      el.style.cssText = 'align-self: flex-start; display: flex; flex-direction: column; gap: 6px; max-width: 90%';
+      el.innerHTML = '<video src="' + escapeHtml(item.text) + '" controls playsinline preload="metadata" style="display:block;width:320px;max-width:100%;border-radius:10px;border:1px solid #E8E8E8;background:#000"></video>' +
+        '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener" download style="font-size:13px">Mở video / tải về</a>';
+    } else if (item.kind === 'audio') {
+      el.style.cssText = 'align-self: flex-start; display: flex; flex-direction: column; gap: 6px; max-width: 90%';
+      el.innerHTML = '<audio src="' + escapeHtml(item.text) + '" controls preload="metadata" style="width:320px;max-width:100%"></audio>' +
+        '<a href="' + escapeHtml(item.text) + '" target="_blank" rel="noopener" download style="font-size:13px">Tải file âm thanh</a>';
     } else if (item.kind === 'tool') {
       el.style.cssText = 'align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5B6472';
       el.innerHTML = '<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1E8E4A; flex-shrink: 0"></span><span>' + escapeHtml(item.text) + '</span>';
@@ -207,7 +219,7 @@
         if (thinking.parentNode) thinking.parentNode.removeChild(thinking);
         if (ev.type === 'tool') add({ kind: 'tool', text: ev.label });
         else if (ev.type === 'text') add({ kind: 'assistant', text: ev.text });
-        else if (ev.type === 'image') add({ kind: 'image', text: ev.url });
+        else if (ev.type === 'image' || ev.type === 'video' || ev.type === 'audio') add({ kind: ev.type, text: ev.url });
         else if (ev.type === 'error') add({ kind: 'error', text: ev.message });
       }
       function pump() {

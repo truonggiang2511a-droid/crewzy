@@ -39,6 +39,16 @@ export const CREWZY_TOOL_DEFS = [
   },
 ];
 
+// Chỉ dùng trong Trợ lý AI của Crewzy (không đưa ra link MCP): chờ việc tạo video/ảnh của app khác xong.
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_CHO',
+    description: 'Chờ vài giây rồi mới làm bước tiếp theo. Dùng khi một app đang tạo video/ảnh và trả về mã việc: chờ rồi gọi công cụ xem trạng thái của app đó.',
+    parameters: { type: 'object', properties: { giay: { type: 'number', description: 'Số giây chờ, từ 5 đến 30.' } }, required: ['giay'] },
+  },
+});
+
 export const isCrewzyTool = (name) => typeof name === 'string' && name.startsWith('CREWZY_');
 
 function newId() {
@@ -113,6 +123,11 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
+    if (name === 'CREWZY_CHO') {
+      const s = Math.min(30, Math.max(5, Number((args && args.giay) || 15)));
+      await new Promise((r) => setTimeout(r, s * 1000));
+      return { data: `Đã chờ ${s} giây. Giờ kiểm tra trạng thái.` };
+    }
     return { error: 'Không có công cụ ' + name };
   } catch (e) {
     console.error('crewzy tool failed', name, e && e.message);

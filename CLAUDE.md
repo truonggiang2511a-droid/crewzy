@@ -74,6 +74,8 @@ src/lib/mcpClient.js      Máy khách MCP Streamable HTTP (SSE/JSON, Mcp-Session
 src/lib/mcpServers.js     Lưu máy chủ MCP của khách (KV mcpsrv:<uid>, tối đa 10, token mã hoá AES-GCM sealText), loadExternalTools cho chat
                           (tối đa 40 công cụ/máy chủ, 80 tổng, tên m<id>_<tool>, mỗi máy chủ chờ tối đa 12 giây)
 src/routes/mcpServers.js  GET/POST /api/mcp-servers (add|remove|test) · GET /api/mcp-callback (app kia trả về sau khi khách đồng ý)
+src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoài (dữ liệu base64, resource, link trong JSON/chữ), tải về lưu KV media:<id>
+                          (90 ngày, ≤24MB, lớn hơn giữ link gốc), phục vụ /api/media/<id>.<đuôi> công khai có Range (tua video)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
@@ -97,7 +99,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   link nối AI qua /mcp/* initialize OK. 3 khoá bí mật COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET do Giang tự đặt trên dashboard.
   Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
 - KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày),
-  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `imgcount:<ngày>:<uid>`, `mcpsrv:<uid>` (máy chủ MCP khách nối),
+  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `media:<id>` (ảnh/video từ MCP ngoài, 90 ngày), `imgcount:<ngày>:<uid>`, `mcpsrv:<uid>` (máy chủ MCP khách nối),
   `mcpoauth:<state>` (đang chờ đăng nhập, 15 phút).
   KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
 - Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
@@ -108,7 +110,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Trợ lý AI (/api/chat): chế độ app, claude, openai, gemini, grok (khoá API riêng), openrouter.
   `gemini` = gemini-3.8-flash qua https://generativelanguage.googleapis.com/v1beta/openai/ (schema công cụ được lọc bằng geminiSafeTool);
   `grok` = grok-4.7 qua https://api.x.ai/v1; cả hai dùng `max_tokens`. CHƯA thử với khoá thật (Giang chưa có khoá Gemini/Grok).
-  Công cụ MCP ngoài khách đã nối được nạp thêm mỗi lượt; ảnh MCP trả về được lưu thành /api/img/<id> và hiện trong chat.
+  Công cụ MCP ngoài khách đã nối được nạp thêm mỗi lượt; ảnh/video MCP trả về được lưu thành /api/media/<id> (media.js), phát sự kiện
+  {type:'image'|'video'|'audio', url} và gửi AI trường media_crewzy để đăng bài bằng link cố định. CREWZY_CHO (5–30 giây, chỉ trong chat,
+  không đưa ra link MCP) để AI chờ app tạo video rồi hỏi trạng thái. Mỗi lượt tối đa 16 bước / 150 giây.
   `app` = Claude Haiku 5.5 bằng khoá `ANTHROPIC_API_KEY` của Giang (bí mật Cloudflare; chưa đặt → giao diện tự ẩn chế độ này).
   Trần 30 lượt/ngày mỗi khách + 300 lượt/ngày cả app (KV usage:*, theo giờ Việt Nam; không chống đếm trùng khi gửi cùng lúc).
   `claude` = khoá Anthropic của khách, Claude Sonnet 5.5, `baseURL: 'https://api.anthropic.com'`.
@@ -144,6 +148,8 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   để khách không bị kẹt ở trang lỗi. Đã thử 22/11: Linear hiện trang đồng ý "Crewzy is requesting access", Notion chuyển sang đăng nhập Notion.
   CANVA MCP (mcp.canva.com) chỉ nhận redirect của Claude, ChatGPT và localhost — DCR lẫn CIMD đều báo "Invalid redirect URI"
   → bỏ khỏi Điền nhanh, nút Canva dẫn sang ket-noi.html?app=canva (Composio). Muốn dùng MCP Canva phải xin Canva duyệt.
+  OpenArt (https://mcp.openart.ai/mcp, ảnh + video) nhận Crewzy: DCR ra link đăng nhập openart.ai (scope full_access) — chưa đăng nhập thử.
+  Định dạng kết quả của OpenArt chưa xem được (cần tài khoản) → media.js đoán theo khoá JSON (url, video_url, image…) + content-type khi tải.
   Công cụ MCP ngoài CHƯA có trong link nối AI (/mcp/*) — Claude/ChatGPT tự thêm connector đó được.
 - Workers AI (tra 22/11/2026): miễn phí 10.000 neurons/ngày (reset 7 giờ sáng VN), vượt thì 0,011 USD/1.000 neurons (chỉ gói Workers Paid,
   gói Free hết là báo lỗi). flux-2-klein-4b: 26,05 neurons mỗi ô 512×512 đầu ra → ảnh 4:5 (6 ô) ≈ 156 neurons ≈ 60 ảnh/ngày miễn phí,

@@ -103,7 +103,7 @@ export async function loadExternalTools(env, uid) {
   out.run = async (name, args) => {
     const hit = map.get(name);
     if (!hit) return null;
-    try { return mcpResultToTool(await hit.conn.callTool(hit.tool, args)); }
+    try { const raw = await hit.conn.callTool(hit.tool, args); return { ...mcpResultToTool(raw), raw }; }
     catch (e) { return { error: `${hit.server}: ${String((e && e.message) || e).slice(0, 200)}` }; }
   };
   out.label = (name) => { const hit = map.get(name); return hit ? `${hit.server}: ${hit.tool}` : ''; };
