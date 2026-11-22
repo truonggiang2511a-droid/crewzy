@@ -53,8 +53,12 @@ Quy tắc bắt buộc:
 - Nếu ứng dụng chưa kết nối, nói người dùng vào trang Kết nối công cụ (ket-noi.html) để kết nối, hoặc đưa link kết nối từ COMPOSIO_MANAGE_CONNECTIONS.
 - Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.
 - Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.
-- Video ngắn (Reels/TikTok/Shorts): dùng CREWZY_TAO_VIDEO (mặc định dọc 9:16, 6 giây); muốn đẹp và đúng sản phẩm thì tạo ảnh trước
-  bằng CREWZY_TAO_ANH rồi đưa link ảnh vào trường anh để làm ảnh chuyển động. Hiện link video cho khách.
+- Hình ảnh thật trước, AI sau: trước khi làm ảnh/video/bài đăng, xem Kho (CREWZY_KHO) và ảnh khách gửi trong chat; nếu kho trống,
+  đọc website của khách (CREWZY_DOC_WEB → trường anh) hoặc fanpage (công cụ Facebook/Instagram lấy ảnh bài gần đây), xem ảnh bằng
+  CREWZY_XEM_ANH, lưu ảnh đẹp vào Kho (CREWZY_LUU_KHO). Ảnh thật đủ đẹp thì đăng thẳng ảnh thật.
+- Ảnh quảng cáo: CREWZY_TAO_ANH chat_luong "dep" + anh_mau (link ảnh thật) để giữ đúng sản phẩm/căn nhà; "nhanh" cho ảnh minh hoạ.
+- Video ngắn (Reels/TikTok/Shorts): CREWZY_TAO_VIDEO (dọc 9:16). Đưa ảnh thật vào trường anh để làm ảnh chuyển động;
+  chat_luong "dep" cho video như quay thật. Hiện link video cho khách. Gói chưa có mức Đẹp thì công cụ tự hạ và báo, nói lại cho khách.
 - Khách bảo "đăng luôn" ngay trong cuộc trò chuyện thì đó là đồng ý: đăng, rồi nộp phiếu với trang_thai da_dang kèm link bài.
 - Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
   hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
@@ -109,9 +113,13 @@ function geminiSafeTool(t) {
 }
 
 function toolLabel(name, input) {
-  if (name === 'CREWZY_TAO_ANH') return 'Đang tạo ảnh';
-  if (name === 'CREWZY_TAO_VIDEO') return 'Đang làm video (1–3 phút)';
+  if (name === 'CREWZY_TAO_ANH') return input && input.chat_luong === 'dep' ? 'Đang tạo ảnh Đẹp (khoảng 20 giây)' : 'Đang tạo ảnh';
+  if (name === 'CREWZY_TAO_VIDEO') return input && input.chat_luong === 'dep' ? 'Đang làm video Đẹp (2–4 phút)' : 'Đang làm video (1–3 phút)';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
+  if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
+  if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';
+  if (name === 'CREWZY_LUU_KHO') return 'Lưu ảnh vào Kho';
+  if (name === 'CREWZY_DOC_WEB') return 'Đọc website' + (input && input.url ? ' ' + String(input.url).replace(/^https?:\/\//, '').slice(0, 40) : '');
   if (name === 'CREWZY_VIEC_CAN_LAM') return 'Xem việc Crewzy đang giao';
   if (name === 'CREWZY_QUY_TRINH') return input && input.id ? 'Đọc các bước quy trình ' + input.id : 'Xem thư viện quy trình';
   if (name === 'CREWZY_NOP_KET_QUA') return 'Nộp kết quả vào Việc chờ duyệt';
@@ -137,12 +145,33 @@ function toolResultText(result) {
   return text.length > MAX_TOOL_RESULT_CHARS ? text.slice(0, MAX_TOOL_RESULT_CHARS) + '…(đã cắt bớt)' : text;
 }
 
-function cleanMessages(raw) {
+// Tin nhắn từ trình duyệt: {role, content, files?:[{url, kind, name}]}. File đính kèm chỉ nhận link Crewzy (/api/media, /api/img).
+function cleanMessages(raw, origin) {
   const list = Array.isArray(raw) ? raw : [];
+  const ours = (u) => typeof u === 'string' && (u.startsWith(origin + '/api/media/') || u.startsWith(origin + '/api/img/'));
   return list
-    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && (m.content.trim() || (Array.isArray(m.files) && m.files.length)))
     .slice(-20)
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .map((m) => {
+      const out = { role: m.role, content: m.content.slice(0, 4000) };
+      const files = m.role === 'user' && Array.isArray(m.files) ? m.files.filter((f) => f && ours(f.url)).slice(0, 6) : [];
+      if (files.length) out.files = files.map((f) => ({ url: f.url, kind: ['image', 'video', 'audio', 'doc'].includes(f.kind) ? f.kind : 'doc', name: String(f.name || '').slice(0, 80) }));
+      return out;
+    });
+}
+
+// Chuyển file đính kèm thành nội dung cho từng loại AI. Ảnh chỉ gửi dạng ảnh ở tin nhắn người dùng CUỐI (đỡ tốn token), tin cũ ghi link.
+function withAttachments(messages, style) {
+  const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  return messages.map((m, i) => {
+    if (!m.files || !m.files.length) return { role: m.role, content: m.content };
+    const note = 'Tệp anh/chị gửi kèm (đã lưu trong Kho, dùng link này để đăng hoặc làm ảnh mẫu):\n' + m.files.map((f) => `- ${f.kind === 'image' ? 'Ảnh' : f.kind === 'video' ? 'Video' : f.kind === 'audio' ? 'Âm thanh' : 'Tài liệu'}${f.name ? ' ' + f.name : ''}: ${f.url}`).join('\n');
+    const text = (m.content ? m.content + '\n\n' : '') + note;
+    const imgs = i === lastUser ? m.files.filter((f) => f.kind === 'image').slice(0, 4) : [];
+    if (!imgs.length || style === 'text') return { role: m.role, content: text };
+    if (style === 'claude') return { role: m.role, content: [{ type: 'text', text }, ...imgs.map((f) => ({ type: 'image', source: { type: 'url', url: f.url } }))] };
+    return { role: m.role, content: [{ type: 'text', text }, ...imgs.map((f) => ({ type: 'image_url', image_url: { url: f.url } }))] };
+  });
 }
 
 // Đếm lượt chế độ credit của app trong KV (không tuyệt đối chính xác khi gửi cùng lúc, đủ để chặn lạm dụng).
@@ -202,7 +231,12 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
       emit({ type: 'tool', label: label(call.name, call.input) });
       let out;
       out = await exec(call.name, call.input || {});
-      results.push({ type: 'tool_result', tool_use_id: call.id, content: toolResultText(out), is_error: !!(out && out.error) });
+      const text = toolResultText(out);
+      // CREWZY_XEM_ANH: gửi ảnh thật cho Claude nhìn (link đã lưu ở R2 của Crewzy nên Anthropic tải được).
+      const content = out && Array.isArray(out.xem_anh) && out.xem_anh.length
+        ? [{ type: 'text', text }, ...out.xem_anh.map((url) => ({ type: 'image', source: { type: 'url', url } }))]
+        : text;
+      results.push({ type: 'tool_result', tool_use_id: call.id, content, is_error: !!(out && out.error) });
     }
     convo.push({ role: 'user', content: results });
     if (Date.now() > deadline) {
@@ -342,17 +376,17 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
         baseURL: 'https://openrouter.ai/api/v1',
         defaultHeaders: { 'HTTP-Referer': origin, 'X-Title': APP_NAME },
       });
-      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system, tokenParam: 'max_tokens' });
     } else if (OPENAI_COMPAT[mode]) {
       const client = new OpenAI({ apiKey: key.trim(), baseURL: OPENAI_COMPAT[mode] });
-      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'text'), emit, deadline, system, tokenParam: 'max_tokens' });
     } else if (mode === 'openai') {
       const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system });
     } else {
       const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
       const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat', model) : null;
-      await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system, onUsage });
+      await runClaude({ client, model, tools, exec, label, messages: withAttachments(messages, 'claude'), emit, deadline, system, onUsage });
     }
 }
 
@@ -366,7 +400,7 @@ export default async (req, env) => {
   let body;
   try { body = await req.json(); } catch (e) { return Response.json({ error: 'Dữ liệu gửi lên không hợp lệ.' }, { status: 400 }); }
   const { mode, key } = body || {};
-  const messages = cleanMessages(body && body.messages);
+  const messages = cleanMessages(body && body.messages, new URL(req.url).origin);
   const who = await resolveUid(req, env, body && body.uid);
   if (who.response) return who.response;
   const uid = who.uid;

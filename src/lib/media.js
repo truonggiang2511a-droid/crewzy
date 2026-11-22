@@ -13,14 +13,16 @@ export const maxBytes = (env) => (env && env.MEDIA ? MAX_BYTES_R2 : MAX_BYTES_KV
 export const maxLabel = (env) => Math.round(maxBytes(env) / 1024 / 1024) + 'MB';
 const r2Key = (id) => 'media/' + id;
 const MAX_PER_CALL = 4;
-export const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/mp4': 'm4a' };
+export const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/mp4': 'm4a', 'audio/webm': 'weba',
+  'application/pdf': 'pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx', 'text/plain': 'txt', 'text/csv': 'csv' };
 const MEDIA_EXT = /\.(png|jpe?g|webp|gif|mp4|webm|mov|m4v|mp3|wav|m4a)(\?|#|$)/i;
 const MEDIA_KEY = /(image|img|video|media|output|result|asset|file|download|thumbnail|preview|url|uri|src)/i;
 
 export function newId() {
   return Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => x.toString(16).padStart(2, '0')).join('');
 }
-export const kindOf = (ct) => (ct.startsWith('video/') ? 'video' : ct.startsWith('audio/') ? 'audio' : 'image');
+export const kindOf = (ct) => (ct.startsWith('video/') ? 'video' : ct.startsWith('audio/') ? 'audio' : ct.startsWith('image/') ? 'image' : 'doc');
 function b64ToBytes(b64) { const bin = atob(b64); return Uint8Array.from(bin, (c) => c.charCodeAt(0)); }
 
 function isPublicHttps(u) {

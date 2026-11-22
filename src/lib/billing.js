@@ -226,6 +226,7 @@ export function toolPrice(env, name, args) {
   if (!name || FREE_TOOLS.has(name)) return 0;
   if (name === 'COMPOSIO_MULTI_EXECUTE_TOOL') return p.tool * Math.max(1, Math.min(50, ((args && args.tools) || []).length));
   if (name === 'COMPOSIO_REMOTE_WORKBENCH' || name === 'COMPOSIO_REMOTE_BASH_TOOL') return p.workbench;
+  if (name === 'CREWZY_GIONG_NOI') return p.voice;
   if (name === 'CREWZY_TAO_ANH') return args && args.chat_luong === 'dep' ? p.image_dep : p.image;
   if (name === 'CREWZY_TAO_VIDEO') return (args && args.chat_luong === 'dep' ? p.video_second_dep : p.video_second) * (Number(args && args.giay) || 6);
   if (name.startsWith('CREWZY_')) return 0; // đọc Brain, quy trình, phiếu, đọc web, tải file: miễn phí

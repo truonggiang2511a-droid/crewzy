@@ -5,12 +5,13 @@
 import { getBrand, brandText, brandPack } from './brand.js';
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
-import { rehostUrl } from './media.js';
+import { rehostUrl, putMedia } from './media.js';
 import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS, forMcp } from './workflows.js';
 import { readWebsite } from './webRead.js';
 import { listJobs } from './jobs.js';
 import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
+import { LIBRARY_TOOL_DEFS, libraryTool, addItem } from './library.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -26,12 +27,14 @@ export const CREWZY_TOOL_DEFS = [
     type: 'function',
     function: {
       name: 'CREWZY_TAO_ANH',
-      description: 'Tạo một ảnh mới từ mô tả (ảnh quảng cáo, ảnh bài đăng, ảnh minh hoạ). Trả về link ảnh công khai dùng được để đăng Facebook/Instagram hoặc tải lên Canva/Drive. Viết mô tả bằng tiếng Anh, chi tiết (chủ thể, bối cảnh, ánh sáng, góc máy, phong cách). Ảnh không nên chứa chữ (AI vẽ chữ tiếng Việt hay sai); chữ thêm sau trong bài đăng hoặc Canva.',
+      description: 'Tạo một ảnh mới từ mô tả, hoặc biến ảnh thật của khách thành ảnh quảng cáo đẹp (chat_luong dep + anh_mau). Trả về link ảnh công khai dùng được để đăng Facebook/Instagram hoặc tải lên Canva/Drive. Viết mô tả bằng tiếng Anh, chi tiết (chủ thể, bối cảnh, ánh sáng, góc máy, phong cách). Ảnh không nên chứa chữ (AI vẽ chữ tiếng Việt hay sai); chữ thêm sau trong bài đăng hoặc Canva.',
       parameters: {
         type: 'object',
         properties: {
           prompt: { type: 'string', description: 'Mô tả ảnh bằng tiếng Anh, 20–80 từ.' },
-          kho: { type: 'string', enum: Object.keys(SIZES), description: 'Khổ ảnh: vuong (1:1), doc (4:5 bài đăng), story (9:16), ngang (16:9). Mặc định doc.' },
+          kho: { type: 'string', enum: Object.keys(SIZES), description: 'Khổ ảnh: vuong (1:1), doc (4:5 bài đăng; mức Đẹp ra 3:4), story (9:16), ngang (16:9). Mặc định doc.' },
+          chat_luong: { type: 'string', enum: ['nhanh', 'dep'], description: 'nhanh = 3 credit, ảnh minh hoạ nhanh (mặc định). dep = 25 credit, ảnh quảng cáo đẹp 2K (Seedream 4.5), giữ đúng sản phẩm khi có anh_mau. Gói chưa có thì tự hạ xuống nhanh.' },
+          anh_mau: { type: 'array', items: { type: 'string' }, description: 'Chỉ mức dep: 1–4 link https ảnh thật của khách (từ CREWZY_KHO, ảnh khách gửi trong chat, ảnh website/fanpage đã lưu) để AI giữ đúng sản phẩm, căn nhà, khuôn mặt, phong cách.' },
         },
         required: ['prompt'],
       },
@@ -70,8 +73,10 @@ export const VIDEO_TOOL = {
       properties: {
         prompt: { type: 'string', description: 'Mô tả video bằng tiếng Anh, 20–100 từ.' },
         kho: { type: 'string', enum: ['doc', 'ngang'], description: 'doc = 9:16 (Reels, TikTok, Shorts, mặc định), ngang = 16:9.' },
-        giay: { type: 'number', enum: [6, 8, 10], description: 'Độ dài, mặc định 6 giây.' },
-        anh: { type: 'string', description: 'Link ảnh https làm khung hình đầu (không bắt buộc).' },
+        giay: { type: 'number', enum: [5, 6, 8, 10], description: 'Độ dài, mặc định 6 giây (mức dep nên 5 giây).' },
+        anh: { type: 'string', description: 'Link ảnh https làm khung hình đầu (không bắt buộc). Nên dùng ảnh thật của khách từ CREWZY_KHO.' },
+        chat_luong: { type: 'string', enum: ['nhanh', 'dep'], description: 'nhanh = 17 credit/giây (LTX, mặc định). dep = 65 credit/giây, video như quay thật 720p (Seedance 2.0), dùng anh hoặc anh_mau. Gói chưa có thì tự hạ xuống nhanh.' },
+        anh_mau: { type: 'array', items: { type: 'string' }, description: 'Chỉ mức dep, khi không có anh: 1–4 link ảnh thật (sản phẩm, nhân vật, bối cảnh) để video giữ đúng hình.' },
       },
       required: ['prompt'],
     },
@@ -80,9 +85,28 @@ export const VIDEO_TOOL = {
 const VIDEO_USER_DAILY = 3;   // video/ngày mỗi khách
 const VIDEO_APP_DAILY = 30;   // video/ngày cả app (chặn tiền chạy quá tay)
 
-async function runVideoModel(env, { prompt, kho, giay, anh }) {
+const pickUrl = (out, key) => {
+  const r = (out && out.result) || out || {};
+  if (typeof r[key] === 'string') return r[key];
+  const arr = r[key + 's'];
+  return Array.isArray(arr) && typeof arr[0] === 'string' ? arr[0] : '';
+};
+const httpsList = (v, n) => (Array.isArray(v) ? v : v ? [v] : []).map(String).filter((u) => /^https:\/\//.test(u)).slice(0, n);
+
+async function runVideoModel(env, { prompt, kho, giay, anh, dep, mau }) {
   const gateway = { gateway: { id: env.AI_GATEWAY_ID || 'default' } };
   const errors = [];
+  // Mức Đẹp: Seedance 2.0 Fast 720p (0,12 USD/giây, có âm thanh). Ảnh đầu (anh) hoặc 1–4 ảnh mẫu (anh_mau), không dùng chung.
+  if (dep) {
+    try {
+      const input = { prompt, duration: Math.min(12, Math.max(4, giay)), resolution: '720p', aspect_ratio: kho === 'ngang' ? '16:9' : '9:16', fps: 24, camera_fixed: false, watermark: false, generate_audio: true };
+      if (anh) input.image = anh; else if (mau.length) input.reference_images = mau;
+      const out = await env.AI.run('bytedance/seedance-2.0-fast', input, gateway);
+      const url = pickUrl(out, 'video');
+      if (url) return { url, model: 'seedance-2.0-fast' };
+      errors.push('seedance: ' + JSON.stringify(out).slice(0, 200));
+    } catch (e) { errors.push('seedance: ' + (e && e.message)); }
+  }
   try {
     const input = { prompt, duration: giay, fps: 24, resolution: kho === 'ngang' ? '1280x720' : '720x1280', generate_audio: true };
     if (anh) input.image_uri = anh;
@@ -113,22 +137,27 @@ export async function createVideo(env, uid, origin, args) {
   const giay = [6, 8, 10].includes(Number(args && args.giay)) ? Number(args.giay) : 6;
   const kho = args && args.kho === 'ngang' ? 'ngang' : 'doc';
   const anh = /^https:\/\//.test((args && args.anh) || '') ? args.anh : '';
+  const dep = args && args.chat_luong === 'dep';
+  const mau = httpsList(args && args.anh_mau, 4);
   const day = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
   const uKey = `vidcount:${day}:${uid}`;
   const aKey = `vidcount:${day}:all`;
   const [u, a] = await Promise.all([env.KV.get(uKey), env.KV.get(aKey)]);
   if (Number(u || 0) >= VIDEO_USER_DAILY) return { error: `Hôm nay đã làm đủ ${VIDEO_USER_DAILY} video, quay lại ngày mai.` };
   if (Number(a || 0) >= VIDEO_APP_DAILY) return { error: 'Hôm nay app đã hết lượt làm video, quay lại ngày mai.' };
-  const { url, model } = await runVideoModel(env, { prompt, kho, giay, anh });
+  const { url, model } = await runVideoModel(env, { prompt, kho, giay, anh, dep, mau });
   const ttl = { expirationTtl: 2 * 86400 };
   await Promise.all([env.KV.put(uKey, String(Number(u || 0) + 1), ttl), env.KV.put(aKey, String(Number(a || 0) + 1), ttl)]);
   const saved = await rehostUrl(env, uid, origin, url).catch(() => null);
   const link = saved && saved.link || url;
+  if (saved && !saved.goc) await addItem(env, uid, { url: link, kind: 'video', source: 'ai_tao', name: 'Video AI ' + giay + ' giây', note: prompt.slice(0, 300) });
   return {
     data: { url: link, giay, kho: kho === 'doc' ? 'dọc 9:16' : 'ngang 16:9', model, ghi_chu: 'Video lưu 90 ngày. Dùng link này để đăng Reels/TikTok/Facebook hoặc nộp vào phiếu việc.' },
     video: link,
   };
 }
+
+CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS);
 
 // Link tải file lên cho AI chạy trên máy khách (Claude Code, Codex): video/ảnh vừa dựng bằng Remotion, HyperFrames, ffmpeg…
 CREWZY_TOOL_DEFS.push({
@@ -209,6 +238,29 @@ CREWZY_TOOL_DEFS.push({
   },
 });
 
+// Cho AI nhìn ảnh (website, fanpage, kho): ảnh được lưu sang R2 của Crewzy trước (link chắc chắn mở được) rồi gửi cho AI dạng ảnh.
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_XEM_ANH',
+    description: 'Nhìn 1–4 ảnh (link https: ảnh trên website trong trường anh của CREWZY_DOC_WEB, ảnh fanpage, ảnh trong Kho) để mô tả, chọn ảnh đẹp nhất, viết caption đúng với ảnh, hoặc lên ý tưởng ảnh/video theo phong cách đó. Trả lại link đã lưu ở Crewzy để dùng tiếp.',
+    parameters: { type: 'object', properties: { links: { type: 'array', items: { type: 'string' }, description: '1–4 link ảnh https.' } }, required: ['links'] },
+  },
+});
+
+async function viewImages(env, uid, origin, args) {
+  const links = httpsList(args && args.links, 4);
+  if (!links.length) return { error: 'Thiếu link ảnh https.' };
+  const ok = [];
+  for (const u of links) {
+    const ours = u.startsWith(origin + '/api/');
+    const r = ours ? { kind: 'image', link: u } : await rehostUrl(env, uid, origin, u).catch(() => null);
+    if (r && r.kind === 'image' && !r.goc) ok.push(r.link);
+  }
+  if (!ok.length) return { error: 'Không mở được ảnh nào (trang chặn tải, không phải ảnh, hoặc ảnh quá lớn).' };
+  return { data: { da_xem: ok.length, links: ok, ghi_chu: 'Các ảnh ở ngay sau đây. Muốn giữ lâu thì lưu vào Kho bằng CREWZY_LUU_KHO.' }, xem_anh: ok };
+}
+
 // Phiếu việc: AI của khách nhận việc và nộp kết quả về Crewzy (src/lib/jobs.js).
 CREWZY_TOOL_DEFS.push(...JOB_TOOL_DEFS);
 
@@ -250,21 +302,49 @@ async function runImageModel(env, prompt, size) {
   return { bytes: b64ToBytes(out.image), model: 'flux-1-schnell' };
 }
 
+const DEP_RATIO = { vuong: '1:1', doc: '3:4', story: '9:16', ngang: '16:9' };
+// Ảnh Đẹp: Seedream 4.5 (ByteDance, 0,04 USD/ảnh, 2K, nhận tới nhiều ảnh mẫu) qua AI Gateway (Unified Billing, Giang nạp trên Cloudflare).
+async function createImageDep(env, uid, origin, prompt, kho, mau) {
+  const input = { prompt, size: '2K', aspect_ratio: mau.length && !DEP_RATIO[kho] ? 'match_input_image' : DEP_RATIO[kho] || '3:4' };
+  if (mau.length) input.image_input = mau;
+  let out;
+  try {
+    out = await env.AI.run('bytedance/seedream-4.5', input, { gateway: { id: env.AI_GATEWAY_ID || 'default' } });
+  } catch (e) {
+    const msg = String(e && e.message);
+    if (/credit|balance|402|payment|billing|insufficient/i.test(msg)) throw new Error('Máy chủ chưa nạp credit cho ảnh Đẹp (Cloudflare → AI Gateway → Unified Billing). Tạm dùng chat_luong nhanh.');
+    throw e;
+  }
+  const url = pickUrl(out, 'image');
+  if (!url) throw new Error('Mô hình ảnh Đẹp không trả về ảnh: ' + JSON.stringify(out).slice(0, 160));
+  const saved = await rehostUrl(env, uid, origin, url).catch(() => null);
+  const link = saved && !saved.goc ? saved.link : url;
+  await addItem(env, uid, { url: link, kind: 'image', source: 'ai_tao', name: 'Ảnh AI (Đẹp)', note: prompt.slice(0, 300) });
+  return { data: { url: link, chat_luong: 'Đẹp 2K (Seedream 4.5)', da_dung_anh_mau: mau.length, ghi_chu: 'Ảnh đã lưu vào Kho. Hiện ảnh cho khách bằng ![ảnh](link) và dùng link này để đăng.' }, image: link };
+}
+
 export async function createImage(env, uid, origin, args) {
   if (!env.AI) return { error: 'Máy chủ chưa bật Workers AI (binding AI).' };
   const prompt = String((args && args.prompt) || '').trim().slice(0, 2000);
   if (prompt.length < 5) return { error: 'Thiếu mô tả ảnh.' };
+  if (args && args.chat_luong === 'dep') return await createImageDep(env, uid, origin, prompt, args.kho, httpsList(args.anh_mau, 4));
   const size = SIZES[args && args.kho] || SIZES.doc;
   const day = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
   const capKey = `imgcount:${day}:${uid}`;
   const used = Number((await env.KV.get(capKey)) || 0);
   if (used >= DAILY_IMAGE_CAP) return { error: `Hôm nay đã tạo đủ ${DAILY_IMAGE_CAP} ảnh, quay lại ngày mai.` };
   const { bytes, model } = await runImageModel(env, prompt, size);
-  const id = newId();
-  await env.KV.put('img:' + id, bytes, { expirationTtl: IMAGE_TTL, metadata: { ct: 'image/jpeg', uid, model } });
+  // Có R2: lưu lâu dài (ảnh nằm trong Kho của khách); chưa có R2 thì KV 90 ngày như cũ.
+  let url;
+  if (env.MEDIA) url = await putMedia(env, uid, origin, bytes, 'image/jpeg', 'ai:' + model);
+  else {
+    const id = newId();
+    await env.KV.put('img:' + id, bytes, { expirationTtl: IMAGE_TTL, metadata: { ct: 'image/jpeg', uid, model } });
+    url = `${origin}/api/img/${id}.jpg`;
+  }
   await env.KV.put(capKey, String(used + 1), { expirationTtl: 2 * 86400 });
-  const url = `${origin}/api/img/${id}.jpg`;
-  return { data: { url, kho: size.label, ghi_chu: 'Ảnh lưu 90 ngày. Dùng link này để đăng bài hoặc tải lên Canva/Drive. Hiện ảnh cho khách bằng cú pháp ![ảnh](link).' }, image: url };
+  await addItem(env, uid, { url, kind: 'image', source: 'ai_tao', size: bytes.length, name: 'Ảnh AI', note: prompt.slice(0, 300) });
+  return { data: { url, kho: size.label, ghi_chu: 'Ảnh đã lưu vào Kho. Dùng link này để đăng bài hoặc tải lên Canva/Drive. Hiện ảnh cho khách bằng cú pháp ![ảnh](link).' }, image: url };
 }
 
 // Lưu ảnh (base64) do công cụ khác trả về thành link công khai /api/img/<id>.jpg (90 ngày).
@@ -292,6 +372,8 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent, args && args.id);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_DOC_WEB') return await readWebsite(args && args.url);
+    if (name === 'CREWZY_XEM_ANH') return await viewImages(env, uid, origin, args);
+    if (name === 'CREWZY_KHO' || name === 'CREWZY_LUU_KHO') return await libraryTool(env, uid, origin, name, args || {});
     if (name === 'CREWZY_TAI_LEN') return await createPutLink(env, origin, uid, args && args.loai_file);
     if (name === 'CREWZY_CHO') {
       const s = Math.min(30, Math.max(5, Number((args && args.giay) || 15)));

@@ -4,6 +4,7 @@
 const MAX_BYTES = 1_500_000;
 const MAX_TEXT = 12000;
 const MAX_LINKS = 40;
+const MAX_IMAGES = 24;
 const LOGIN_HOSTS = /(^|\.)(facebook\.com|fb\.com|instagram\.com|tiktok\.com|zalo\.me|linkedin\.com)$/i;
 
 export function blockedHost(host) {
@@ -52,6 +53,29 @@ export function extractPage(html, pageUrl) {
     links.push({ chu: clean(t).slice(0, 80), url: k });
     return _;
   });
+  // Ảnh trên trang (để AI xem và lưu vào Kho làm content): og:image trước, rồi <img> (src, data-src, srcset lớn nhất). Bỏ icon, svg, ảnh 1px.
+  const anh = [];
+  const seenImg = new Set();
+  const addImg = (raw, alt, w, h) => {
+    if (!raw || anh.length >= MAX_IMAGES) return;
+    let u; try { u = new URL(decode(raw.trim()), base); } catch (e) { return; }
+    if (!/^https?:$/.test(u.protocol) || /\.(svg|ico)(\?|$)/i.test(u.pathname) || /(sprite|pixel|tracking|spacer|blank|1x1|favicon|icon[-_]?\d*\.)/i.test(u.pathname)) return;
+    if ((w && Number(w) < 120) || (h && Number(h) < 120)) return;
+    const k = u.toString();
+    if (seenImg.has(k)) return;
+    seenImg.add(k);
+    anh.push({ url: k, mo_ta: clean(alt || '').slice(0, 100) || undefined });
+  };
+  const og = body.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/i) || body.match(/<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/i);
+  if (og) addImg(og[1], 'Ảnh đại diện của trang');
+  body.replace(/<img\b[^>]*>/gi, (tag) => {
+    const at = (n) => { const m = tag.match(new RegExp('\\s' + n + '=(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i')); return m ? (m[1] ?? m[2] ?? m[3] ?? '') : ''; };
+    let src = at('data-src') || at('data-lazy-src') || at('data-original') || at('src');
+    const set = at('srcset') || at('data-srcset');
+    if (set) { const best = set.split(',').map((x) => x.trim().split(/\s+/)).sort((a, b) => (parseInt(b[1]) || 0) - (parseInt(a[1]) || 0))[0]; if (best && best[0]) src = best[0]; }
+    if (src && !src.startsWith('data:')) addImg(src, at('alt'), at('width'), at('height'));
+    return tag;
+  });
   const main = (body.match(/<main\b[\s\S]*?<\/main>/i) || body.match(/<body\b[\s\S]*<\/body>/i) || [body])[0];
   const text = decode(main
     .replace(/<(br|hr)\b[^>]*>/gi, '\n')
@@ -59,7 +83,7 @@ export function extractPage(html, pageUrl) {
     .replace(/<li\b[^>]*>/gi, '\n- ')
     .replace(/<[^>]+>/g, ' '))
     .replace(/[ \t\f\v ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  return { tieu_de: title, mo_ta, muc, chu: text.slice(0, MAX_TEXT), bi_cat: text.length > MAX_TEXT, lien_ket: links };
+  return { tieu_de: title, mo_ta, muc, chu: text.slice(0, MAX_TEXT), bi_cat: text.length > MAX_TEXT, lien_ket: links, anh };
 }
 
 async function readCapped(res) {
@@ -103,9 +127,10 @@ export async function readWebsite(rawUrl) {
   const ct = (res.headers.get('content-type') || '').toLowerCase();
   if (ct && !/html|text\/plain|xml|json/.test(ct)) return { error: 'Link không phải trang web (loại ' + ct.split(';')[0] + ').' };
   const html = await readCapped(res);
-  const page = /html|xml/.test(ct) || /<html|<body|<div/i.test(html) ? extractPage(html, final.toString()) : { tieu_de: '', mo_ta: '', muc: [], chu: html.slice(0, MAX_TEXT), bi_cat: html.length > MAX_TEXT, lien_ket: [] };
+  const page = /html|xml/.test(ct) || /<html|<body|<div/i.test(html) ? extractPage(html, final.toString()) : { tieu_de: '', mo_ta: '', muc: [], chu: html.slice(0, MAX_TEXT), bi_cat: html.length > MAX_TEXT, lien_ket: [], anh: [] };
   const it = page.chu.length < 300;
   return { data: { url: final.toString(), ...page,
-    ghi_chu: it ? 'Trang có rất ít chữ (có thể chạy bằng JavaScript hoặc chặn máy đọc). Thử các trang trong lien_ket, hoặc dùng công cụ đọc web của bạn.'
-      : 'Đọc tiếp 2–5 trang quan trọng trong lien_ket (sản phẩm, dịch vụ, bảng giá, giới thiệu, liên hệ). Chỉ dùng thông tin thật đọc được.' } };
+    ghi_chu: (it ? 'Trang có rất ít chữ (có thể chạy bằng JavaScript hoặc chặn máy đọc). Thử các trang trong lien_ket, hoặc dùng công cụ đọc web của bạn.'
+      : 'Đọc tiếp 2–5 trang quan trọng trong lien_ket (sản phẩm, dịch vụ, bảng giá, giới thiệu, liên hệ). Chỉ dùng thông tin thật đọc được.')
+    + (page.anh && page.anh.length ? ' Trang có ' + page.anh.length + ' ảnh trong trường anh: xem ảnh bằng CREWZY_XEM_ANH để chọn ảnh đẹp, lưu vào Kho bằng CREWZY_LUU_KHO rồi dùng làm bài đăng hoặc ảnh mẫu (anh_mau) khi tạo ảnh/video.' : '') } };
 }

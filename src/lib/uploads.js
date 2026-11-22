@@ -5,7 +5,7 @@ import { newId, EXT } from './media.js';
 const PUT_TTL_MS = 2 * 3600 * 1000;
 
 export function badType(ct) {
-  return !EXT[ct] ? 'Chỉ nhận ảnh (png, jpg, webp, gif), video (mp4, webm, mov) hoặc âm thanh (mp3, wav, m4a).' : '';
+  return !EXT[ct] ? 'Chỉ nhận ảnh (png, jpg, webp, gif), video (mp4, webm, mov), âm thanh (mp3, wav, m4a) hoặc tài liệu (pdf, docx, xlsx, pptx, txt, csv).' : '';
 }
 
 // Link sau khi tải biết trước để AI nộp phiếu ngay.
