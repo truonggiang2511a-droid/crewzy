@@ -399,6 +399,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   băng thông, $0.015/GB-tháng sau đó; tài khoản đã bật R2 sẵn nhờ dung-video-ai nên không phải gắn thẻ). Giới hạn 95MB vì Worker nhận thân ≤100MB.
   Đã thử trên workerd (wrangler dev): file 30MB lên/xuống giống hệt từng byte, Range 206 đúng. Chưa có luật tự xoá trong bucket (file giữ mãi,
   rẻ); muốn xoá sau 90 ngày thì thêm Object lifecycle rule trên dashboard R2 → crewzy-media → Settings.
+- 22/11/2026: Giang chốt KHÔNG tự xin duyệt app Meta/Google cho Crewzy, dùng app quản lý chung của Composio làm trung gian (sau khi nghe
+  phản biện: màn đồng ý hiện tên Composio; Meta hạn chế/thu hồi app chung thì mọi khách hỏng cùng lúc; Composio khuyên dùng app riêng khi chạy thật).
+  Giữ 5 tài khoản/công cụ (Composio cho 2–10); 1 lần nối Facebook dùng được mọi Fanpage nick đó quản lý.
 
 ## 6. Việc tiếp theo
 
