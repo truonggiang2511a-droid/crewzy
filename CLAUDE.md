@@ -164,7 +164,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Công cụ MCP ngoài khách đã nối được nạp thêm mỗi lượt; ảnh/video MCP trả về được lưu thành /api/media/<id> (media.js), phát sự kiện
   {type:'image'|'video'|'audio', url} và gửi AI trường media_crewzy để đăng bài bằng link cố định. CREWZY_CHO (5–30 giây, chỉ trong chat,
   không đưa ra link MCP) để AI chờ app tạo video rồi hỏi trạng thái. Mỗi lượt tối đa 16 bước / 150 giây.
-  `app` = Claude Haiku 5.5 bằng khoá `ANTHROPIC_API_KEY` của Giang (bí mật Cloudflare; chưa đặt → giao diện tự ẩn chế độ này).
+  `app` = Bộ não Crewzy bằng khoá `ANTHROPIC_API_KEY` của Giang: MẶC ĐỊNH Claude Opus 5.5 (từ 22/11 tối, Giang muốn khách thấy giá trị bằng model mạnh;
+  đổi bằng biến APP_MODEL), khách chọn "Tiết kiệm" = Haiku 5.5 (body.brain 'tiet_kiem', ô Bộ não ở chat.html). Lịch tự trả lời bình luận mỗi giờ
+  chạy Haiku, lịch nội dung/báo cáo chạy Opus. runClaude bật prompt caching (công cụ + lời dặn + tin cuối, ≤3 điểm cache) → bước sau đọc cache 0,05× giá.
+  Credit theo giá thật từng model (billing.js AI_MODEL_PRICES: Opus 4/20, Sonnet 2/10, Haiku 0,1/0,5 USD/triệu token, ×26.000đ ×2, 1 credit = 100đ):
+  1 bước Opus 30K vào + 1K ra ≈ 73 credit, có cache ≈ 15 credit. Chưa đặt khoá → giao diện tự ẩn chế độ này.
   Trần 30 lượt/ngày mỗi khách + 300 lượt/ngày cả app (KV usage:*, theo giờ Việt Nam; không chống đếm trùng khi gửi cùng lúc).
   `claude` = khoá Anthropic của khách, Claude Sonnet 5.5, `baseURL: 'https://api.anthropic.com'`.
   `openai` = khoá OpenAI của khách, gpt-5.4-mini, `max_completion_tokens`, `baseURL: 'https://api.openai.com/v1'`.
@@ -450,6 +454,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Màn đồng ý cần trang chủ + chính sách + điều khoản → thêm chinh-sach.html, dieu-khoan.html (cũng là việc bắt buộc trước khi chạy quảng cáo).
   Thu hồi link nối AI: token v3 có mã k, danh sách KV mcplinks:<uid>, thẻ "Link đang hoạt động" (tên thiết bị, AI đang dùng, Thu hồi).
   Test: gatewaytest (thu hồi, link khác vẫn chạy, link v2 + revoke_old, giữ link đang dùng khi quá 20, bật gói chặn link v1); Playwright 1440/390.
+
+- 22/11/2026 (tối): Giang muốn dùng model mạnh (Opus 5.5) để khách thấy giá trị. Gói Claude Pro không dùng được trong app khác →
+  dùng API Opus 5.5 bằng khoá của Giang, trừ credit theo giá thật + prompt caching. Tra giá platform.claude.com: Haiku 5.5 chỉ 0,1/0,5 USD
+  (trước đó billing tính nhầm 1/5). CHƯA thử với khoá thật (bật gói rồi nên chat cần phiên đăng nhập) → Giang chat thử 1 câu ở Trợ lý sau deploy.
 
 ## 6. Việc tiếp theo
 

@@ -148,11 +148,21 @@ export function toolPrice(env, name, args) {
   if (name.startsWith('CREWZY_')) return 0; // đọc Brain, quy trình, phiếu, đọc web, tải file: miễn phí
   return p.tool; // công cụ app (Composio) hoặc MCP ngoài (m…_)
 }
-export function tokenCredits(env, usage) {
+// Giá Anthropic theo model (USD / 1 triệu token, tra platform.claude.com/docs/en/about-claude/pricing 22/11/2026).
+// cr = hệ số giá đọc cache so với giá vào; ghi cache 5 phút = 1,25 × giá vào. Haiku: giá ≤100K token (prompt dài hơn tính ×5).
+export const AI_MODEL_PRICES = {
+  'claude-opus-5-5': { in: 4, out: 20, cr: 0.05 },
+  'claude-sonnet-5-5': { in: 2, out: 10, cr: 0.05 },
+  'claude-haiku-5-5': { in: 0.1, out: 0.5, cr: 0.1, long: 5 },
+};
+export function tokenCredits(env, usage, model) {
   if (!usage) return 0;
   const p = prices(env);
-  const inTok = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) * 1.25 + (usage.cache_read_input_tokens || 0) * 0.1;
-  const usd = (inTok * p.ai_in_per_m + (usage.output_tokens || 0) * p.ai_out_per_m) / 1e6;
+  const m = (p.ai_models && p.ai_models[model]) || AI_MODEL_PRICES[model] || { in: p.ai_in_per_m, out: p.ai_out_per_m, cr: 0.1 };
+  const prompt = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0);
+  const k = m.long && prompt > 100000 ? m.long : 1;
+  const inTok = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) * 1.25 + (usage.cache_read_input_tokens || 0) * m.cr;
+  const usd = (inTok * m.in + (usage.output_tokens || 0) * m.out) * k / 1e6;
   return Math.ceil((usd * p.usd_rate * p.ai_markup) / 100);
 }
 
@@ -170,8 +180,8 @@ export async function makeMeter(env, uid, { email } = {}) {
       const r = await charge(env, uid, n, 'cong_cu', name);
       return r.ok ? null : out(`Hết credit để chạy ${name} (cần ${n} credit).`);
     },
-    async tokens(usage, ref) {
-      const n = tokenCredits(env, usage);
+    async tokens(usage, ref, model) {
+      const n = tokenCredits(env, usage, model);
       if (!n) return null;
       const left = await chargeAfter(env, uid, n, 'ai', ref || 'claude');
       return left !== null && left <= 0 ? 'stop' : null;

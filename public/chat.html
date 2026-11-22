@@ -32,12 +32,19 @@
 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px">
 <label for="ai-mode" style="font-size: 12px; font-weight: 600; color: #4A4A4A">AI đang dùng</label>
 <select id="ai-mode" style="min-height: 40px; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1A1A1A">
-<option value="app">Credit của app (dùng thử)</option>
+<option value="app">Trợ lý Crewzy · dùng credit</option>
 <option value="claude">Claude · khoá API riêng</option>
 <option value="openai">ChatGPT · khoá API riêng</option>
 <option value="gemini">Gemini · khoá API riêng</option>
 <option value="grok">Grok · khoá API riêng</option>
 <option value="openrouter">OpenRouter · đăng nhập tài khoản</option>
+</select>
+</div>
+<div data-brain-box="" style="display: none; flex-direction: column; gap: 4px; min-width: 200px">
+<label for="ai-brain" style="font-size: 12px; font-weight: 600; color: #4A4A4A">Bộ não</label>
+<select id="ai-brain" style="min-height: 40px; padding: 0 10px; border: 1px solid #D6D6D6; border-radius: 6px; font-family: inherit; font-size: 14px; background: #FFFFFF; color: #1A1A1A">
+<option value="manh">Mạnh nhất · Claude Opus 5.5</option>
+<option value="tiet_kiem">Tiết kiệm · Claude Haiku 5.5</option>
 </select>
 </div>
 <div data-key-box="" style="display: none; flex: 1; min-width: 220px; flex-direction: column; gap: 4px">
@@ -53,7 +60,7 @@
 </select>
 <button type="button" data-or-login="" style="display: none; min-height: 40px; padding: 0 14px; border-radius: 2px; border: 0; background: var(--primary); color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Đăng nhập OpenRouter</button>
 </div>
-<p data-mode-note="" style="margin: 0; flex-basis: 100%; font-size: 12px; color: #6B6B6B">Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.</p>
+<p data-mode-note="" style="margin: 0; flex-basis: 100%; font-size: 12px; color: #6B6B6B">Trợ lý Crewzy dùng Claude Opus 5.5, trừ credit theo lượng chữ AI đọc và viết.</p>
 </div>
 </div>
 

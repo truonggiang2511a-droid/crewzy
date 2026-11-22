@@ -163,3 +163,15 @@ await grant(env, UID, 3000, 30, 'mua_goi', 'test', 'co_ban');
 assert.equal((await getAccount(env, UID)).plan_until, before + 30 * 86400000);
 
 console.log('billingtest OK');
+
+// Credit theo model: Opus đắt hơn Haiku; đọc cache rẻ hơn nhiều so với token vào thường.
+{
+  const opus = tokenCredits(env, { input_tokens: 30000, output_tokens: 1000 }, 'claude-opus-5-5');
+  const haiku = tokenCredits(env, { input_tokens: 30000, output_tokens: 1000 }, 'claude-haiku-5-5');
+  const cached = tokenCredits(env, { input_tokens: 500, cache_read_input_tokens: 29500, output_tokens: 1000 }, 'claude-opus-5-5');
+  assert.ok(opus > haiku * 10, 'Opus tốn hơn Haiku');
+  assert.ok(cached < opus / 2, 'cache giảm chi phí');
+  // 30.000 vào + 1.000 ra Opus = 0,14 USD × 26.000 × 2 / 100 ≈ 73 credit
+  assert.equal(opus, Math.ceil((30000 * 4 + 1000 * 20) / 1e6 * 26000 * 2 / 100));
+  console.log('billingtest: credit theo model OK', { opus, haiku, cached });
+}

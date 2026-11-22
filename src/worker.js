@@ -73,7 +73,9 @@ export default {
       }
       await markWorking(env, uid, job.id, 'Trợ lý Crewzy (hẹn giờ)').catch(() => {});
       const texts = [];
-      await runAgent({ env, uid, origin, mode: 'app', messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
+      // Tự trả lời bình luận chạy mỗi giờ → Haiku cho rẻ; lịch làm nội dung/báo cáo → Opus (mặc định).
+      const brain = /TỰ TRẢ LỜI ĐÃ BẬT/.test(prompt) ? 'tiet_kiem' : undefined;
+      await runAgent({ env, uid, origin, mode: 'app', brain, messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));

@@ -33,6 +33,9 @@
   var modeNote = document.querySelector('[data-mode-note]');
   var orBox = document.querySelector('[data-or-box]');
   var orModel = document.getElementById('or-model');
+  var brainSel = document.getElementById('ai-brain');
+  var brainBox = document.querySelector('[data-brain-box]');
+  if (brainSel) { brainSel.value = store('vpai.brain') === 'tiet_kiem' ? 'tiet_kiem' : 'manh'; brainSel.addEventListener('change', function () { store('vpai.brain', brainSel.value); renderMode(); }); }
   var orLogin = orBox.querySelector('[data-or-login]');
   var OR = window.VPAIOpenRouter;
   var suggest = document.querySelector('[data-suggest]');
@@ -134,6 +137,7 @@
     var needsKey = !!KEY_HINTS[mode];
     keyBox.style.display = needsKey ? 'flex' : 'none';
     orBox.style.display = mode === 'openrouter' ? 'flex' : 'none';
+    if (brainBox) brainBox.style.display = mode === 'app' && appMode ? 'flex' : 'none';
     if (mode === 'openrouter') {
       var on = !!(OR && OR.key());
       orModel.style.display = on ? 'block' : 'none';
@@ -147,7 +151,9 @@
       keyInput.placeholder = KEY_HINTS[mode];
       modeNote.textContent = 'Khoá chỉ lưu trên trình duyệt này và gửi kèm mỗi lần chat, máy chủ không lưu. Tiền AI tính vào tài khoản của bạn.';
     } else {
-      modeNote.textContent = appMode ? 'Dùng thử bằng credit của app, có giới hạn lượt mỗi ngày.' : 'Chế độ credit của app chưa bật, hãy chọn khoá API riêng.';
+      modeNote.textContent = !appMode ? 'Chế độ credit của app chưa bật, hãy chọn khoá API riêng.'
+        : brainSel && brainSel.value === 'tiet_kiem' ? 'Haiku 5.5: nhanh, tốn ít credit, hợp việc đơn giản (tra cứu, trả lời ngắn).'
+        : 'Opus 5.5: viết nội dung và điều khiển app tốt nhất, tốn credit hơn. Việc đơn giản chọn Tiết kiệm.';
     }
   }
 
@@ -200,7 +206,7 @@
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ uid: uid, mode: mode, key: key, model: mode === 'openrouter' ? orModel.value : undefined, messages: apiMessages() })
+      body: JSON.stringify({ uid: uid, mode: mode, key: key, model: mode === 'openrouter' ? orModel.value : undefined, brain: mode === 'app' && brainSel ? brainSel.value : undefined, messages: apiMessages() })
     }).then(function (res) {
       if (res.status === 401 && window.vpaiNeedLogin) window.vpaiNeedLogin();
       var type = res.headers.get('content-type') || '';

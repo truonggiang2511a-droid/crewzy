@@ -2,7 +2,7 @@
 // POST /api/chat  { uid?, mode: 'app'|'claude'|'openai'|'openrouter', key?, model?, messages: [{ role: 'user'|'assistant', content }] }
 // Mã khách lấy từ phiên đăng nhập Google; uid trong body chỉ dùng khi chưa bật đăng nhập.
 // Trả về NDJSON, mỗi dòng một sự kiện: {type:'tool', label} · {type:'text', text} · {type:'done'} · {type:'error', message}
-// mode 'app'  : Claude Haiku bằng khoá ANTHROPIC_API_KEY của Giang (bí mật trên Cloudflare); trần lượt/ngày cho từng khách và toàn app.
+// mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
 import Anthropic from '@anthropic-ai/sdk';
@@ -22,7 +22,11 @@ const MAX_STEPS = 16;               // số vòng gọi công cụ tối đa m�
 const TIME_BUDGET_MS = 150000;      // dừng sớm, nhắn khách gõ "tiếp tục"
 const MAX_TOOL_RESULT_CHARS = 12000;
 const MAX_OUTPUT_TOKENS = 6000;     // đủ cho báo cáo/7 bài đăng nộp qua CREWZY_NOP_KET_QUA (1500 bị cắt giữa chừng)
-const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
+// Bộ não Crewzy (chế độ app, khoá của Giang): mặc định Opus 5.5 để nội dung tốt và điều khiển app chuẩn; khách chọn "Tiết kiệm" = Haiku.
+// Đổi mặc định bằng biến APP_MODEL. Credit trừ theo giá thật từng model (billing.js AI_MODEL_PRICES).
+export const APP_BRAINS = { manh: 'claude-opus-5-5', tiet_kiem: 'claude-haiku-5-5' };
+const appModel = (env, brain) => (brain === 'tiet_kiem' ? APP_BRAINS.tiet_kiem : (env.APP_MODEL || APP_BRAINS.manh));
+const MODELS = { app: 'claude-opus-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini', gemini: 'gemini-3.8-flash', grok: 'grok-4.7' };
 // Gemini và Grok gọi qua cổng tương thích OpenAI (đã tra tài liệu 22/11/2026).
 const OPENAI_COMPAT = {
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/',
@@ -152,15 +156,30 @@ export async function takeAppQuota(env, uid) {
   return null;
 }
 
+// Đánh dấu cache ở khối cuối của tin nhắn cuối (chỉ 1 điểm trong hội thoại; tổng ≤4 điểm cache mỗi yêu cầu).
+function withCacheMark(convo) {
+  if (!convo.length) return convo;
+  const out = convo.slice();
+  const last = out[out.length - 1];
+  const blocks = typeof last.content === 'string' ? [{ type: 'text', text: last.content }] : last.content.map((b) => ({ ...b }));
+  if (!blocks.length) return convo;
+  blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], cache_control: { type: 'ephemeral' } };
+  out[out.length - 1] = { role: last.role, content: blocks };
+  return out;
+}
+
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
 async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, onUsage }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
   });
+  // Prompt caching: công cụ + lời dặn + hội thoại tới bước trước được đọc lại từ cache (giá 0,05× với Opus/Sonnet) → mỗi bước sau rẻ hơn nhiều.
+  if (anthropicTools.length) anthropicTools[anthropicTools.length - 1].cache_control = { type: 'ephemeral' };
+  const systemBlocks = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.messages.create({ model, max_tokens: MAX_OUTPUT_TOKENS, system, tools: anthropicTools, messages: convo });
+    const res = await client.messages.create({ model, max_tokens: MAX_OUTPUT_TOKENS, system: systemBlocks, tools: anthropicTools, messages: withCacheMark(convo) });
     // Khoá AI của Giang (chế độ app): trừ credit theo token thật sau mỗi bước; hết credit thì dừng.
     if (onUsage && (await onUsage(res.usage)) === 'stop') {
       emit({ type: 'text', text: 'Đã hết credit nên em dừng ở đây. Vào Gói và credit để nạp thêm rồi nhắn "tiếp tục".' });
@@ -224,7 +243,7 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
 
 // Chạy một lượt AI có công cụ (Composio + Crewzy + MCP ngoài). Dùng cho khung chat và cho hẹn giờ tự chạy (cron).
 // emit(event): {type:'tool'|'text'|'image'|'video'|'audio', ...}. Lỗi thì ném ra cho nơi gọi xử lý.
-export async function runAgent({ env, uid, origin, mode, key, orModel, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null }) {
+export async function runAgent({ env, uid, origin, mode, key, orModel, brain, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null }) {
   const composioKey = getApiKey(env);
   const deadline = Date.now() + timeBudgetMs;
     const composio = new Composio({ apiKey: composioKey });
@@ -276,7 +295,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
       }
       try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
     };
-    const model = mode === 'openrouter' ? orModel : MODELS[mode];
+    const model = mode === 'openrouter' ? orModel : mode === 'app' ? appModel(env, brain) : MODELS[mode];
     if (mode === 'openrouter') {
       const client = new OpenAI({
         apiKey: key.trim(),
@@ -292,7 +311,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
       await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
     } else {
       const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-      const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat') : null;
+      const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat', model) : null;
       await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system, onUsage });
     }
 }
@@ -300,7 +319,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
 export default async (req, env) => {
   if (req.method === 'GET') {
     // Cho giao diện biết chế độ credit của app có bật không.
-    return Response.json({ appMode: !!env.ANTHROPIC_API_KEY, openrouterModels: OPENROUTER_MODELS });
+    return Response.json({ appMode: !!env.ANTHROPIC_API_KEY, openrouterModels: OPENROUTER_MODELS, appModel: env.APP_MODEL || APP_BRAINS.manh });
   }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
@@ -338,7 +357,7 @@ export default async (req, env) => {
     async start(controller) {
       const emit = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       try {
-        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, messages, emit, timeBudgetMs: TIME_BUDGET_MS, meter });
+        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, brain: body && body.brain, messages, emit, timeBudgetMs: TIME_BUDGET_MS, meter });
         emit({ type: 'done' });
       } catch (err) {
         console.error('chat failed', mode, err && err.message);
