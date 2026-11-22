@@ -6,6 +6,7 @@ import { getBrand, brandText } from './brand.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl } from './media.js';
 import { WORKFLOWS, DEPARTMENTS, workflowById, missingFor, WORKFLOW_RULES } from './workflows.js';
+import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
 
 const SIZES = {
@@ -136,6 +137,10 @@ CREWZY_TOOL_DEFS.push({
   },
 });
 
+function mcpHint(groups) {
+  const ids = [...new Set(groups.filter((g) => !g.dat).flatMap((g) => g.goi_y_mcp || []))].map(mcpById).filter((m) => m && !m.ngoai);
+  return ids.length ? ' (' + ids.map((m) => `${m.name}: ${m.url}`).join(', ') + ')' : '';
+}
 async function workflowTool(env, uid, args, connected) {
   const urls = (await listServers(env, uid).catch(() => [])).map((s) => s.url);
   const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
@@ -156,7 +161,7 @@ async function workflowTool(env, uid, args, connected) {
     cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${b}`),
     quy_tac: WORKFLOW_RULES,
     huong_dan_noi: miss.nhom.length
-      ? 'Còn thiếu: ' + miss.nhom.join(', ') + '. Khách nối MỘT app bất kỳ trong goi_y của nhóm đó ở Crewzy → Kết nối → Ứng dụng (app dùng khoá API như vidIQ, Apify, Firecrawl, Semrush: Composio mở trang để dán khoá). MCP ngoài (apify: https://mcp.apify.com, firecrawl: https://mcp.firecrawl.dev/mcp, openart: https://mcp.openart.ai/mcp): Kết nối → MCP khác.'
+      ? 'Còn thiếu: ' + miss.nhom.join(', ') + '. Khách nối MỘT app bất kỳ trong goi_y của nhóm đó ở Crewzy → Kết nối → Ứng dụng (app dùng khoá API như vidIQ, Apify, Firecrawl, Semrush: Composio mở trang để dán khoá). MCP ngoài' + mcpHint(miss.groups) + ': Kết nối → MCP khác (máy chủ nối ở đó dùng được ngay trong link nối AI).'
       : undefined,
     ghi_chu_cong_cu: 'Công cụ của app tìm bằng COMPOSIO_SEARCH_TOOLS (vd "post to pinterest", "add contact pipedrive", "apify run actor") rồi chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL; công cụ MCP ngoài có tiền tố m…_.',
   } };

@@ -109,3 +109,19 @@ export async function loadExternalTools(env, uid) {
   out.label = (name) => { const hit = map.get(name); return hit ? `${hit.server}: ${hit.tool}` : ''; };
   return out;
 }
+
+// Link nối AI (/mcp/*): chạy MỘT công cụ MCP ngoài theo tên m<id4>_<tool> — chỉ mở đúng máy chủ đó (cổng không giữ phiên giữa các lượt).
+export const EXTERNAL_TOOL_RE = /^m[0-9a-f]{4}_/;
+export async function callExternalTool(env, uid, name, args) {
+  const servers = await listServers(env, uid);
+  const s = servers.find((x) => name.startsWith('m' + x.id.slice(1, 5) + '_'));
+  if (!s) return { error: 'Không tìm thấy máy chủ MCP của công cụ này (có thể khách đã gỡ). Gọi tools/list lại.' };
+  let opened;
+  try { opened = await withTimeout(openServer(env, s), CONNECT_TIMEOUT_MS); }
+  catch (e) { return { error: `${s.name}: chưa mở được (${String((e && e.message) || e).slice(0, 160)}). Khách vào Crewzy → Kết nối → MCP khác bấm Kiểm tra/Nối lại.` }; }
+  if (opened.changed) { try { await saveServers(env, uid, servers); } catch (e) { console.error('save mcp tokens failed', e && e.message); } }
+  const t = opened.tools.find((x) => ('m' + s.id.slice(1, 5) + '_' + safeName(x.name)).slice(0, 64) === name);
+  if (!t) return { error: `${s.name} không còn công cụ này. Gọi tools/list lại.` };
+  try { return { raw: await opened.conn.callTool(t.name, args || {}), tool: t.name, server: s.name }; }
+  catch (e) { return { error: `${s.name}: ${String((e && e.message) || e).slice(0, 200)}` }; }
+}
