@@ -11,7 +11,23 @@ import { listServers } from '../lib/mcpServers.js';
 import { getBrand } from '../lib/brand.js';
 import { appBySlug } from '../lib/catalog.js';
 
-const KIND_ROOM = { bai_dang: 'noi_dung', noi_dung: 'noi_dung', cham_soc: 'cham_soc', bao_cao: 'bao_cao', brain: 'thuong_hieu', khac: 'hang_ngay' };
+// Lá của Cây vận hành: mỗi nhánh một bộ ứng dụng ĐÚNG chuyên môn (mỗi app một nhiệm vụ), app đã nối hiện trước.
+// Sửa ở đây khi muốn đổi app của nhánh; slug phải có trong catalog (scripts/officetest.mjs kiểm).
+export const BRANCH_APPS = {
+  thuong_hieu: [['googledrive', 'Logo, ảnh, tư liệu'], ['canva', 'Bộ nhận diện'], ['notion', 'Sổ tay thương hiệu']],
+  doi_thu: [['apify', 'Soi Reels, TikTok đối thủ'], ['firecrawl', 'Đọc website đối thủ'], ['semrush', 'Từ khoá, lưu lượng'], ['serpapi', 'Kết quả Google'], ['perplexityai', 'Nghiên cứu thị trường'], ['vidiq_mcp', 'Xu hướng YouTube'], ['tavily', 'Tìm tin mới']],
+  noi_dung: [['canva', 'Thiết kế ảnh'], ['heygen', 'Video người dẫn AI'], ['elevenlabs', 'Giọng đọc'], ['descript_mcp', 'Dựng, cắt video'], ['captions', 'Phụ đề'], ['luma_labs', 'Video từ ảnh']],
+  phan_phoi: [['facebook', 'Fanpage'], ['instagram', 'Bài, Reels'], ['youtube', 'Video, Shorts'], ['tiktok', 'Video ngắn'], ['linkedin', 'Bài doanh nghiệp'], ['threads', 'Bài ngắn'], ['pinterest', 'Ghim ảnh']],
+  quang_cao: [['metaads', 'Quảng cáo Facebook, Instagram'], ['googleads', 'Quảng cáo Google, YouTube'], ['tiktok_ads', 'Quảng cáo TikTok'], ['google_analytics', 'Đo lường website'], ['google_search_console', 'Hiệu quả tìm kiếm'], ['ahrefs', 'Phân tích SEO'], ['mixpanel', 'Hành vi khách']],
+  ban_hang: [['hubspot', 'CRM khách hàng'], ['pipedrive', 'Theo dõi deal'], ['apollo', 'Tìm khách doanh nghiệp'], ['calendly', 'Đặt lịch hẹn'], ['stripe', 'Thu tiền']],
+  cham_soc: [['whatsapp', 'Nhắn tin khách'], ['telegram', 'Nhắn tin khách'], ['gmail', 'Email khách'], ['zendesk', 'Phiếu hỗ trợ'], ['intercom', 'Chat trên web']],
+  bao_cao: [['googlesheets', 'Bảng số liệu'], ['googledocs', 'Báo cáo'], ['googleslides', 'Slide họp'], ['airtable', 'Cơ sở dữ liệu']],
+  hang_ngay: [['gmail', 'Hộp thư'], ['googlecalendar', 'Lịch làm việc'], ['slack', 'Nhắn nội bộ'], ['trello', 'Việc cần làm'], ['googledrive', 'Tài liệu']],
+};
+
+const ALL_BRANCH_APPS = new Set(Object.values(BRANCH_APPS).flat().map(([slug]) => slug));
+
+const KIND_ROOM = { bai_dang: 'phan_phoi', noi_dung: 'noi_dung', cham_soc: 'cham_soc', bao_cao: 'bao_cao', brain: 'thuong_hieu', khac: 'hang_ngay' };
 const STALE_MS = 3 * 3600 * 1000; // AI nhận việc quá 3 giờ chưa nộp → coi như chưa làm
 const DAY_MS = 86400 * 1000;
 
@@ -43,17 +59,13 @@ export default async (req, env) => {
     const roomApps = [...new Set(flows.flatMap((w) => (w.cong_cu || []).flatMap((g) => g.apps)))];
     const apps = roomApps.filter((s) => connected.includes(s)).slice(0, 4);
     const suggest = [...new Set(flows.flatMap((w) => (w.cong_cu || []).filter((g) => g.bat_buoc).map((g) => g.apps[0])))].filter((s) => !connected.includes(s)).slice(0, 3);
-    // Lá của cây: mỗi vai trò công cụ của phòng = 1 ứng dụng làm 1 nhiệm vụ (app đã nối trước, chưa có thì app gợi ý đầu tiên).
-    const leaves = [];
-    const seenLeaf = new Set();
-    for (const w of flows) for (const g of (w.cong_cu || [])) {
-      if (leaves.length >= 6) break;
-      const pick = g.apps.find((x) => connected.includes(x)) || g.apps[0];
-      if (!pick || seenLeaf.has(pick)) continue;
-      seenLeaf.add(pick);
-      leaves.push({ slug: pick, name: (appBySlug(pick) || { name: pick }).name, vai: g.vai, on: connected.includes(pick) });
-    }
+    // Lá của cây: bộ app đúng chuyên môn của nhánh (BRANCH_APPS) + app đã nối khác mà quy trình của nhánh dùng.
+    const curated = (BRANCH_APPS[d.id] || []).filter(([slug]) => appBySlug(slug));
+    const extra = roomApps.filter((x) => connected.includes(x) && !ALL_BRANCH_APPS.has(x)); // app đã nối chưa thuộc nhánh nào
+    const leaves = [...curated.map(([slug, vai]) => ({ slug, vai })), ...extra.map((slug) => ({ slug, vai: 'Dùng trong quy trình' }))]
+      .map((l) => ({ ...l, name: (appBySlug(l.slug) || { name: l.slug }).name, on: connected.includes(l.slug) }));
     leaves.sort((a, b) => (b.on ? 1 : 0) - (a.on ? 1 : 0));
+    leaves.splice(7);
     const sch = schedules.filter((s) => s.bat && flows.some((w) => w.id === s.quy_trinh));
     let status = 'idle';
     if (waiting.length) status = 'wait';

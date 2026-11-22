@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node scripts/authtest.mjs && node scripts/mcptest.mjs && node scripts/schedtest.mjs && node scripts/readytest.mjs && node scripts/gatewaytest.mjs && node scripts/r2test.mjs && node scripts/instanttest.mjs && node --no-warnings scripts/billingtest.mjs && node --no-warnings scripts/resultstest.mjs && node --no-warnings scripts/librarytest.mjs"
+    "test": "node scripts/authtest.mjs && node scripts/mcptest.mjs && node scripts/schedtest.mjs && node scripts/readytest.mjs && node scripts/gatewaytest.mjs && node scripts/r2test.mjs && node scripts/instanttest.mjs && node --no-warnings scripts/billingtest.mjs && node --no-warnings scripts/resultstest.mjs && node --no-warnings scripts/librarytest.mjs && node scripts/officetest.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.166.0"

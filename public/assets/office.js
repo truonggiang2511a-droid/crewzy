@@ -1,5 +1,5 @@
 // Trung tâm điều hành (trước là Văn phòng) — Cây vận hành MÔ PHỎNG THẬT từ /api/office (phiếu việc, lịch hẹn, app đã nối, máy chủ MCP, AI của khách).
-// Máy tính: sơ đồ mạng SVG (Bộ não AI ở tâm, 8 phòng = 8 phòng của thư viện quy trình), hạt sáng CHỈ chạy trên đường có việc thật.
+// Máy tính: Cây vận hành SVG (rễ Thương hiệu + Kho, thân Bộ não AI, 8 nhánh = phòng của thư viện quy trình), hạt sáng CHỈ chạy trên đường có việc thật.
 // Điện thoại: lưới ô phòng dễ bấm + khung chi tiết. Bảng tin = lịch sử thật của phiếu việc. Tự cập nhật 20 giây/lần khi đang mở trang.
 (function () {
   var uid = window.vpaiUid();
@@ -15,12 +15,13 @@
     setup: { label: 'Cần nối app', color: '#F87171' },
     idle: { label: 'Rảnh', color: '#7C8597' }
   };
-  var SHORT = { thuong_hieu: 'Thương hiệu', doi_thu: 'Đối thủ', noi_dung: 'Nội dung', quang_cao: 'Quảng cáo', ban_hang: 'Bán hàng', cham_soc: 'CSKH', bao_cao: 'Báo cáo', hang_ngay: 'Hằng ngày' };
+  var SHORT = { thuong_hieu: 'Thương hiệu', doi_thu: 'Nghiên cứu & Chiến lược', noi_dung: 'Nội dung & Video', phan_phoi: 'Sản xuất & Phân phối', quang_cao: 'Marketing & Phân tích', ban_hang: 'Bán hàng', cham_soc: 'CSKH', bao_cao: 'Báo cáo', hang_ngay: 'Hằng ngày' };
   var ICON = {
     thuong_hieu: 'M12 3l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 15.3 7 18l1.2-5.6L4 8.6 9.6 8z',
     doi_thu: 'M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.5 15.5 20 20',
     noi_dung: 'M4 6h16v12H4zM10 9.5v5l4-2.5z',
-    quang_cao: 'M4 10v4h3l6 4V6L7 10zM16.5 9a4 4 0 0 1 0 6',
+    phan_phoi: 'M21 3 3 10.5l7 2.5 2.5 7.5zM10 13l11-10',
+    quang_cao: 'M4 19h16M6 16l4-5 3 3 5-7M15 7h3v3',
     ban_hang: 'M4 6h2l2 10h10l2-7H7M10 20h.01M17 20h.01',
     cham_soc: 'M4 5h16v11H9l-5 4zM8 10h8M8 13h5',
     bao_cao: 'M5 19V11M10 19V6M15 19v-5M20 19V9',
@@ -28,9 +29,8 @@
   };
   // Đường chuyển việc giữa các phòng (luồng chuẩn của doanh nghiệp). Hạt sáng chỉ chạy khi có việc thật ở 2 đầu.
   var EDGES = [
-    ['thuong_hieu', 'noi_dung'], ['doi_thu', 'noi_dung'], ['doi_thu', 'quang_cao'], ['noi_dung', 'quang_cao'],
-    ['quang_cao', 'cham_soc'], ['cham_soc', 'ban_hang'], ['ban_hang', 'bao_cao'], ['hang_ngay', 'bao_cao'],
-    ['bao_cao', 'brain'], ['brain', 'noi_dung'], ['brain', 'cham_soc']
+    ['hang_ngay', 'noi_dung'], ['noi_dung', 'phan_phoi'], ['noi_dung', 'quang_cao'], ['phan_phoi', 'quang_cao'],
+    ['quang_cao', 'cham_soc'], ['cham_soc', 'ban_hang'], ['ban_hang', 'bao_cao'], ['bao_cao', 'doi_thu'], ['doi_thu', 'noi_dung']
   ];
 
   var graphBox = document.querySelector('[data-graph]');
@@ -70,11 +70,12 @@
   }
 
   // ---------- CÂY VẬN HÀNH (máy tính) ----------
-  // Rễ = nguồn nuôi (Thương hiệu, Kho & dữ liệu, Nghiên cứu đối thủ) · Thân = Bộ não AI điều phối · Cành = phòng ban (mỗi phòng một màu)
+  // Rễ = nguồn nuôi (Thương hiệu, Kho & dữ liệu) · Thân = Bộ não AI điều phối · Cành = phòng ban (mỗi phòng một màu)
   // · Lá = ứng dụng, mỗi app một nhiệm vụ (vai trò trong quy trình). Đường sáng + hạt chạy CHỈ khi có việc thật (nhựa sống chảy từ rễ lên lá).
-  var COLOR = { thuong_hieu: '#A3E635', doi_thu: '#4ADE80', noi_dung: '#F472B6', quang_cao: '#FBBF24', ban_hang: '#FB923C', cham_soc: '#2DD4BF', bao_cao: '#A78BFA', hang_ngay: '#38BDF8', kho: '#FDE68A', brain: '#6D7BFF' };
-  var BRANCH = { hang_ngay: [110, 330], noi_dung: [255, 205], quang_cao: [420, 130], cham_soc: [580, 130], ban_hang: [745, 205], bao_cao: [890, 330] };
-  var ROOTS = { thuong_hieu: [285, 690], kho: [500, 728], doi_thu: [715, 690] };
+  var COLOR = { thuong_hieu: '#A3E635', doi_thu: '#4ADE80', noi_dung: '#F472B6', phan_phoi: '#E879F9', quang_cao: '#FBBF24', ban_hang: '#FB923C', cham_soc: '#2DD4BF', bao_cao: '#A78BFA', hang_ngay: '#38BDF8', kho: '#FDE68A', brain: '#6D7BFF' };
+  var BRANCH = { hang_ngay: [110, 330], noi_dung: [255, 205], quang_cao: [420, 130], cham_soc: [580, 130], ban_hang: [745, 205], bao_cao: [890, 330], phan_phoi: [150, 510], doi_thu: [850, 510] };
+  var LOW = { phan_phoi: 122, doi_thu: 58 }; // 2 nhánh dưới: tên đặt TRÊN nút, lá toả xuống chéo ra ngoài (độ)
+  var ROOTS = { thuong_hieu: [330, 695], kho: [670, 700] };
   var TRUNK = { x: 500, top: 372, base: 612 };
   function roomBusy(r) { return r && (r.counts.lam || r.counts.cho || r.counts.duyet || r.counts.xong_24h); }
   function cubic(x1, y1, x2, y2, c1x, c1y, c2x, c2y) { return 'M' + x1 + ' ' + y1 + ' C' + c1x + ' ' + c1y + ' ' + c2x + ' ' + c2y + ' ' + x2 + ' ' + y2; }
@@ -104,7 +105,7 @@
     var W = 1000, H = 800;
     pathN = 0; nodes = {};
     graphBox.innerHTML = '';
-    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cây vận hành: rễ là thương hiệu và dữ liệu, thân là bộ não AI, cành là phòng ban, lá là ứng dụng', style: 'width:100%;height:auto;display:block' }, graphBox);
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cây vận hành: rễ là thương hiệu và dữ liệu, thân là bộ não AI, nhánh là phòng ban, lá là ứng dụng', style: 'width:100%;height:auto;display:block' }, graphBox);
     var defs = el('defs', {}, svg);
     var glow = el('filter', { id: 'glow', x: '-80%', y: '-80%', width: '260%', height: '260%' }, defs);
     el('feGaussianBlur', { stdDeviation: '2.6', result: 'b' }, glow);
@@ -117,7 +118,7 @@
     // Mặt đất + tán lá mờ
     el('ellipse', { cx: 500, cy: 300, rx: 470, ry: 250, fill: 'url(#halo)' }, svg);
     el('line', { x1: 60, y1: TRUNK.base, x2: 940, y2: TRUNK.base, stroke: 'rgba(255,255,255,0.10)', 'stroke-dasharray': '2 7' }, svg);
-    var gl = el('text', { x: 66, y: TRUNK.base - 8, fill: '#5C5C5C', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', 'letter-spacing': '1.5' }, svg); gl.textContent = 'MẶT ĐẤT · KHÁCH HÀNG NHÌN THẤY PHẦN TRÊN';
+    var gl = el('text', { x: 222, y: TRUNK.base - 8, fill: '#5C5C5C', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', 'letter-spacing': '1.5' }, svg); gl.textContent = 'MẶT ĐẤT';
 
     var flows = el('g', {}, svg), layer = el('g', {}, svg);
     var brainOn = brainActive();
@@ -127,7 +128,8 @@
     Object.keys(ROOTS).forEach(function (id, i) {
       var p = ROOTS[id], r = room(id);
       var on = id === 'kho' ? brainOn : !!roomBusy(r) || (brainOn && id === 'thuong_hieu');
-      flowPath(flows, cubic(p[0], p[1] - 22, TRUNK.x + (i - 1) * 14, TRUNK.base - 4, p[0], p[1] - 90, TRUNK.x + (i - 1) * 40, TRUNK.base + 40), COLOR[id], on || anyBusy, 5, 2.6);
+      var side = p[0] < 500 ? -1 : 1;
+      flowPath(flows, cubic(p[0], p[1] - 22, TRUNK.x + side * 14, TRUNK.base - 4, p[0], p[1] - 90, TRUNK.x + side * 40, TRUNK.base + 40), COLOR[id], on || anyBusy, 5, 2.6);
     });
     // Thân cây
     el('path', { d: 'M' + (TRUNK.x - 30) + ' ' + TRUNK.base + ' C' + (TRUNK.x - 18) + ' 520 ' + (TRUNK.x - 14) + ' 430 ' + (TRUNK.x - 22) + ' ' + TRUNK.top +
@@ -141,37 +143,41 @@
       var p = BRANCH[id], r = room(id); if (!r) return;
       var on = !!roomBusy(r);
       var sx = TRUNK.x + (p[0] < 500 ? -8 : 8), sy = TRUNK.top + 18 + Math.abs(p[0] - 500) / 20;
+      if (LOW[id] != null) { sx = TRUNK.x + (p[0] < 500 ? -16 : 16); sy = 540; }
       // Cành đi vào bên hông nút (phía thân cây) để không đè lên tên phòng ở dưới nút.
       var vx = sx - p[0], vy = sy - p[1], vl = Math.sqrt(vx * vx + vy * vy) || 1;
       var ex = p[0] + vx / vl * 34, ey = p[1] + vy / vl * 34;
       if (Math.abs(p[0] - 500) < 120) { ex = p[0] + (p[0] < 500 ? 30 : -30); ey = p[1] + 14; }
-      flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.2, sy - 60, ex + (sx - ex) * 0.35, ey + 20), COLOR[id], on, 7, 2.4);
+      if (LOW[id] != null) flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.3, sy + 10, ex + (sx - ex) * 0.4, ey + 10), COLOR[id], on, 7, 2.4);
+      else flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.2, sy - 60, ex + (sx - ex) * 0.35, ey + 20), COLOR[id], on, 7, 2.4);
     });
     // Luồng chuyển việc giữa các phòng (vòng cung mảnh trong tán)
     EDGES.forEach(function (e) {
       if (!BRANCH[e[0]] || !BRANCH[e[1]]) return; // chỉ vẽ luồng giữa các cành (rễ đã nuôi qua thân)
       var a = BRANCH[e[0]], b2 = BRANCH[e[1]];
       var on = edgeActive(e);
-      var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - 60;
+      var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - 60, ay = a[1] - 30, by = b2[1] - 30;
+      if (Math.abs(a[1] - b2[1]) > 150) { mx = (a[0] + b2[0]) / 2 + (mx < 500 ? 70 : -70); my = (a[1] + b2[1]) / 2; ay = a[1]; by = b2[1]; } // nối nhánh trên ↔ nhánh dưới: vòng phía trong
       var id = 'x' + (pathN++);
-      el('path', { id: id, d: 'M' + a[0] + ' ' + (a[1] - 30) + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + (b2[1] - 30), fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.8 : 0.12, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '' : '3 5' }, flows);
+      el('path', { id: id, d: 'M' + a[0] + ' ' + ay + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + by, fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.8 : 0.12, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '' : '3 5' }, flows);
       if (on && !reduceMotion) { var dd = el('circle', { r: 2.6, fill: COLOR[e[1]], filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3.4s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa); }
     });
     // LÁ: phòng ban → ứng dụng
     Object.keys(BRANCH).forEach(function (id) {
       var p = BRANCH[id], r = room(id); if (!r) return;
-      var leaves = (r.leaves || []).slice(0, 5);
-      var dir = Math.atan2(p[1] - 470, p[0] - 500);
+      var leaves = (r.leaves || []).slice(0, 7);
+      var dir = LOW[id] != null ? LOW[id] * Math.PI / 180 : Math.atan2(p[1] - 470, p[0] - 500);
+      var step = leaves.length > 5 ? 0.4 : 0.52;
       leaves.forEach(function (lf, j) {
-        var spread = (j - (leaves.length - 1) / 2) * 0.52;
+        var spread = (j - (leaves.length - 1) / 2) * step;
         var ang = dir + spread, dist = 78 + (j % 2) * 14;
         var lx = Math.max(24, Math.min(W - 24, p[0] + Math.cos(ang) * dist)), ly = Math.max(24, p[1] + Math.sin(ang) * dist);
         el('line', { x1: p[0], y1: p[1], x2: lx, y2: ly, stroke: COLOR[id], 'stroke-opacity': lf.on ? 0.7 : 0.25, 'stroke-width': lf.on ? 1.6 : 1 }, flows);
         leafRing(layer, lx, ly, lf, COLOR[id]);
       });
     });
-    // Rễ con: ứng dụng của Thương hiệu / Đối thủ mọc xuống dưới
-    ['thuong_hieu', 'doi_thu'].forEach(function (id) {
+    // Rễ con: ứng dụng của Thương hiệu mọc xuống dưới
+    ['thuong_hieu'].forEach(function (id) {
       var p = ROOTS[id], r = room(id); if (!r) return;
       (r.leaves || []).slice(0, 3).forEach(function (lf, j) {
         var lx = p[0] + (id === 'thuong_hieu' ? -1 : 1) * (95 + j * 4) * Math.cos(0.5 - j * 0.5), ly = p[1] + 10 + j * 30;
@@ -185,13 +191,13 @@
     state.rooms.forEach(function (r) {
       var p = BRANCH[r.id] || ROOTS[r.id]; if (!p) return;
       nodes[r.id] = { x: p[0], y: p[1] };
-      drawRoom(layer, nodes[r.id], r, !!ROOTS[r.id]);
+      drawRoom(layer, nodes[r.id], r, !!ROOTS[r.id], LOW[r.id] != null);
     });
     drawKho(layer, ROOTS.kho);
     drawBrain(layer, { x: TRUNK.x, y: 470 });
     highlight(selected);
   }
-  function drawRoom(layer, n, r, isRoot) {
+  function drawRoom(layer, n, r, isRoot, labelTop) {
     var st = STATUS[r.status], col = COLOR[r.id] || '#999';
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': r.name + ': ' + st.label, 'data-node': r.id, style: 'cursor:pointer' }, layer);
     var R = isRoot ? 24 : 28;
@@ -209,7 +215,7 @@
       el('circle', { cx: n.x + R * 0.75, cy: n.y - R * 0.75, r: 10, fill: st.color }, g);
       var bt = el('text', { x: n.x + R * 0.75, y: n.y - R * 0.75 + 4, 'text-anchor': 'middle', fill: '#0B1020', 'font-size': 11, 'font-weight': 700 }, g); bt.textContent = badge;
     }
-    var ly = isRoot ? n.y + R + 20 : n.y + R + 20;
+    var ly = labelTop ? n.y - R - 24 : n.y + R + 20;
     var name = el('text', { x: n.x, y: ly, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13.5, 'font-weight': 600 }, g); name.textContent = SHORT[r.id] || r.name;
     var sub = el('text', { x: n.x, y: ly + 15, 'text-anchor': 'middle', fill: st.color, 'font-size': 11 }, g);
     sub.textContent = st.label + (r.status === 'done' ? ' · ' + r.counts.xong_24h + ' việc' : '');
@@ -292,7 +298,7 @@
     var primary = r.status === 'wait' ? '<a class="btn btn-primary" href="cho-duyet.html">Duyệt ' + r.counts.duyet + ' việc</a>'
       : r.status === 'setup' && r.suggest[0] ? '<a class="btn btn-primary" href="ket-noi.html?app=' + r.suggest[0].slug + '">Nối ' + esc(r.suggest[0].name) + ' để bắt đầu</a>'
       : '<a class="btn btn-primary" href="quy-trinh.html?phong=' + r.id + '">Chạy quy trình của phòng</a>';
-    detailEl.innerHTML = '<p class="od-kicker" style="color:' + (COLOR[r.id] || '#8F8F8F') + '">' + (r.id === 'thuong_hieu' || r.id === 'doi_thu' ? 'Rễ · nguồn nuôi' : 'Cành · phòng ban') + '</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
+    detailEl.innerHTML = '<p class="od-kicker" style="color:' + (COLOR[r.id] || '#8F8F8F') + '">' + (ROOTS[r.id] ? 'Rễ · nguồn nuôi' : 'Nhánh · phòng ban') + '</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
       '<p class="od-status" style="color:' + st.color + '"><span class="od-dot" style="background:' + st.color + '"></span>' + st.label + '</p>' +
       (cur ? '<a class="od-job" href="cho-duyet.html?id=' + cur.id + '"><b>' + esc(cur.tieu_de) + '</b><small>' + esc(cur.mo_ta) + (cur.nguoi_lam ? ' · ' + esc(cur.nguoi_lam) : '') + ' · ' + ago(cur.luc) + '</small></a>'
         : '<p class="od-text">' + (r.status === 'setup' ? 'Phòng chưa đủ app để chạy quy trình nào.' : 'Chưa có việc. Chạy một quy trình hoặc giao việc để phòng bắt đầu.') + '</p>') +

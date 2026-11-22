@@ -6,12 +6,13 @@
 
 export const DEPARTMENTS = [
   { id: 'thuong_hieu', name: 'Thương hiệu' },
-  { id: 'doi_thu', name: 'Nghiên cứu đối thủ' },
+  { id: 'doi_thu', name: 'Nghiên cứu & Chiến lược' },
   { id: 'noi_dung', name: 'Nội dung & Video' },
-  { id: 'quang_cao', name: 'Quảng cáo' },
+  { id: 'phan_phoi', name: 'Sản xuất & Phân phối' },
+  { id: 'quang_cao', name: 'Marketing & Phân tích' },
   { id: 'ban_hang', name: 'Bán hàng' },
   { id: 'cham_soc', name: 'Chăm sóc khách' },
-  { id: 'bao_cao', name: 'Báo cáo & Chiến lược' },
+  { id: 'bao_cao', name: 'Báo cáo' },
   { id: 'hang_ngay', name: 'Việc hằng ngày' },
 ];
 
@@ -81,7 +82,7 @@ export const WORKFLOWS = [
       'Có nơi lưu đã nối (Google Sheets, Notion, Airtable…) thì ghi lịch (ngày, giờ, kênh, nội dung, link ảnh) vào Sheet.',
       'Nộp mỗi bài thành một phiếu bằng CREWZY_NOP_KET_QUA (loai bai_dang, kenh, media) để khách duyệt từng bài. Chưa đăng.',
     ] },
-  { id: 'mot_noi_dung_nhieu_kenh', phong: 'noi_dung', ten: 'Một nội dung, nhiều kênh',
+  { id: 'mot_noi_dung_nhieu_kenh', phong: 'phan_phoi', ten: 'Một nội dung, nhiều kênh',
     mo_ta: 'Từ một bài/video gốc, viết lại cho Facebook, Instagram, LinkedIn, YouTube Shorts, TikTok đúng văn phong từng kênh.',
     lich: 'Khi có bài gốc mới', loai: 'bai_dang',
     hoi: 'Bài gốc hoặc link bài/video gốc',
@@ -128,7 +129,7 @@ export const WORKFLOWS = [
       'Viết nội dung riêng từng kênh theo dinh_dang_kenh, bỏ kênh không nhận video.',
       'Nộp CREWZY_NOP_KET_QUA (loai bai_dang, media = các link video, noi_dung = nội dung từng kênh) để duyệt; da_duyet thì đăng và nộp da_dang kèm link.',
     ] },
-  { id: 'dang_bai_da_duyet', phong: 'noi_dung', ten: 'Đăng bài đã duyệt',
+  { id: 'dang_bai_da_duyet', phong: 'phan_phoi', ten: 'Đăng bài đã duyệt',
     mo_ta: 'Đăng các phiếu bài đã được bạn duyệt lên đúng kênh, rồi cập nhật "Đã đăng" kèm link bài. Hẹn giờ chạy mỗi ngày.',
     lich: 'Mỗi ngày 9:00 và 19:00', loai: 'bai_dang',
     buoc: [
@@ -252,7 +253,7 @@ export const WORKFLOWS = [
       'Viết báo cáo: 5 số chính kèm % thay đổi, 3 điều tốt, 3 điều cần sửa, 3 việc tuần tới.',
       'Có nơi lưu tài liệu đã nối (Google Docs, Notion, OneDrive…) thì lưu báo cáo vào Docs; có kênh nhắn nội bộ đã nối (Telegram, Slack, Gmail…) thì gửi tóm tắt cho chủ. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong).',
     ] },
-  { id: 'de_xuat_chien_luoc', phong: 'bao_cao', ten: 'Đề xuất chiến lược tháng',
+  { id: 'de_xuat_chien_luoc', phong: 'doi_thu', ten: 'Đề xuất chiến lược tháng',
     mo_ta: 'Từ báo cáo tuần, nghiên cứu đối thủ và Brain thương hiệu, đề xuất mục tiêu, kênh, nội dung chủ đạo, ngân sách quảng cáo và lịch việc cho tháng tới.',
     lich: 'Ngày 1 hằng tháng', loai: 'bao_cao',
     buoc: [
