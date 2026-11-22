@@ -479,6 +479,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   (tự trả lời bình luận vẫn Haiku) cho khớp số lượng trong mô tả gói. Gói có loi_ich (danh sách lợi ích + số lượng/tháng, pay.js vẽ dấu ✓):
   mọi gói nối không giới hạn kênh; số bài/bình luận/video tính từ giá credit thật (công thức ở ghi chú trên DEFAULT_PLANS, đổi credit gói thì sửa số).
   Không ghi Zalo/TikTok là kênh nối được (Composio không có Zalo, TikTok còn 'soon').
+- 22/11/2026 (tối): Thêm gói MCP For You 149k/30 ngày/2.000 credit (Giang để Claude quyết giá): khách dùng AI của họ qua link nối AI, Giang không trả
+  token, chỉ lượt Composio (~8đ) + ảnh → số lượng cao nhất (100 bài × mọi kênh, 400 bình luận); 74,5đ/credit vẫn lời nếu khách tiêu vào Trợ lý Crewzy.
+  Không giới hạn chức năng theo gói (gói chỉ khác credit) → khách gói này vẫn dùng được Trợ lý Crewzy, trừ credit như thường.
 
 ## 6. Việc tiếp theo
 

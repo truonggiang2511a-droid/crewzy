@@ -19,6 +19,11 @@ const DAY = 86400 * 1000;
 //   Doanh nghiệp 20.000 = 180×55 + 1.000×6 + 15×150 + 8×100 + 4×200 = 19.750. Đổi credit gói thì sửa lại các số này.
 const ALL_CHANNELS = 'Nối không giới hạn kênh: Facebook, Instagram, YouTube, LinkedIn, Pinterest, Telegram, WhatsApp, Gmail… (176 app)';
 export const DEFAULT_PLANS = [
+  // MCP For You: khách dùng Claude/ChatGPT/Gemini/Grok CỦA HỌ qua link nối AI → Giang không trả token AI, chỉ trả lượt Composio (~8đ, bán 1 credit = 75–100đ)
+  // + ảnh. 1 bài kèm ảnh đăng 6 kênh ≈ 10 credit (ảnh 3 + 6 lượt đăng + 1 đọc), 1 trả lời bình luận ≈ 2, báo cáo tuần (đọc số các kênh) ≈ 50.
+  // 2.000 = 100×10 + 400×2 + 4×50 = 2.000. Giá vốn/credit 74,5đ ≥ 50đ nên dù khách tiêu credit vào Trợ lý Crewzy (Opus/Sonnet) vẫn lời.
+  { id: 'mcp_for_you', ten: 'MCP For You', gia: 149000, credits: 2000, ngay: 30, mo_ta: 'Đã có Claude, ChatGPT, Gemini hay Grok? Nối Crewzy vào AI của bạn bằng 1 link, AI của bạn làm việc thật trên mọi kênh.',
+    loi_ich: [ALL_CHANNELS, '1 link nối Claude, ChatGPT, Gemini, Grok, Claude Code, Codex, Cursor (Claude và Cursor cài 1 bấm), không cần khoá API', '100 bài kèm ảnh mỗi tháng, mỗi bài đăng cùng lúc mọi kênh: 6 kênh = 600 lượt đăng', '400 bình luận, tin nhắn được AI của bạn trả lời', '23 quy trình + 28 lệnh nhanh (/mcp__crewzy__…) + Brain thương hiệu tự nạp vào AI', 'Kết quả nộp về Crewzy để duyệt, đăng, xem báo cáo', 'Tiền AI không tính vào credit: AI của bạn suy nghĩ, Crewzy chỉ tính lượt chạy app'] },
   { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh tự động hoá nội dung và chăm khách.',
     loi_ich: [ALL_CHANNELS, '30 bài kèm ảnh mỗi tháng, mỗi bài đăng cùng lúc lên MỌI kênh (6 kênh = 180 lượt đăng)', '150 bình luận, tin nhắn được trả lời tự động', '4 báo cáo tuần: bài nào ra khách, kênh nào hiệu quả', '23 quy trình mẫu + Brain thương hiệu + hẹn giờ tự chạy'] },
   { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ muốn có mặt hằng ngày trên mọi kênh.', noi_bat: true,
