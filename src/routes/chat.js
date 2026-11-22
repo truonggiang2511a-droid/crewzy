@@ -2,26 +2,26 @@
 // POST /api/chat  { uid?, mode: 'app'|'claude'|'openai'|'openrouter', key?, model?, messages: [{ role: 'user'|'assistant', content }] }
 // Mã khách lấy từ phiên đăng nhập Google; uid trong body chỉ dùng khi chưa bật đăng nhập.
 // Trả về NDJSON, mỗi dòng một sự kiện: {type:'tool', label} · {type:'text', text} · {type:'done'} · {type:'error', message}
-// mode 'app'  : AI qua Netlify AI Gateway, tính vào credit Netlify của Giang, có trần lượt/ngày.
+// mode 'app'  : Claude Haiku bằng khoá ANTHROPIC_API_KEY của Giang (bí mật trên Cloudflare); trần lượt/ngày cho từng khách và toàn app.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { getStore } from '@netlify/blobs';
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
-import { skillText, appBySlug } from '../lib/catalog.mjs';
-import { brandStore, brandText } from '../lib/brand.mjs';
+import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
+import { skillText, appBySlug } from '../lib/catalog.js';
+import { getBrand, brandText } from '../lib/brand.js';
 
-const APP_DAILY_CAP = 150;          // số lượt chat/ngày cho chế độ credit của app (toàn site)
+const APP_DAILY_CAP = 300;          // tổng lượt chat/ngày chế độ credit của app (cả app)
+const USER_DAILY_CAP = 30;          // lượt chat/ngày chế độ credit của app cho MỖI khách
 const MAX_STEPS = 8;                // số vòng gọi công cụ tối đa mỗi lượt
-const TIME_BUDGET_MS = 45000;       // dừng sớm để không vượt giới hạn thời gian của hàm
+const TIME_BUDGET_MS = 60000;       // dừng sớm, nhắn khách gõ "tiếp tục"
 const MAX_TOOL_RESULT_CHARS = 12000;
 const MODELS = { app: 'claude-haiku-5-5', claude: 'claude-sonnet-5-5', openai: 'gpt-5.4-mini' };
 // Model OpenRouter cho khách chọn (đã kiểm tra có trên openrouter.ai, 22/11/2026). Phần tử đầu là mặc định.
 const OPENROUTER_MODELS = ['anthropic/claude-sonnet-5.5', 'anthropic/claude-haiku-5.5', 'google/gemini-4-neon'];
 
-const SYSTEM_PROMPT = `Bạn là Trợ lý điều hành của Văn Phòng AI, làm việc cho một doanh nghiệp nhỏ ở Việt Nam.
+const SYSTEM_PROMPT = `Bạn là Trợ lý điều hành của ${APP_NAME}, làm việc cho một doanh nghiệp nhỏ ở Việt Nam.
 Bạn dùng các công cụ Composio để làm việc trên ứng dụng khách đã kết nối (danh sách và Skill từng app ở cuối).
 Cách dùng công cụ: tìm công cụ bằng COMPOSIO_SEARCH_TOOLS, xem tham số bằng COMPOSIO_GET_TOOL_SCHEMAS nếu cần,
 kiểm tra hoặc tạo kết nối bằng COMPOSIO_MANAGE_CONNECTIONS, rồi chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL.
@@ -37,7 +37,7 @@ Quy tắc bắt buộc:
 - Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.`;
 
 // Lời dặn đầy đủ cho một lượt: lời dặn chung + Brain thương hiệu + Skill các app đã kết nối.
-async function buildSystem(composio, uid) {
+async function buildSystem(env, composio, uid) {
   const parts = [SYSTEM_PROMPT];
   let connected = [];
   try {
@@ -45,7 +45,7 @@ async function buildSystem(composio, uid) {
     connected = [...new Set((res.items || []).map((i) => i.toolkit && i.toolkit.slug).filter(Boolean))];
   } catch (e) { console.error('list connected failed', e && e.message); }
   try {
-    const brand = await brandStore().get(uid, { type: 'json' });
+    const brand = await getBrand(env, uid);
     const text = brandText(brand);
     parts.push(text ? '# Brain thương hiệu\n' + text : '# Brain thương hiệu\nChưa điền. Khi cần viết nội dung, nhắc người dùng điền ở trang Brain thương hiệu (thuong-hieu.html).');
   } catch (e) { console.error('brand read failed', e && e.message); }
@@ -88,13 +88,18 @@ function cleanMessages(raw) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 }
 
-async function takeAppQuota() {
-  const store = getStore('vpai-usage');
-  const day = new Date().toISOString().slice(0, 10);
-  const used = Number((await store.get('chat-' + day)) || 0);
-  if (used >= APP_DAILY_CAP) return false;
-  await store.set('chat-' + day, String(used + 1));
-  return true;
+// Đếm lượt chế độ credit của app trong KV (không tuyệt đối chính xác khi gửi cùng lúc, đủ để chặn lạm dụng).
+// Trả về null nếu còn lượt, hoặc câu báo lỗi.
+async function takeAppQuota(env, uid) {
+  const day = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); // theo giờ Việt Nam
+  const userKey = `usage:${day}:${uid}`;
+  const allKey = `usage:${day}:all`;
+  const [u, a] = await Promise.all([env.KV.get(userKey), env.KV.get(allKey)]);
+  if (Number(u || 0) >= USER_DAILY_CAP) return `Hôm nay anh/chị đã dùng hết ${USER_DAILY_CAP} lượt miễn phí. Đăng nhập OpenRouter ở trang Kết nối → AI của bạn để dùng tiếp, hoặc quay lại ngày mai.`;
+  if (Number(a || 0) >= APP_DAILY_CAP) return 'Hôm nay app đã hết lượt miễn phí. Đăng nhập OpenRouter ở trang Kết nối → AI của bạn để dùng tiếp.';
+  const ttl = { expirationTtl: 2 * 86400 };
+  await Promise.all([env.KV.put(userKey, String(Number(u || 0) + 1), ttl), env.KV.put(allKey, String(Number(a || 0) + 1), ttl)]);
+  return null;
 }
 
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
@@ -153,10 +158,10 @@ async function runOpenAI({ client, model, tools, session, messages, emit, deadli
   emit({ type: 'text', text: 'Em đã chạy nhiều bước, anh/chị nhắn "tiếp tục" để em làm tiếp nhé.' });
 }
 
-export default async (req) => {
+export default async (req, env) => {
   if (req.method === 'GET') {
     // Cho giao diện biết chế độ credit của app có bật không.
-    return Response.json({ appMode: !!Netlify.env.get('ANTHROPIC_BASE_URL'), openrouterModels: OPENROUTER_MODELS });
+    return Response.json({ appMode: !!env.ANTHROPIC_API_KEY, openrouterModels: OPENROUTER_MODELS });
   }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
@@ -164,20 +169,21 @@ export default async (req) => {
   try { body = await req.json(); } catch (e) { return Response.json({ error: 'Dữ liệu gửi lên không hợp lệ.' }, { status: 400 }); }
   const { mode, key } = body || {};
   const messages = cleanMessages(body && body.messages);
-  const who = resolveUid(req, body && body.uid);
+  const who = await resolveUid(req, env, body && body.uid);
   if (who.response) return who.response;
   const uid = who.uid;
   if (!['app', 'claude', 'openai', 'openrouter'].includes(mode)) return Response.json({ error: 'Chưa chọn AI.' }, { status: 400 });
   const orModel = OPENROUTER_MODELS.includes(body && body.model) ? body.model : OPENROUTER_MODELS[0];
   if (mode !== 'app' && (typeof key !== 'string' || key.trim().length < 20)) return Response.json({ error: 'Chưa có khoá API hợp lệ.' }, { status: 400 });
   if (!messages.length || messages[messages.length - 1].role !== 'user') return Response.json({ error: 'Chưa có tin nhắn.' }, { status: 400 });
-  const composioKey = getApiKey();
+  const composioKey = getApiKey(env);
   if (!composioKey) return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });
 
   if (mode === 'app') {
-    if (!Netlify.env.get('ANTHROPIC_BASE_URL')) return Response.json({ error: 'Chế độ credit của app chưa bật, hãy dùng khoá riêng.' }, { status: 400 });
+    if (!env.ANTHROPIC_API_KEY) return Response.json({ error: 'Chế độ credit của app chưa bật, hãy dùng khoá riêng.' }, { status: 400 });
     try {
-      if (!(await takeAppQuota())) return Response.json({ error: 'Hôm nay đã hết lượt dùng thử bằng credit của app, hãy dùng khoá riêng hoặc quay lại ngày mai.' }, { status: 429 });
+      const over = await takeAppQuota(env, uid);
+      if (over) return Response.json({ error: over }, { status: 429 });
     } catch (e) {
       console.error('quota check failed', e && e.message);
     }
@@ -193,20 +199,20 @@ export default async (req) => {
           toolkits: TOOLKITS,
           multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
         });
-        const [tools, system] = await Promise.all([session.tools(), buildSystem(composio, uid)]);
+        const [tools, system] = await Promise.all([session.tools(), buildSystem(env, composio, uid)]);
         const model = mode === 'openrouter' ? orModel : MODELS[mode];
         if (mode === 'openrouter') {
           const client = new OpenAI({
             apiKey: key.trim(),
             baseURL: 'https://openrouter.ai/api/v1',
-            defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': 'Van Phong AI' },
+            defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': APP_NAME },
           });
           await runOpenAI({ client, model, tools, session, messages, emit, deadline, system, tokenParam: 'max_tokens' });
         } else if (mode === 'openai') {
           const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
           await runOpenAI({ client, model, tools, session, messages, emit, deadline, system });
         } else {
-          const client = mode === 'app' ? new Anthropic() : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
+          const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
           await runClaude({ client, model, tools, session, messages, emit, deadline, system });
         }
         emit({ type: 'done' });
@@ -226,4 +232,3 @@ export default async (req) => {
   return new Response(stream, { headers: { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' } });
 };
 
-export const config = { path: '/api/chat' };

@@ -44,7 +44,7 @@
   function render(nav) {
     var page = location.pathname.split('/').pop() || 'index.html';
     nav.className = 'sb';
-    var html = '<div class="sb-brand"><div class="sb-logo" aria-hidden="true">VP</div><div><p class="sb-name">Văn Phòng AI</p><p class="sb-sub" data-brand-sub>Bản thử</p></div></div><div class="sb-groups">';
+    var html = '<div class="sb-brand"><div class="sb-logo" aria-hidden="true">Cz</div><div><p class="sb-name">Crewzy</p><p class="sb-sub" data-brand-sub>Đội nhân viên AI</p></div></div><div class="sb-groups">';
     GROUPS.forEach(function (g) {
       if (g.label) html += '<p class="sb-label">' + g.label + '</p>';
       html += '<div class="sb-links">';

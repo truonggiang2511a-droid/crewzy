@@ -1,13 +1,13 @@
 // Số tài khoản đã kết nối thật (ACTIVE) theo từng công cụ của một khách.
 // GET /api/status[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.mjs';
+import { userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 
-export default async (req) => {
-  const who = resolveUid(req, new URL(req.url).searchParams.get('uid'));
+export default async (req, env) => {
+  const who = await resolveUid(req, env, new URL(req.url).searchParams.get('uid'));
   if (who.response) return who.response;
   const uid = who.uid;
-  const apiKey = getApiKey();
+  const apiKey = getApiKey(env);
   if (!apiKey) {
     return Response.json({ error: 'Máy chủ chưa có khoá COMPOSIO_API_KEY.' }, { status: 500 });
   }
@@ -27,4 +27,3 @@ export default async (req) => {
   }
 };
 
-export const config = { path: '/api/status' };

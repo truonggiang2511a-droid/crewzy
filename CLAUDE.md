@@ -1,14 +1,15 @@
-# CLAUDE.md — Văn Phòng AI (tên tạm)
+# CLAUDE.md — Crewzy (trước đây tên tạm "Văn Phòng AI")
 
 Đọc file này trước khi sửa bất cứ thứ gì.
 
-Văn Phòng AI là web app riêng, **không liên quan Lumi**. Ý tưởng: doanh nghiệp có sẵn quy trình của cả công ty
+Crewzy ("đội nhân viên AI cho doanh nghiệp") là web app riêng, **không liên quan Lumi**. Tên chốt 22/11/2026 (Giang muốn tên tiếng Anh;
+crewzy.ai còn trống, crewzy.com đã có người đăng ký). Tên hiển thị nằm ở APP_NAME (src/lib/common.js), layout.js, title các trang. Ý tưởng: doanh nghiệp có sẵn quy trình của cả công ty
 (9 phòng, 20 quy trình). Khách chỉ đăng nhập, kết nối công cụ (chủ yếu qua Composio), nối AI của mình
 (Claude hoặc ChatGPT) làm bộ não rồi bấm Run. Giao diện trông như văn phòng có các phòng đang làm việc thật.
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
-**Hiện trạng (22/11/2026): bản thử giao diện + kết nối thật 10 công cụ qua Composio + link nối AI của khách (MCP).** Chưa có đăng nhập khách thật
-(mỗi trình duyệt có mã khách riêng trong localStorage `vpai.uid`), các số liệu khác là dữ liệu mẫu.
+**Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 19 app qua Composio, Trợ lý AI, link nối AI (MCP),
+Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng và Việc chờ duyệt vẫn là dữ liệu mẫu.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
 Tên biến/hàm: tiếng Anh. Không tuyên bố "đã chạy được/đã build xong" nếu chưa thực sự chạy lệnh và thấy kết quả.
@@ -37,7 +38,8 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 ## 1. Cấu trúc và cách chạy
 
 ```
-public/                 Thư mục được đưa lên mạng (Netlify publish = "public"); CLAUDE.md, README không lên mạng
+public/                 Trang tĩnh (Workers static assets, binding ASSETS, html_handling "none" → giữ đuôi .html); CLAUDE.md, README không lên mạng
+public/_headers          X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục) + header an toàn · public/404.html
 public/index.html        Màn 1 · Văn phòng: 9 phòng, trạng thái, bảng tin phiếu việc
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn
@@ -54,81 +56,87 @@ public/assets/quy-trinh.js · brand.js  Script trang Quy trình (mẫu FLOWS n�
 public/assets/chat.js      Trang Trợ lý AI: gọi /api/chat, đọc NDJSON từng dòng, lưu lịch sử + chế độ + khoá trong localStorage
 public/assets/auth.js      Có trên mọi trang (trong <head>): hỏi /api/auth/me, bắt buộc đăng nhập thì chuyển sang dang-nhap.html, hiện email + Đăng xuất dưới tên app
 public/assets/openrouter.js  Đăng nhập OpenRouter (OAuth PKCE) trên trình duyệt, khoá lưu localStorage vpai.key.openrouter
-netlify/lib/catalog.mjs    NGUỒN DUY NHẤT danh mục app: thể loại, mô tả, status ready/soon, Skill (can/try/rules); TOOLKITS = app ready
-netlify/lib/brand.mjs      Mục Brain thương hiệu, làm sạch, brandText() nạp cho AI (Blobs vpai-brand, khoá = mã khách)
-netlify/lib/common.mjs     TOOLKITS (từ catalog), tối đa 5 tài khoản/công cụ, ký link MCP, phiên đăng nhập, resolveUid
-netlify/functions/catalog.mjs · brand.mjs   GET /api/catalog · GET/POST /api/brand
 scripts/page.py           Khung trang HTML mới (head + menu + main): from page import page
-netlify/functions/connect.mjs   GET /api/connect?toolkit=…&uid=… → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
-netlify/functions/status.mjs    GET /api/status?uid=… → {accounts: {slug: số tài khoản ACTIVE}}
-netlify/functions/mcp-link.mjs  GET /api/mcp-link?uid=… → link https://<site>/mcp/<token> để dán vào Claude/ChatGPT
-netlify/functions/chat.mjs      POST /api/chat → NDJSON {tool|text|done|error}; GET /api/chat → {appMode, openrouterModels}
-netlify/functions/auth.mjs      /api/auth/me · /api/auth/google (kiểm tra ID token, tạo phiên) · /api/auth/logout
-netlify/functions/openrouter-key.mjs  Dự phòng đổi mã PKCE lấy khoá OpenRouter khi trình duyệt không gọi thẳng được (không lưu khoá)
-netlify/edge-functions/mcp-gateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ
-package.json            @composio/core 0.31, @anthropic-ai/sdk, openai, @netlify/blobs (Netlify tự cài khi build)
-netlify.toml            publish = "public", functions = netlify/functions (esbuild), header X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục)
+src/worker.js             Worker: '/' → index.html, /api/* → src/routes, /mcp/* → cổng MCP, còn lại → ASSETS
+src/lib/catalog.js        NGUỒN DUY NHẤT danh mục app: thể loại, mô tả, status ready/soon, Skill (can/try/rules); TOOLKITS = app ready
+src/lib/common.js         APP_NAME, TOOLKITS, Web Crypto (HMAC phiên, ký link MCP, xác minh ID token Google), resolveUid, KV
+src/lib/brand.js          Mục Brain thương hiệu, cleanBrand, brandText (KV brand:<uid>)
+src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
+src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
+src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
+src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ
+src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
+src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
+src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
+wrangler.jsonc            Worker "crewzy", nodejs_compat, KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
+scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
+package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 
-- Biến môi trường Netlify: `COMPOSIO_API_KEY` (bí mật). **Đổi giá trị xong phải deploy lại** thì hàm máy chủ mới nhận khoá mới.
-- Mã khách gửi lên Composio có dạng `vpai-<uid>`; chỉ cho phép toolkit trong `TOOLKITS` (netlify/lib/common.mjs).
-  10 công cụ đã thử tạo link được (22/11): facebook, instagram, youtube, linkedin, gmail, googlesheets, googlecalendar, googledrive, notion, hubspot.
-  TikTok chưa mở: cần app TikTok developer riêng và qua kiểm duyệt.
+- Cloudflare: Worker `crewzy` (cùng tài khoản với vi-tri-studio, dung-video-ai), địa chỉ https://crewzy.truonggiang2511a.workers.dev
+  Deploy: GitHub repo nối Workers Builds (giống vi-tri-studio) → push nhánh main là tự `npx wrangler deploy`.
+  Khoá bí mật đặt trên dashboard (Worker → Settings → Variables and Secrets): COMPOSIO_API_KEY, ANTHROPIC_API_KEY (chế độ credit của app),
+  SESSION_SECRET, GOOGLE_CLIENT_ID. Không ghi vars trong wrangler.jsonc; `keep_vars: true` để deploy không xoá biến trên dashboard.
+  Chạy cục bộ: tạo `.dev.vars` (đã gitignore) rồi `npx wrangler dev --local` → http://127.0.0.1:8787 (KV giả lập cục bộ).
+  Đã thử cục bộ 22/11: mọi route, KV ghi/đọc Brain, Composio SDK chạy trong workerd (gọi tới backend.composio.dev được), Playwright 2 khổ màn.
+  Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
+- KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày).
+  KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
+- Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
 - Link nối AI: Composio bắt buộc header x-api-key cho mọi link MCP, nên KHÔNG đưa link Composio cho khách.
   Token = base64url(link phiên Composio) + '.' + HMAC-SHA256 (khoá ký = sha256('vpai-mcp|' + COMPOSIO_API_KEY)).
   Đổi COMPOSIO_API_KEY thì mọi link cũ hết hiệu lực. "Tạo link mới" tạo phiên mới nhưng link cũ vẫn chạy (chưa thu hồi được).
   Đã thử qua cổng: initialize, tools/list (6 công cụ gốc COMPOSIO_*), tools/call COMPOSIO_SEARCH_TOOLS ~1 giây.
 - Trợ lý AI (/api/chat): 3 chế độ.
-  `app` = Claude Haiku 5.5 qua Netlify AI Gateway (Netlify tự gắn ANTHROPIC_API_KEY/BASE_URL, tính vào credit Netlify của Giang),
-  trần 150 lượt/ngày toàn site đếm trong Netlify Blobs `vpai-usage` (khoá `chat-YYYY-MM-DD`, chưa chống đếm trùng khi gửi cùng lúc).
-  `claude` = khoá Anthropic của khách, Claude Sonnet 5.5, phải đặt `baseURL: 'https://api.anthropic.com'` để không đi qua Gateway.
+  `app` = Claude Haiku 5.5 bằng khoá `ANTHROPIC_API_KEY` của Giang (bí mật Cloudflare; chưa đặt → giao diện tự ẩn chế độ này).
+  Trần 30 lượt/ngày mỗi khách + 300 lượt/ngày cả app (KV usage:*, theo giờ Việt Nam; không chống đếm trùng khi gửi cùng lúc).
+  `claude` = khoá Anthropic của khách, Claude Sonnet 5.5, `baseURL: 'https://api.anthropic.com'`.
   `openai` = khoá OpenAI của khách, gpt-5.4-mini, `max_completion_tokens`, `baseURL: 'https://api.openai.com/v1'`.
   Khoá khách chỉ lưu trong localStorage trình duyệt (`vpai.key.<mode>`), gửi kèm mỗi lần, máy chủ không lưu.
-  Vòng công cụ: `session.tools()` (dạng OpenAI) → đổi sang `input_schema` cho Claude; tối đa 8 bước, dừng ở 45 giây và bảo khách nhắn "tiếp tục".
+  Vòng công cụ: `session.tools()` (dạng OpenAI) → đổi sang `input_schema` cho Claude; tối đa 8 bước, dừng ở 60 giây và bảo khách nhắn "tiếp tục".
   Kết quả công cụ cắt còn 12.000 ký tự. Lời dặn hệ thống bắt AI hỏi "đồng ý" trước khi đăng, gửi, xoá, chi tiền.
   Đã thử (22/11): kiểm tra kết nối ~6 giây, tìm công cụ đăng Fanpage, khoá sai báo "Khoá API không đúng"; điện thoại 390px và máy tính 1440px không lỗi console.
   COMPOSIO_MANAGE_CONNECTIONS tự tạo yêu cầu kết nối "đang chờ" (INITIATED) cho mọi công cụ chưa nối; status/connect chỉ đếm ACTIVE nên không sai số.
-  Huy hiệu "Powered by Netlify" nằm góc phải dưới: trang chat chừa 76–80px dưới cùng để không che nút Gửi.
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,
   TikTok Shop, Haravan, Sapo, CapCut (hiện chữ cái đầu thay logo). Logo: https://logos.composio.dev/api/<slug> (trả ảnh mặc định
   cả với slug không tồn tại → không dùng để kiểm tra app có hay không; kiểm bằng ô tìm kiếm trên dashboard hoặc /api/connect).
-  Thêm app: thêm vào APPS trong catalog.mjs với status 'soon', deploy, gọi /api/connect?toolkit=<slug>&uid=test-xxxxxxxx, ra redirectUrl
+  Thêm app: thêm vào APPS trong catalog.js với status 'soon', deploy, gọi /api/connect?toolkit=<slug>&uid=test-xxxxxxxx, ra redirectUrl
   thì mới đổi 'ready'. Một slug 'ready' mà cần auth config làm hỏng composio.create() của mọi người (chat, link nối AI).
 - Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
-- Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://van-phong-ai.netlify.app;
+- Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.truonggiang2511a.workers.dev và tên miền riêng sau này;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
   Phiên = cookie HttpOnly `vpai_session` 30 ngày, ký HMAC bằng `SESSION_SECRET` (chưa đặt thì suy ra từ COMPOSIO_API_KEY).
   ID token kiểm tra bằng khoá công khai Google (JWKS, RS256, aud = Client ID), không gọi tokeninfo. Thử cục bộ: `node scripts/authtest.mjs`.
-  Map tài khoản trong Blobs `vpai-users` (strong): `user:<sub>` → {uid,…}, `uid:<uid>` → sub. Lần đầu đăng nhập nhận luôn mã trình duyệt cũ
+  Map tài khoản trong KV: `user:<sub>` → {uid,…}, `uid:<uid>` → sub. Lần đầu đăng nhập nhận luôn mã trình duyệt cũ
   (nếu chưa thuộc ai) để giữ kết nối Composio đã làm; còn lại uid = `g-<sub>`. Bật đăng nhập rồi thì mọi hàm (connect, status, mcp-link, chat)
   chỉ tin mã trong phiên (`resolveUid`), bỏ qua uid gửi lên; không có phiên → 401 `{login:true}` → trang tự chuyển sang đăng nhập.
 - Đăng nhập AI (đã nghiên cứu 22/11/2026):
   OpenRouter OAuth PKCE chạy ngay, không cần đăng ký app: `https://openrouter.ai/auth?callback_url=…&code_challenge=…&code_challenge_method=S256`,
   quay về `?code=` → POST https://openrouter.ai/api/v1/auth/keys {code, code_verifier, code_challenge_method} → {key}. Chat gọi qua
   OpenAI SDK baseURL https://openrouter.ai/api/v1, dùng `max_tokens`. Model cho chọn: anthropic/claude-sonnet-5.5, anthropic/claude-haiku-5.5,
-  google/gemini-4-neon (đã thấy trên openrouter.ai; muốn thêm model phải sửa cả OPENROUTER_MODELS trong chat.mjs và chat.html).
+  google/gemini-4-neon (đã thấy trên openrouter.ai; muốn thêm model phải sửa cả OPENROUTER_MODELS trong src/routes/chat.js và chat.html).
   "Sign in with ChatGPT" (dùng gói Plus/Pro trong app khác) có từ 9–10/2026 nhưng app thương mại đóng mã phải được OpenAI chọn → cần nộp đơn.
   Claude: gói Pro/Max cấm dùng trong app bên thứ ba; đường hợp lệ là Linked billing (beta) cho tổ chức Claude Console trả trực tiếp
   (tạo OAuth app trên Console, Anthropic duyệt, thử nghiệm 10 người ≤ 50 USD/tháng, gửi `billing_policy` bill_to user_profile).
   Google/Gemini: đăng nhập Google chỉ là danh tính, không dùng được gói Gemini; Google cấm mượn token Gemini CLI từ 2/2026 → chỉ khoá API.
   Composio không làm "bộ não": toolkit openai/gemini của Composio là công cụ dùng khoá API, không có đăng nhập tài khoản AI.
 - Mỗi trang có tương tác khai báo `window.PAGE_LOGIC = { state, vals(state, set) }` trong thẻ `<script>` ngay trước `assets/app.js`.
-- Chạy cục bộ: `python3 -m http.server 8765 -d public` trong thư mục repo, mở `http://127.0.0.1:8765/`.
-- Netlify: dự án `van-phong-ai`, site id `26e332c7-f0ff-4912-81ad-5154ae75eb88`, link https://van-phong-ai.netlify.app
-  (deploy thủ công qua Netlify MCP, chưa nối Git tự deploy). `.netlify/` đã nằm trong `.gitignore`.
+- Bản Netlify cũ (https://van-phong-ai.netlify.app, site id 26e332c7-f0ff-4912-81ad-5154ae75eb88) giữ làm dự phòng, KHÔNG cập nhật nữa;
+  xoá khi Crewzy trên Cloudflare chạy ổn. Dữ liệu Blobs bên đó (Brain, map tài khoản) không chuyển sang; kết nối Composio vẫn còn
+  (gắn với vpai-<uid>), nhưng mã trình duyệt khác tên miền nên phải kết nối lại trên Crewzy.
 - Bản gốc thiết kế (canvas Design, chỉnh trực tiếp được): https://claude.ai/artifact/NUTG94g3zTHJDHiUzmCxhS
   Ba trang HTML ở đây được chuyển từ canvas đó; sửa giao diện lớn thì sửa canvas trước rồi chuyển lại, hoặc sửa thẳng HTML và ghi nhật ký.
 - Tài liệu quy trình 9 phòng, 20 quy trình, lộ trình: https://claude.ai/artifact/Htar34ehr6gbL1TzT8qVoG
 
 ## 2. Quy trình cập nhật (bắt buộc mỗi lần sửa)
 
-1. Sửa file → chạy cục bộ → thử bằng Playwright (`channel="chrome"`, mở `127.0.0.1`): bấm duyệt, lọc, kết nối, Run;
+1. Sửa file → `npm test` → `npx wrangler dev --local` → thử bằng Playwright (`channel="chrome"`, mở `127.0.0.1:8787`): bấm duyệt, lọc, kết nối, Run;
    chụp màn 1440px và 390px; không có lỗi console.
    Lưu ý: mỗi nút có 2 bản (đang chọn/không chọn) nằm trong `data-if`, selector phải dùng `button:visible:has-text("…")`.
 2. Push lên GitHub (nhánh `main`).
-3. Deploy Netlify rồi kiểm tra link thật bằng `curl -I` (200) và mở trên điện thoại.
+3. Workers Builds tự deploy khi push main; kiểm tra link thật bằng `curl` (200, /api/catalog) và mở trên điện thoại.
 
 ## 3. Điều đã chốt về sản phẩm (21/11/2026)
 
@@ -177,6 +185,9 @@ netlify.toml            publish = "public", functions = netlify/functions (esbui
   nên chat trong app phải dùng khoá API của khách hoặc credit của app (Netlify AI Gateway). Deploy bằng Netlify MCP: tạm dời
   node_modules ra ngoài repo trước khi chạy lệnh (đỡ tải lên), deploy xong nhớ trả lại — dùng `trap '…mv lại…' EXIT` trong cùng
   lệnh, vì lệnh bị ngắt giữa chừng từng để quên node_modules ở ngoài.
+- 22/11/2026: Chuyển từ Netlify sang Cloudflare Workers + đổi tên Crewzy. Bỏ Netlify AI Gateway (credit app dùng khoá Anthropic của Giang),
+  Blobs → KV, node:crypto → Web Crypto, edge function → route /mcp/*. Workers assets mặc định đổi /x.html → /x (307) nên đặt
+  html_handling "none" và cho '/' chạy Worker trả index.html. Giữ prefix vpai-/vpai. trong mã để không mất dữ liệu cũ.
 - 22/11/2026: Thiết kế lại theo dashboard Composio (Giang mở bằng Chrome cho xem): menu trái chung, trang Kết nối lưới logo + lọc thể loại
   + chi tiết có Skill, thêm Quy trình và Brain thương hiệu. Giữ Be Vietnam Pro thay Geist (dấu tiếng Việt), nút ≥40px, mô tả việc làm
   được thay vì "61 công cụ". Thử app mới thì tiktok/threads/google_business_profile lỗi "require auth configs" và làm hỏng luôn

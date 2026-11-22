@@ -80,7 +80,7 @@
   function renderAll() {
     log.innerHTML = '';
     if (!items.length) {
-      log.appendChild(bubble({ kind: 'assistant', text: 'Chào anh/chị, em là Trợ lý AI của Văn Phòng AI. Anh/chị giao việc bằng tiếng Việt, em sẽ dùng các ứng dụng đã kết nối để làm. Việc đăng bài, gửi tin hay chi tiền em luôn hỏi trước khi làm.' }));
+      log.appendChild(bubble({ kind: 'assistant', text: 'Chào anh/chị, em là Trợ lý AI của Crewzy. Anh/chị giao việc bằng tiếng Việt, em sẽ dùng các ứng dụng đã kết nối để làm. Việc đăng bài, gửi tin hay chi tiền em luôn hỏi trước khi làm.' }));
     }
     items.forEach(function (item) { log.appendChild(bubble(item)); });
     log.scrollTop = log.scrollHeight;

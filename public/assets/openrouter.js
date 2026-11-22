@@ -41,7 +41,7 @@
       var callback = location.origin + location.pathname;
       location.href = 'https://openrouter.ai/auth?callback_url=' + encodeURIComponent(callback) +
         '&code_challenge=' + b64url(new Uint8Array(hash)) + '&code_challenge_method=S256' +
-        '&key_label=' + encodeURIComponent('Văn Phòng AI') + '&state=' + state;
+        '&key_label=' + encodeURIComponent('Crewzy') + '&state=' + state;
     });
   }
 

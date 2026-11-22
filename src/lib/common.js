@@ -1,0 +1,146 @@
+// Dùng chung cho mọi route của Worker. Biến môi trường/khoá bí mật đọc từ `env` (Cloudflare bindings).
+// Mật mã dùng Web Crypto (crypto.subtle) để chạy gọn trên Workers.
+import { READY_SLUGS } from './catalog.js';
+
+export const APP_NAME = 'Crewzy';
+
+// Công cụ khách được kết nối thật: các app status 'ready' trong src/lib/catalog.js.
+export const TOOLKITS = READY_SLUGS;
+export const MAX_ACCOUNTS_PER_TOOLKIT = 5;
+export const UID_PATTERN = /^[a-z0-9-]{8,64}$/;
+
+// Giữ tiền tố cũ 'vpai-' để các kết nối Composio đã làm trên bản Netlify vẫn dùng được.
+export const userIdFor = (uid) => `vpai-${uid}`;
+
+export const json = (data, status = 200, headers = {}) => Response.json(data, { status, headers });
+
+export function safeDetail(err) {
+  const text = String((err && (err.message || err)) || '').replace(/\b[a-z]{2}_[A-Za-z0-9*_-]+/g, '***');
+  return text.slice(0, 300);
+}
+
+export const getApiKey = (env) => env.COMPOSIO_API_KEY || '';
+export const getGoogleClientId = (env) => (env.GOOGLE_CLIENT_ID || '').trim();
+
+// ---------- base64url + HMAC ----------
+const enc = new TextEncoder();
+export function toB64Url(bytes) {
+  let bin = '';
+  for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+export function fromB64Url(text) {
+  const b64 = String(text).replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((String(text).length + 3) % 4);
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+export const b64UrlText = (text) => toB64Url(enc.encode(text));
+export const textFromB64Url = (b64) => new TextDecoder().decode(fromB64Url(b64));
+
+function sameText(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function hmac(secretText, payload) {
+  const keyBytes = await crypto.subtle.digest('SHA-256', enc.encode(secretText));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return toB64Url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
+}
+
+// Link nối AI: token = base64url(link phiên Composio) + '.' + HMAC (khoá suy ra từ COMPOSIO_API_KEY). Cổng /mcp/* kiểm tra lại.
+export async function signUpstream(upstreamUrl, apiKey) {
+  const payload = b64UrlText(upstreamUrl);
+  return `${payload}.${await hmac('vpai-mcp|' + apiKey, payload)}`;
+}
+export async function verifyUpstreamToken(token, apiKey) {
+  const [payload, sig] = String(token || '').split('.');
+  if (!payload || !sig) return null;
+  if (!sameText(await hmac('vpai-mcp|' + apiKey, payload), sig)) return null;
+  try { return new URL(textFromB64Url(payload)); } catch (e) { return null; }
+}
+
+// ---------- Phiên đăng nhập ----------
+// Cookie vpai_session = base64url(JSON) + '.' + HMAC. Khoá ký: SESSION_SECRET, chưa đặt thì suy ra từ COMPOSIO_API_KEY.
+export const SESSION_COOKIE = 'vpai_session';
+export const SESSION_DAYS = 30;
+const sessionSecret = (env) => env.SESSION_SECRET || ('vpai-session|' + getApiKey(env));
+
+export async function signSession(env, data) {
+  const payload = b64UrlText(JSON.stringify(data));
+  return `${payload}.${await hmac(sessionSecret(env), payload)}`;
+}
+
+export function readCookie(req, name) {
+  const raw = req.headers.get('cookie') || '';
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return '';
+}
+
+export async function readSession(req, env) {
+  const token = readCookie(req, SESSION_COOKIE);
+  const dot = token.indexOf('.');
+  if (dot < 1) return null;
+  const payload = token.slice(0, dot);
+  if (!sameText(await hmac(sessionSecret(env), payload), token.slice(dot + 1))) return null;
+  try {
+    const data = JSON.parse(textFromB64Url(payload));
+    if (!data || !data.uid || !UID_PATTERN.test(data.uid) || !(data.exp > Date.now())) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+export const sessionCookie = (token, maxAgeSeconds) =>
+  `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+
+// Mã khách cho Composio. Đã bật đăng nhập Google (có GOOGLE_CLIENT_ID) thì chỉ tin phiên; chưa bật thì dùng mã trình duyệt gửi lên.
+export async function resolveUid(req, env, fallbackUid) {
+  const session = await readSession(req, env);
+  if (session) return { uid: session.uid, session };
+  if (getGoogleClientId(env)) return { response: json({ error: 'Bạn cần đăng nhập lại.', login: true }, 401) };
+  if (!UID_PATTERN.test(fallbackUid || '')) return { response: json({ error: 'Mã khách không hợp lệ.' }, 400) };
+  return { uid: fallbackUid };
+}
+
+// ---------- Xác minh ID token Google (RS256, khoá công khai JWKS) ----------
+let jwksCache = { at: 0, keys: [] };
+async function googleKeys(force) {
+  if (!force && jwksCache.keys.length && Date.now() - jwksCache.at < 3600 * 1000) return jwksCache.keys;
+  const res = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+  if (!res.ok) throw new Error('Không tải được khoá của Google (' + res.status + ')');
+  jwksCache = { at: Date.now(), keys: (await res.json()).keys || [] };
+  return jwksCache.keys;
+}
+
+export async function verifyGoogleIdToken(idToken, clientId, getKeys = googleKeys) {
+  const parts = String(idToken || '').split('.');
+  if (parts.length !== 3) throw new Error('Mã đăng nhập không đúng dạng');
+  const header = JSON.parse(textFromB64Url(parts[0]));
+  const claims = JSON.parse(textFromB64Url(parts[1]));
+  if (header.alg !== 'RS256') throw new Error('Thuật toán ký không hợp lệ');
+  let jwk = (await getKeys(false)).find((k) => k.kid === header.kid);
+  if (!jwk) jwk = (await getKeys(true)).find((k) => k.kid === header.kid);
+  if (!jwk) throw new Error('Không tìm thấy khoá ký của Google');
+  const key = await crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, fromB64Url(parts[2]), enc.encode(parts[0] + '.' + parts[1]));
+  if (!ok) throw new Error('Chữ ký không hợp lệ');
+  const now = Math.floor(Date.now() / 1000);
+  if (claims.iss !== 'accounts.google.com' && claims.iss !== 'https://accounts.google.com') throw new Error('Nơi cấp không hợp lệ');
+  if (claims.aud !== clientId) throw new Error('Mã đăng nhập không dành cho app này');
+  if (!(claims.exp > now - 60)) throw new Error('Mã đăng nhập đã hết hạn');
+  if (!claims.sub) throw new Error('Thiếu mã người dùng');
+  if (claims.email && claims.email_verified === false) throw new Error('Email Google chưa xác minh');
+  return claims;
+}
+
+// ---------- KV (thay Netlify Blobs) ----------
+// Khoá: user:<google sub> · uid:<uid> · brand:<uid> · usage:<ngày>:<uid|all>
+export const kvGetJson = (env, key) => env.KV.get(key, { type: 'json' });
+export const kvPutJson = (env, key, value, opts) => env.KV.put(key, JSON.stringify(value), opts);

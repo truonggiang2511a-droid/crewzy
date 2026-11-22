@@ -1,12 +1,10 @@
-# Văn Phòng AI (tên tạm) — bản thử giao diện
+# Crewzy
 
-Bản thử giao diện tĩnh của web app "văn phòng AI": doanh nghiệp có sẵn quy trình cả công ty, chỉ cần kết nối công cụ và bấm Run.
-Dữ liệu trên các màn hình là dữ liệu mẫu.
+Đội nhân viên AI cho doanh nghiệp nhỏ ở Việt Nam: kết nối app (qua Composio), điền Brain thương hiệu, giao việc cho Trợ lý AI
+và chạy quy trình theo phòng ban. Chạy trên Cloudflare Workers.
 
-- `index.html` — Văn phòng: 9 phòng đang làm việc
-- `cho-duyet.html` — Việc chờ duyệt
-- `ket-noi.html` — Kết nối công cụ
-
-Chạy cục bộ: `python3 -m http.server 8765 -d public` rồi mở http://127.0.0.1:8765/
+- Chạy cục bộ: `npm install`, tạo `.dev.vars` (COMPOSIO_API_KEY=…), `npm run dev` → http://127.0.0.1:8787
+- Kiểm tra: `npm test`
+- Deploy: push nhánh `main` (Workers Builds tự chạy `npx wrangler deploy`)
 
 Đọc `CLAUDE.md` trước khi sửa.

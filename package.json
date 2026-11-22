@@ -1,11 +1,18 @@
 {
-  "name": "van-phong-ai",
+  "name": "crewzy",
   "private": true,
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
     "@composio/core": "^0.31.0",
-    "@netlify/blobs": "^11.1.9",
     "openai": "^7.62.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node scripts/authtest.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.166.0"
   }
 }

@@ -2,38 +2,36 @@
 // GET  /api/auth/me      → { required, clientId, user | null }   (required = đã đặt GOOGLE_CLIENT_ID)
 // POST /api/auth/google  { credential, localUid? } → kiểm tra ID token Google, tạo phiên (cookie), trả { user }
 // POST /api/auth/logout  → xoá phiên
-// Mã khách (dùng cho Composio) gắn với tài khoản Google, lưu trong Netlify Blobs "vpai-users":
+// Mã khách (dùng cho Composio) gắn với tài khoản Google, lưu trong KV:
 //   user:<google sub> → { uid, email, name, picture, createdAt }    uid:<uid> → <google sub>
 // Lần đăng nhập đầu, nếu trình duyệt đã có mã khách cũ chưa thuộc ai thì nhận luôn mã đó để giữ các kết nối đã làm.
-import { getStore } from '@netlify/blobs';
 import {
-  UID_PATTERN, SESSION_DAYS, getGoogleClientId, readSession, signSession, sessionCookie, verifyGoogleIdToken, safeDetail,
-} from '../lib/common.mjs';
+  UID_PATTERN, SESSION_DAYS, kvGetJson, kvPutJson, getGoogleClientId, readSession, signSession, sessionCookie, verifyGoogleIdToken, safeDetail,
+} from '../lib/common.js';
 
 const publicUser = (s) => (s ? { email: s.email || '', name: s.name || '', picture: s.picture || '' } : null);
 
-async function findOrCreateUid(claims, localUid) {
-  const store = getStore({ name: 'vpai-users', consistency: 'strong' });
+async function findOrCreateUid(env, claims, localUid) {
   const userKey = 'user:' + claims.sub;
-  const existing = await store.get(userKey, { type: 'json' });
+  const existing = await kvGetJson(env, userKey);
   if (existing && UID_PATTERN.test(existing.uid || '')) return existing.uid;
 
   let uid = 'g-' + String(claims.sub).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
   if (UID_PATTERN.test(localUid || '') && !localUid.startsWith('g-')) {
-    const owner = await store.get('uid:' + localUid);
+    const owner = await env.KV.get('uid:' + localUid);
     if (!owner) uid = localUid;
   }
-  await store.setJSON(userKey, { uid, email: claims.email || '', name: claims.name || '', picture: claims.picture || '', createdAt: new Date().toISOString() });
-  await store.set('uid:' + uid, String(claims.sub));
+  await kvPutJson(env, userKey, { uid, email: claims.email || '', name: claims.name || '', picture: claims.picture || '', createdAt: new Date().toISOString() });
+  await env.KV.put('uid:' + uid, String(claims.sub));
   return uid;
 }
 
-export default async (req) => {
+export default async (req, env) => {
   const path = new URL(req.url).pathname;
-  const clientId = getGoogleClientId();
+  const clientId = getGoogleClientId(env);
 
   if (path.endsWith('/me')) {
-    const session = readSession(req);
+    const session = await readSession(req, env);
     return Response.json({ required: !!clientId, clientId, user: publicUser(session) }, { headers: { 'cache-control': 'no-store' } });
   }
 
@@ -55,12 +53,12 @@ export default async (req) => {
       return Response.json({ error: 'Không xác minh được tài khoản Google, thử lại.', detail: safeDetail(err) }, { status: 401 });
     }
     try {
-      const uid = await findOrCreateUid(claims, body && body.localUid);
+      const uid = await findOrCreateUid(env, claims, body && body.localUid);
       const session = {
         uid, sub: String(claims.sub), email: claims.email || '', name: claims.name || '', picture: claims.picture || '',
         exp: Date.now() + SESSION_DAYS * 86400 * 1000,
       };
-      return Response.json({ user: publicUser(session) }, { headers: { 'set-cookie': sessionCookie(signSession(session), SESSION_DAYS * 86400) } });
+      return Response.json({ user: publicUser(session) }, { headers: { 'set-cookie': sessionCookie(await signSession(env, session), SESSION_DAYS * 86400) } });
     } catch (err) {
       console.error('login store failed', err && err.message);
       return Response.json({ error: 'Không lưu được tài khoản, thử lại sau ít phút.', detail: safeDetail(err) }, { status: 500 });
@@ -70,4 +68,3 @@ export default async (req) => {
   return new Response('Not found', { status: 404 });
 };
 
-export const config = { path: ['/api/auth/me', '/api/auth/google', '/api/auth/logout'] };
