@@ -272,6 +272,7 @@
     $('[data-ai-box]').style.display = 'flex';
     aiCreate.textContent = 'Tạo link mới';
     var b = $('[data-ai-badge]'); b.textContent = 'Đã có link'; b.className = 'pill pill-ok';
+    if (window.crewzyAiTabs) window.crewzyAiTabs.refresh();
   }
   // Link kiểu cũ (không có mã khách → thiếu Brain, Skill, tạo ảnh) thì bỏ, nhắc tạo link mới.
   var savedLink = store(AI_KEY);

@@ -165,6 +165,12 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Tab AI của bạn làm theo kiểu openart.ai/mcp (Giang gửi 22/11): 3 bước có số (tạo link → chọn AI theo tab Claude/ChatGPT/Gemini/Grok/
   Cursor/AI khác → câu lệnh mẫu sao chép được), thư viện "Câu lệnh mẫu" lọc Marketing/Mạng xã hội/Bán hàng/Báo cáo (nút Thử trong Crewzy
   → chat.html?q=, Sao chép), Câu hỏi thường gặp. Dữ liệu tab + câu lệnh nằm trong public/assets/ai-prompts.js (window.crewzyAiTabs.select).
+- Claude Code (22/11, tra code.claude.com/docs/en/mcp): khách nối Claude Code VÀO Crewzy bằng
+  `claude mcp add --transport http --scope user crewzy <link>` (tab Claude Code ở AI của bạn tự điền link, có nút sao chép);
+  đăng nhập Claude Code bằng tài khoản claude.ai thì connector Crewzy thêm ở claude.ai có sẵn. Đã thử CLI thật: `claude mcp list` → Connected.
+  Chiều ngược lại (khung chat Crewzy điều khiển Claude Code của khách) KHÔNG làm: `claude mcp serve` chỉ chạy stdio trên máy khách,
+  Worker trên mây không gọi tới được; muốn được phải mở đường hầm từ máy khách ra internet và để lộ Bash/sửa file của máy → quá rủi ro
+  cho khách không rành kỹ thuật. Gói Claude Pro/Max cũng không được dùng làm bộ não trong app khác.
 - Bấm nút Bộ não AI ở Văn phòng: khung chi tiết có 4 nút Claude/ChatGPT/Gemini/Grok → ket-noi.html?tab=ai&ai=<x> (làm nổi hướng dẫn).
   Logo AI: logos.composio.dev/api/claude|openai|gemini|grok (anthropic, chatgpt, xai trả ảnh mặc định).
 - Đăng nhập AI (đã nghiên cứu 22/11/2026):
