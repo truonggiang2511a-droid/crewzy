@@ -177,7 +177,7 @@ export const WORKFLOWS = [
     lich: 'Mỗi ngày 10:00 và 16:00', loai: 'cham_soc',
     buoc: [
       'Đọc nguồn khách mới từ lần chạy trước: email hỏi mua/hỏi giá (Gmail), bình luận hỏi giá trên Fanpage, dòng mới trong Sheet form.',
-      'Với mỗi khách: tên, kênh, nhu cầu, sản phẩm quan tâm, mức độ (nóng = hỏi giá/hẹn xem, ấm = quan tâm, lạnh = hỏi chung). Bỏ trùng.',
+      'Với mỗi khách: tên, kênh, nhu cầu, sản phẩm quan tâm, mức độ (nóng = hỏi giá/hẹn xem, ấm = quan tâm, lạnh = hỏi chung). Bỏ trùng. Gọi CREWZY_BAO_LEAD cho từng khách để chủ thấy ngay trên Crewzy (khách nóng thì báo chủ qua kênh đã nối theo viec_tiep).',
       'Ghi vào CRM đã nối (HubSpot, Pipedrive, Salesforce, Zoho: tạo liên hệ + deal) hoặc bảng "Khách tiềm năng" trên Google Sheets/Airtable (tạo nếu chưa có). Không đưa số điện thoại lên chỗ công khai.',
       'Soạn tin/email chào riêng cho từng khách nóng và ấm theo Brain thương hiệu.',
       'Nộp bằng CREWZY_NOP_KET_QUA (loai cham_soc, lien_ket = link Sheet) để duyệt trước khi gửi.',
@@ -221,7 +221,8 @@ export const WORKFLOWS = [
       'ĐỌC KỸ thuong_hieu đi kèm: giọng văn, nên nói, không được nói, giá và ưu đãi, câu hỏi thường gặp.',
       'Đọc bình luận chưa trả lời trên các bài 7 ngày gần đây của mọi kênh có bình luận đã nối (Facebook, Instagram, YouTube, LinkedIn…). Bỏ bình luận của chính trang.',
       'Phân loại: khen/cảm ơn, hỏi giá/hỏi mua, câu hỏi có trong FAQ, phàn nàn/đổi trả, pháp lý/nhạy cảm, spam.',
-      'Soạn trả lời ngắn theo Brain: hỏi giá mà Brain không có giá → mời nhắn tin; không công khai số điện thoại hay thông tin khách; phàn nàn → xin lỗi, mời nhắn riêng; spam → đề xuất ẩn.',
+      'Soạn trả lời ngắn theo Brain: hỏi giá/hỏi mua → trả lời ngắn và MỜI KHÁCH ĐỂ LẠI SỐ ĐIỆN THOẠI qua tin nhắn riêng để được tư vấn (Brain không có giá thì không bịa giá); không công khai số điện thoại hay thông tin khách; phàn nàn → xin lỗi, mời nhắn riêng; spam → đề xuất ẩn.',
+      'NHẬN DIỆN LEAD: bình luận/tin nhắn có số điện thoại, email, hoặc khách nóng (hỏi giá, hẹn xem, muốn mua) → gọi CREWZY_BAO_LEAD NGAY cho từng khách (ten, sdt, nguon, nhu_cau, muc_do, link) rồi làm đúng viec_tiep trả về: báo chủ qua Gmail/Telegram/Slack đã nối, ghi vào CRM đã nối. Tin báo chủ là tin nội bộ, không cần chờ duyệt.',
       'Nếu yêu cầu ghi "TỰ TRẢ LỜI ĐÃ BẬT": trả lời ngay các bình luận khen, hỏi giá/hỏi mua, câu có trong FAQ (tối đa 30 bình luận mỗi lượt); KHÔNG tự trả lời phàn nàn, đổi trả, pháp lý, chửi bới, câu không chắc. Không bật thì không trả lời công khai.',
       'Nộp CREWZY_NOP_KET_QUA (loai cham_soc): danh sách đã tự trả lời (link + câu trả lời, trang_thai da_dang nếu chỉ có loại này) và danh sách chờ duyệt. Khi phiếu được duyệt, trả lời đúng nội dung rồi nộp da_dang.',
     ] },
@@ -252,7 +253,7 @@ export const WORKFLOWS = [
       'Lấy số 7 ngày qua và 7 ngày trước đó: quảng cáo (chi tiêu, kết quả, chi phí/kết quả), website (lượt truy cập, nguồn), Fanpage (bài đăng, tương tác), khách mới (Sheet/HubSpot).',
       'Xem phiếu việc tuần qua (CREWZY_VIEC_CAN_LAM tat_ca): bao nhiêu bài đăng, video, khách được chăm sóc.',
       'Viết báo cáo: 5 số chính kèm % thay đổi, 3 điều tốt, 3 điều cần sửa, 3 việc tuần tới.',
-      'Đã nối Google Sheets: ghi 1 dòng mỗi tuần vào bảng tính "Báo cáo Crewzy" (tạo nếu chưa có; cột: Tuần, Khách mới, Bài đăng, Tương tác, Chi quảng cáo, Chi phí/khách, Doanh thu, Ghi chú) để CEO xem xu hướng. Có nơi lưu tài liệu đã nối (Google Docs, Notion…) thì lưu bản đầy đủ vào Docs; có kênh nhắn nội bộ đã nối (Telegram, Slack, Gmail…) thì gửi tóm tắt cho chủ. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong) kèm link Sheet.',
+      'Đã nối Google Sheets: ghi 1 dòng mỗi tuần vào bảng tính "Báo cáo Crewzy" (tạo nếu chưa có; cột: Tuần, Khách mới, Bài đăng, Tương tác, Chi quảng cáo, Chi phí/khách, Doanh thu, Ghi chú) để CEO xem xu hướng. Có nơi lưu tài liệu đã nối (Google Docs, Notion…) thì lưu bản đầy đủ vào Docs; gửi tóm tắt + link Sheet cho chủ qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack). Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong) kèm link Sheet.',
     ] },
   { id: 'de_xuat_chien_luoc', phong: 'chien_luoc', ten: 'Đề xuất chiến lược tháng',
     mo_ta: 'Từ báo cáo tuần, nghiên cứu đối thủ và Brain thương hiệu, đề xuất mục tiêu, kênh, nội dung chủ đạo, ngân sách quảng cáo và lịch việc cho tháng tới.',
@@ -283,7 +284,7 @@ export const WORKFLOWS = [
       'Gọi CREWZY_VIEC_CAN_LAM tat_ca: đếm phiếu chờ duyệt, việc AI đang làm.',
       'Số khách mới hôm qua (CRM đã nối hoặc phiếu lead), DANH SÁCH KHÁCH CẦN GỌI hôm nay (tên, nhu cầu, lần liên hệ cuối; không đưa lên kênh công khai), lịch hôm nay (Google Calendar), email quan trọng chưa đọc (Gmail, bỏ quảng cáo), chi tiêu và kết quả quảng cáo hôm qua (nếu có).',
       'Viết bản tin dưới 12 dòng: số khách mới và khách cần gọi ghi đầu tiên (CEO chỉ cần gọi điện chăm khách), rồi việc chờ duyệt.',
-      'Gửi qua kênh nhắn nội bộ đã nối (Telegram, Slack, Teams, Zalo sau này) hoặc email cho chủ. Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong).',
+      'Gửi cho chủ qua MỌI kênh trong bao_ceo: Gmail tới email_ceo, Telegram/Slack/Teams nếu đã nối (tin nội bộ, không cần duyệt). Nộp bằng CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong).',
     ] },
 ];
 
@@ -514,6 +515,8 @@ export function forMcp(text) {
 }
 
 export const WORKFLOW_RULES = [
+  'BÁO CHỦ: báo cáo, bản tin, lead nóng gửi tới chủ doanh nghiệp qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack, Teams đã nối). Tin nội bộ cho chủ không cần hỏi duyệt; tin gửi KHÁCH vẫn theo cổng duyệt.',
+  'LEAD: thấy khách để lại số điện thoại/email hoặc khách nóng ở bất kỳ kênh nào → gọi CREWZY_BAO_LEAD ngay, rồi làm theo viec_tiep.',
   'BƯỚC 0 BẮT BUỘC: đọc kỹ thuong_hieu kèm trong kết quả CREWZY_QUY_TRINH (Brain, phong cách hình ảnh/video, giọng đọc, nhạc, mẫu tham khảo) TRƯỚC khi làm bất cứ việc gì. Mở các link mẫu khách thích để học phong cách; làm theo phong cách đó cho thương hiệu của khách, không sao chép nội dung, logo, người trong mẫu. Mục trong thuong_hieu.thieu: hỏi khách 1 lần hoặc dùng mặc định và ghi rõ trong kết quả.',
   'Đăng bài: chỉ đăng lên kênh có định dạng phù hợp trong dinh_dang_kenh (vd YouTube chỉ nhận video, Instagram không nhận bài chỉ có chữ); kênh không nhận thì bỏ qua và ghi chú. Mỗi kênh một nội dung riêng đúng văn phong và khổ ảnh/video của kênh đó.',
   'Ảnh/video tạo ở công cụ khác phải có link Crewzy trước khi đăng hoặc nộp: dùng media_crewzy trong kết quả công cụ, hoặc AI trên máy tải file lên bằng CREWZY_TAI_LEN.',

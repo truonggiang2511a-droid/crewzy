@@ -143,6 +143,11 @@ src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây
                           readiness sẵn sàng, theo số lịch gói (ưu tiên ra khách trước); cần Brain ≥4/6 mục. GET/POST /api/autopilot (src/routes/autopilot.js).
                           Dây giữa phòng trên cây = EDGES trong office.js (khớp CHAIN tu→toi): bật tự động → dây đứt nét chảy chậm, có việc thật → sáng + hạt.
                           Nút + mỗi nhánh → ket-noi.html?cat=<BRANCH_CAT>; app khách nối thêm mọc lá ở nhánh theo CAT_BRANCH (src/routes/office.js)
+src/lib/leads.js          KHÁCH TIỀM NĂNG + BÁO CEO NGAY: KV leads:<uid> (≤300), công cụ CREWZY_BAO_LEAD (chat + link MCP; gộp trùng số 7 ngày) trả email_ceo
+                          (email Google của chủ: uid:<uid> → user:<sub>), kenh_bao (Gmail/Telegram/Slack/Teams/Discord/WhatsApp/Outlook đã nối), crm, viec_tiep để AI gửi
+                          tiếp bằng Composio. CREWZY_QUY_TRINH trả bao_ceo (báo cáo/bản tin gửi chủ qua các kênh đó). GET/POST /api/leads (cap_nhat: da_goi|hen|da_chot
+                          +gia_tri|huy|xoa; them). leadStats: hôm nay, cần gọi, chốt + doanh thu tháng theo nguồn. Trung tâm điều hành: ô "N lead hôm nay" trên thân cây,
+                          bảng Khách tiềm năng (Gọi tel:, Đã gọi, Chốt + số tiền), lead vào Hoạt động. layout.js: thông báo lead mọi trang (60 giây, Notification nếu bật)
 src/lib/library.js        KHO (D1 library, migrations/0003_library.sql ĐÃ áp lên D1 thật 23/11): addItem (UNIQUE uid+url), listItems, usageBytes, removeItem,
                           CREWZY_KHO + CREWZY_LUU_KHO (AI đọc kho, lưu ảnh web/fanpage vào kho qua rehostUrl). Tự vào kho: upload (tai_len, PUT của AI = ket_qua),
                           ảnh/video AI tạo (ai_tao). Ảnh Nhanh giờ lưu R2 (putMedia) thay KV img 90 ngày khi có MEDIA
@@ -540,6 +545,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   chuyền (từng bước sẵn sàng / Nối app còn thiếu), nút + mỗi nhánh, lá app nối thêm theo thể loại, dây theo CHAIN. Bao_cao_tuan ghi 1 dòng/tuần vào Sheet
   "Báo cáo Crewzy"; ban_tin_sang đưa số khách mới + danh sách khách cần gọi lên đầu. Đăng bài/gửi khách vẫn qua cổng duyệt (an toàn tài khoản, đúng mục 3).
   Test: scripts/officetest.mjs (thiếu Brain chặn, giới hạn lịch gói, ưu tiên lead, tắt giữ lịch riêng, gói đủ thì trả lời mỗi giờ). Chưa thử trên tài khoản thật.
+- 22/11/2026 (đêm, lần 4): Giang "làm tiếp như đề xuất: báo về kênh đã nối (Gmail…), AI trả lời bình luận xin số, nhận diện lead nóng gửi CEO qua email/Zalo/
+  Tele/CRM, thông báo liên tục". Làm: leads.js + CREWZY_BAO_LEAD + /api/leads + bảng lead + ô lead trên cây + thông báo mọi trang; tra_loi_binh_luan mời để lại số và
+  gọi CREWZY_BAO_LEAD; ban_tin_sang/bao_cao_tuan gửi chủ qua bao_ceo; WORKFLOW_RULES thêm BÁO CHỦ + LEAD. Zalo chưa có (Composio không có) → báo qua Gmail/Telegram.
+  Lead chỉ về khi AI chạy (lịch trả lời bình luận mỗi giờ hoặc khách chat) — không phải webhook tức thời từ Facebook. AI ngoài (claude.ai) phải ngắt/nối lại connector
+  mới thấy CREWZY_BAO_LEAD. Test: officetest (lưu, gộp trùng, kênh báo, chốt → doanh thu).
 
 ## 6. Việc tiếp theo
 

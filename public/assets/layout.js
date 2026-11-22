@@ -125,6 +125,39 @@
     }).catch(function () {});
   }
 
+  // THÔNG BÁO LEAD liên tục trên mọi trang: hỏi /api/leads mỗi 60 giây (khi tab đang mở), lead mới → thẻ báo góc màn hình
+  // + thông báo của trình duyệt nếu khách đã bật (Notification). Mốc đã xem: localStorage crewzy.leadSeen (id lead mới nhất).
+  function leadToast(l) {
+    var box = document.querySelector('.cz-toasts');
+    if (!box) { box = document.createElement('div'); box.className = 'cz-toasts'; box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+    var t = document.createElement('a');
+    t.className = 'cz-toast' + (l.muc_do === 'nong' ? ' hot' : '');
+    t.href = 'index.html#leads';
+    t.innerHTML = '<b></b><span></span>';
+    t.querySelector('b').textContent = (l.muc_do === 'nong' ? 'Lead nóng · ' : 'Lead mới · ') + l.ten + (l.sdt ? ' · ' + l.sdt : '');
+    var src = String(l.nguon || ''); t.querySelector('span').textContent = (src.charAt(0).toUpperCase() + src.slice(1)) + (l.nhu_cau ? ' · ' + l.nhu_cau : '');
+    box.appendChild(t);
+    setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 400); }, 9000);
+  }
+  window.crewzyLeadsSeen = function (list) {
+    if (!list || !list.length) return;
+    var seen = ''; try { seen = localStorage.getItem('crewzy.leadSeen') || ''; } catch (e) {}
+    var fresh = [];
+    for (var i = 0; i < list.length && list[i].id !== seen; i++) fresh.push(list[i]);
+    try { localStorage.setItem('crewzy.leadSeen', list[0].id); } catch (e) {}
+    if (!seen) return; // lần đầu chỉ ghi mốc, không dội thông báo cũ
+    fresh.slice(0, 3).reverse().forEach(function (l) {
+      leadToast(l);
+      try { if (window.Notification && Notification.permission === 'granted') new Notification((l.muc_do === 'nong' ? 'Lead nóng: ' : 'Lead mới: ') + l.ten, { body: (l.sdt ? l.sdt + ' · ' : '') + (l.nhu_cau || l.nguon || ''), tag: l.id }); } catch (e) {}
+    });
+  };
+  function pollLeads() {
+    if (!window.vpaiUid || document.hidden || /dang-nhap|bat-dau|index\.html$|\/$/.test(location.pathname)) return; // Trung tâm điều hành tự gọi qua /api/office
+    fetch('/api/leads?uid=' + encodeURIComponent(window.vpaiUid())).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d) window.crewzyLeadsSeen(d.leads); }).catch(function () {});
+  }
+  setTimeout(pollLeads, 4000);
+  setInterval(pollLeads, 60000);
+
   // Gói của khách: thẻ dưới menu (tên gói, còn mấy ngày, credit) + thanh nhắc gia hạn đầu trang khi còn ≤3 ngày,
   // đã hết hạn hoặc credit dưới 10% gói. Bấm "Đóng" thì ẩn tới hôm sau (localStorage crewzy.renew.hide).
   function loadPlan() {

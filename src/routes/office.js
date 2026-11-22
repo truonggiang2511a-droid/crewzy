@@ -10,6 +10,7 @@ import { listSchedules } from '../lib/schedules.js';
 import { listServers } from '../lib/mcpServers.js';
 import { getBrand } from '../lib/brand.js';
 import { appBySlug } from '../lib/catalog.js';
+import { listLeads, leadStats } from '../lib/leads.js';
 
 // Lá của Cây vận hành: mỗi nhánh một bộ ứng dụng ĐÚNG chuyên môn (mỗi app một nhiệm vụ), app đã nối hiện trước.
 // Sửa ở đây khi muốn đổi app của nhánh; slug phải có trong catalog (scripts/officetest.mjs kiểm).
@@ -46,9 +47,9 @@ export default async (req, env) => {
   const who = await resolveUid(req, env, url.searchParams.get('uid'));
   if (who.response) return who.response;
   const uid = who.uid;
-  const [jobs, schedules, servers, brand, accounts, aiseen] = await Promise.all([
+  const [jobs, schedules, servers, brand, accounts, aiseen, leadList] = await Promise.all([
     listJobs(env, uid), listSchedules(env, uid).catch(() => []), listServers(env, uid).catch(() => []),
-    getBrand(env, uid).catch(() => null), connectedApps(env, uid), kvGetJson(env, 'aiseen:' + uid).catch(() => null),
+    getBrand(env, uid).catch(() => null), connectedApps(env, uid), kvGetJson(env, 'aiseen:' + uid).catch(() => null), listLeads(env, uid).catch(() => []),
   ]);
   const now = Date.now();
   const connected = Object.keys(accounts || {});
@@ -97,6 +98,7 @@ export default async (req, env) => {
   for (const j of jobs.slice(0, 40)) {
     for (const h of (j.lich_su || []).slice(-4)) events.push({ luc: h.luc, viec: h.viec, tieu_de: j.tieu_de, phong: roomOf(j), id: j.id, trang_thai: j.trang_thai });
   }
+  for (const l of leadList.slice(0, 20)) events.push({ luc: l.luc, viec: (l.muc_do === 'nong' ? 'Lead nóng' : 'Lead mới') + (l.nhu_cau ? ': ' + l.nhu_cau.slice(0, 80) : ''), tieu_de: l.ten + ' · ' + l.nguon, phong: 'ban_hang', lead: l.id });
   events.sort((a, b) => (a.luc < b.luc ? 1 : -1));
 
   const count = (st) => jobs.filter((j) => effective(j) === st).length;
@@ -120,6 +122,7 @@ export default async (req, env) => {
       apps: connected.length, ai_linked: !!aiseen, jobs: jobs.length, schedules: schedules.length, composio_ok: accounts !== null,
       app_names: connected.slice(0, 12).map((s) => (appBySlug(s) || { name: s }).name),
     },
+    leads: { ...leadStats(leadList), moi: leadList.slice(0, 8).map((l) => ({ id: l.id, ten: l.ten, sdt: l.sdt, nguon: l.nguon, nhu_cau: l.nhu_cau, muc_do: l.muc_do, trang_thai: l.trang_thai, luc: l.luc, link: l.link })) },
     autopilot: { bat: schedules.some((s) => s.nguon === 'cay' && s.bat), so_lich: schedules.filter((s) => s.nguon === 'cay' && s.bat).length,
       buoc: schedules.filter((s) => s.nguon === 'cay' && s.bat).map((s) => s.quy_trinh) },
     now: new Date(now).toISOString(),

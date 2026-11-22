@@ -265,7 +265,19 @@
     });
     drawKho(layer, L.roots.kho, brainOn || anyBusy);
     drawBrain(layer, { x: B[0], y: B[1] });
+    drawLeadPill(layer, B);
     highlight(selected);
+  }
+  // Ô "Lead hôm nay" ngay trên thân cây: số khách tiềm năng đổ về, bấm để xem danh sách gọi.
+  function drawLeadPill(layer, B) {
+    var ld = state.leads || {}; var n = ld.hom_nay || 0, hot = ld.nong_hom_nay || 0;
+    var fs = isMobile() ? 10 : 12.5, txt = n + ' lead hôm nay' + (hot ? ' · ' + hot + ' nóng' : '');
+    var w = txt.length * fs * 0.58 + 26, h = fs * 2, x = B[0] - w / 2, y = B[1] - L.BR - h - (isMobile() ? 8 : 14);
+    var g = el('g', { class: 'onode', role: 'link', tabindex: '0', 'aria-label': txt, 'data-href': '#leads', style: 'cursor:pointer' }, layer);
+    if (n && !reduceMotion) { var gl = el('rect', { x: x - 3, y: y - 3, width: w + 6, height: h + 6, rx: h, fill: hot ? '#F97316' : '#22C55E', opacity: 0.3, filter: 'url(#soft)' }, g); el('animate', { attributeName: 'opacity', values: '0.15;0.5;0.15', dur: '1.8s', repeatCount: 'indefinite' }, gl); }
+    el('rect', { x: x, y: y, width: w, height: h, rx: h / 2, fill: n ? (hot ? '#3A1D0B' : '#0E2A17') : '#181818', stroke: n ? (hot ? '#F97316' : '#22C55E') : '#333' }, g);
+    el('circle', { cx: x + 12, cy: y + h / 2, r: 3.5, fill: n ? (hot ? '#FB923C' : '#4ADE80') : '#666' }, g);
+    var t = el('text', { x: x + 21, y: y + h / 2 + fs * 0.36, fill: '#FFFFFF', 'font-size': fs, 'font-weight': 600 }, g); t.textContent = txt;
   }
   function drawRoom(layer, n, r, isRoot, labelTop) {
     var st = STATUS[r.status], col = COLOR[r.id] || '#999', busy = !!roomBusy(r);
@@ -419,12 +431,12 @@
     }
     var fresh = [];
     feedEl.innerHTML = evs.slice(0, 10).map(function (e) {
-      var k = e.id + '|' + e.luc;
+      var k = (e.id || e.lead) + '|' + e.luc;
       var isNew = !firstLoad && !seenEvents[k];
       if (isNew) fresh.push(e.phong);
       seenEvents[k] = 1;
       return '<li class="of-item' + (isNew ? ' of-new' : '') + '"><span class="of-time" title="' + esc(new Date(e.luc).toLocaleString('vi-VN')) + '">' + hhmm(e.luc) + '</span><div><p class="of-route">' +
-        esc((room(e.phong) || {}).name || '') + '</p><p class="of-text"><a href="cho-duyet.html?id=' + e.id + '">' + esc(e.tieu_de) + '</a> · ' + esc(e.viec) + '</p></div></li>';
+        (e.lead ? 'Khách tiềm năng' : esc((room(e.phong) || {}).name || '')) + '</p><p class="of-text"><a href="' + (e.lead ? '#leads' : 'cho-duyet.html?id=' + e.id) + '">' + esc(e.tieu_de) + '</a> · ' + esc(e.viec) + '</p></div></li>';
     }).join('');
     fresh.forEach(flash);
   }
@@ -471,6 +483,46 @@
         '<div><b>' + x.t + '</b>' + (x.done ? '' : '<small>' + esc(x.d) + '</small>') + '</div>' +
         (x.done ? '' : '<a class="btn ' + (x === next ? 'btn-primary' : 'btn-ghost') + '" href="' + x.href + '">' + x.cta + '</a>') + '</li>';
     }).join('');
+  }
+
+  // ---------- Khách tiềm năng (lead) ----------
+  var leadsEl = document.querySelector('[data-leads]');
+  var SRC = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', zalo: 'Zalo', website: 'Website', email: 'Email', quang_cao: 'Quảng cáo' };
+  function money(n) { return (n || 0).toLocaleString('vi-VN') + 'đ'; }
+  function renderLeads() {
+    var ld = state.leads || { moi: [] };
+    if (window.crewzyLeadsSeen) window.crewzyLeadsSeen(ld.moi);
+    var src = Object.keys(ld.theo_nguon || {}).map(function (k) { var x = ld.theo_nguon[k]; return esc(SRC[k] || k) + ': ' + x.lead + ' lead' + (x.chot ? ', ' + x.chot + ' chốt ' + money(x.doanh_thu) : ''); }).join(' · ');
+    var notif = window.Notification && Notification.permission === 'default' ? '<button type="button" class="btn btn-ghost od-ghost" data-notif style="min-height:30px;font-size:12px">Bật thông báo</button>' : '';
+    leadsEl.innerHTML = '<div class="ol-head"><b>Khách tiềm năng</b>' + notif + '</div>' +
+      '<div class="ol-stats"><span><b>' + (ld.hom_nay || 0) + '</b>hôm nay</span><span><b>' + (ld.can_goi || 0) + '</b>cần gọi</span><span><b>' + (ld.chot_thang || 0) + '</b>chốt tháng này</span></div>' +
+      (ld.moi.length ? '<ul class="ol-list">' + ld.moi.map(function (l) {
+        var won = l.trang_thai === 'da_chot', tag = won ? '<span class="ol-tag won">Đã chốt</span>' : l.trang_thai !== 'moi' ? '<span class="ol-tag">' + ({ da_goi: 'Đã gọi', hen: 'Đã hẹn', huy: 'Không mua' }[l.trang_thai] || '') + '</span>' : l.muc_do === 'nong' ? '<span class="ol-tag hot">Nóng</span>' : '<span class="ol-tag">Mới</span>';
+        return '<li class="' + (l.muc_do === 'nong' && l.trang_thai === 'moi' ? 'hot' : '') + '"><div class="ol-row"><div><b>' + esc(l.ten) + '</b><small>' + esc(SRC[l.nguon] || l.nguon) + ' · ' + ago(l.luc) + '</small></div>' + tag + '</div>' +
+          (l.nhu_cau ? '<span class="ol-need">' + esc(l.nhu_cau) + '</span>' : '') +
+          '<div class="ol-acts">' + (l.sdt ? '<a class="call" href="tel:' + esc(l.sdt.replace(/[^\d+]/g, '')) + '" data-lead-call="' + l.id + '">Gọi ' + esc(l.sdt) + '</a>' : '') +
+          (l.link ? '<a href="' + esc(l.link) + '" target="_blank" rel="noopener">Xem bình luận</a>' : '') +
+          (won ? '' : '<button type="button" data-lead="' + l.id + '" data-st="da_goi">Đã gọi</button><button type="button" data-lead="' + l.id + '" data-st="da_chot">Chốt</button>') + '</div></li>';
+      }).join('') + '</ul>' : '<p class="ol-empty">Chưa có lead. Bật <b>Chạy tự động</b>: AI trả lời bình luận mỗi giờ, xin số khách quan tâm, báo bạn ngay qua Gmail/Telegram và hiện ở đây.</p>') +
+      (src ? '<p class="ol-src">Tháng này · ' + src + (ld.doanh_thu_thang ? ' · Doanh thu chốt ' + money(ld.doanh_thu_thang) : '') + '</p>' : '');
+  }
+  leadsEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-notif]')) { Notification.requestPermission().then(renderLeads); return; }
+    var call = e.target.closest('[data-lead-call]');
+    if (call) { leadPost({ action: 'cap_nhat', id: call.getAttribute('data-lead-call'), trang_thai: 'da_goi' }); return; }
+    var b = e.target.closest('[data-lead]'); if (!b) return;
+    var body = { action: 'cap_nhat', id: b.getAttribute('data-lead'), trang_thai: b.getAttribute('data-st') };
+    if (body.trang_thai === 'da_chot') {
+      var v = prompt('Giá trị đơn chốt (đồng), để trống nếu chưa rõ:', '');
+      if (v === null) return;
+      body.gia_tri = Number(String(v).replace(/[^\d]/g, '')) || 0;
+    }
+    b.disabled = true;
+    leadPost(body);
+  });
+  function leadPost(body) {
+    body.uid = uid;
+    fetch('/api/leads', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(function () { load(); });
   }
 
   // ---------- Chạy tự động cả cây ----------
@@ -525,6 +577,7 @@
   function renderAll() {
     renderTop();
     renderAuto();
+    renderLeads();
     renderGraph();
     renderTiles();
     renderFeed();
@@ -550,7 +603,7 @@
     var lf = e.target.closest('[data-leaf]');
     if (lf) { location.href = 'ket-noi.html?app=' + encodeURIComponent(lf.getAttribute('data-leaf')); return; }
     var lk = e.target.closest('[data-href]');
-    if (lk) { location.href = lk.getAttribute('data-href'); return; }
+    if (lk) { var hr = lk.getAttribute('data-href'); if (hr.charAt(0) === '#') { var tg = document.querySelector(hr); if (tg) tg.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); } else location.href = hr; return; }
     var g = e.target.closest('[data-node],[data-tile]');
     if (!g) return;
     showDetail(g.getAttribute('data-node') || g.getAttribute('data-tile'));

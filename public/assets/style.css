@@ -492,3 +492,34 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .of-chain small { display: block; color: #6B6B6B; font-size: 12px; margin-top: 2px; }
 .of-chain .ok { color: #15803D; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .of-auto-note { font-size: 12.5px; color: #6B6B6B; line-height: 1.5; margin: 0 0 12px; }
+
+/* Thông báo lead (mọi trang) + bảng Khách tiềm năng (Trung tâm điều hành) */
+.cz-toasts { position: fixed; right: 16px; bottom: 16px; z-index: 80; display: grid; gap: 8px; max-width: min(360px, calc(100vw - 32px)); }
+.cz-toast { display: block; padding: 12px 14px; border-radius: 12px; background: #0F0F0F; color: #fff; text-decoration: none; box-shadow: 0 10px 30px rgba(0,0,0,.25); border-left: 4px solid #60A5FA; transition: opacity .4s, transform .4s; animation: czIn .35s ease; }
+.cz-toast.hot { border-left-color: #F97316; }
+.cz-toast b { display: block; font-size: 14px; font-weight: 600; }
+.cz-toast span { display: block; font-size: 12.5px; color: #BDBDBD; margin-top: 2px; }
+.cz-toast.out { opacity: 0; transform: translateY(8px); }
+@keyframes czIn { from { opacity: 0; transform: translateY(10px); } }
+@media (max-width: 760px) { .cz-toasts { bottom: 76px; right: 10px; left: 10px; max-width: none; } }
+@media (prefers-reduced-motion: reduce) { .cz-toast { animation: none; transition: none; } }
+.office-leads { padding: 14px 16px; border-top: 1px solid #262626; color: #EDEDED; }
+.ol-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ol-head b { font-size: 15px; font-weight: 600; }
+.ol-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.ol-stats span { padding: 8px; border: 1px solid #2A2A2A; border-radius: 8px; font-size: 11.5px; color: #9A9A9A; }
+.ol-stats b { display: block; font-size: 17px; color: #fff; font-weight: 600; }
+.ol-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ol-list li { padding: 9px 10px; border: 1px solid #2A2A2A; border-radius: 10px; background: #151515; }
+.ol-list li.hot { border-color: #F9731655; }
+.ol-row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.ol-row b { font-size: 13.5px; font-weight: 600; }
+.ol-row small, .ol-need { display: block; font-size: 12px; color: #9A9A9A; margin-top: 2px; }
+.ol-tag { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: #262626; color: #D4D4D4; white-space: nowrap; }
+.ol-tag.hot { background: #F9731622; color: #FDBA74; }
+.ol-tag.won { background: #22C55E22; color: #86EFAC; }
+.ol-acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.ol-acts a, .ol-acts button { min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid #333; background: transparent; color: #EDEDED; font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.ol-acts .call { background: #D4FF4A; color: #0F0F0F; border-color: #D4FF4A; font-weight: 600; }
+.ol-empty { font-size: 13px; color: #9A9A9A; line-height: 1.5; margin: 6px 0 0; }
+.ol-src { font-size: 12px; color: #9A9A9A; margin: 10px 0 0; line-height: 1.6; }

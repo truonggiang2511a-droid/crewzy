@@ -3,6 +3,7 @@
 import upload from './routes/upload.js';
 import office from './routes/office.js';
 import autopilot from './routes/autopilot.js';
+import leads from './routes/leads.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -33,7 +34,7 @@ import { listJobs } from './lib/jobs.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 

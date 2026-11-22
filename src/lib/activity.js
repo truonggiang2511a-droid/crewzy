@@ -2,7 +2,7 @@
 // Dùng cho màn Kết quả (biên nhận tháng) và báo cáo tuần tự động. Ghi best-effort: lỗi không làm hỏng công cụ.
 // Chat (Trợ lý Crewzy) chỉ ghi khi công cụ chạy xong không lỗi; cổng MCP ghi lúc gọi (không đọc được kết quả Composio đã chuyển tiếp).
 const SOCIAL = /^(FACEBOOK|INSTAGRAM|YOUTUBE|LINKEDIN|PINTEREST|TWITTER|THREADS|TIKTOK|REDDIT|METRICOOL|BUFFER)_/;
-const SKIP = /^(COMPOSIO_(SEARCH_TOOLS|GET_TOOL_SCHEMAS|MANAGE_CONNECTIONS|WAIT_FOR_CONNECTIONS)|CREWZY_(?!TAO_ANH|TAO_VIDEO))/;
+const SKIP = /^(COMPOSIO_(SEARCH_TOOLS|GET_TOOL_SCHEMAS|MANAGE_CONNECTIONS|WAIT_FOR_CONNECTIONS)|CREWZY_(?!TAO_ANH|TAO_VIDEO|BAO_LEAD))/;
 
 export const KIND_LABELS = { dang_bai: 'Bài đã đăng', tra_loi: 'Bình luận đã trả lời', gui_tin: 'Tin nhắn, email đã gửi', anh: 'Ảnh đã tạo', video: 'Video đã tạo', khach: 'Khách thêm vào CRM', doc: 'Lần đọc số liệu', khac: 'Việc khác trên app' };
 
@@ -13,6 +13,7 @@ export function classify(name) {
   if (!n || SKIP.test(n)) return null;
   if (n === 'CREWZY_TAO_ANH') return 'anh';
   if (n === 'CREWZY_TAO_VIDEO') return 'video';
+  if (n === 'CREWZY_BAO_LEAD') return 'khach';
   if (/REPLY|COMMENT/.test(n) && /CREATE|POST|SEND|ADD|REPLY/.test(n) && !/GET|LIST|FETCH/.test(n)) return 'tra_loi';
   if (/SEND_(EMAIL|MESSAGE|SMS|TEXT|DRAFT|MAIL)|SEND$|SEND_A_|REPLY_TO_THREAD/.test(n)) return 'gui_tin';
   if (SOCIAL.test(n) && /(CREATE|PUBLISH|SHARE|UPLOAD|SCHEDULE|POST).*(POST|PHOTO|VIDEO|REEL|STORY|PIN|TWEET|SHORT|FEED|MEDIA)|PUBLISH|_POST$/.test(n) && !/CONTAINER|GET|LIST|DELETE/.test(n)) return 'dang_bai';

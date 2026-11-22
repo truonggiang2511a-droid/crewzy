@@ -41,3 +41,21 @@ const full = await enableAutopilot(env, 'u2', rctx, { lich: 10, tro_ly: true, tu
 const l2 = await listSchedules(env, 'u2');
 assert.ok(l2.some((s) => s.quy_trinh === 'tra_loi_binh_luan' && s.lap === 'moi_gio'), 'gói đủ tính năng: trả lời mỗi giờ');
 console.log('autopilot OK', full.bat.length, 'bước bật');
+
+// Lead: lưu, gộp trùng số trong 7 ngày, kênh báo CEO theo app đã nối, chốt đơn ra doanh thu theo nguồn.
+import { leadTool, listLeads, updateLead, leadStats } from '../src/lib/leads.js';
+store.set('uid:u3', 'sub3'); store.set('user:sub3', JSON.stringify({ uid: 'u3', email: 'ceo@nhaxinh.vn' }));
+const r1 = await leadTool(env, 'u3', { ten: 'Chị Lan', sdt: '0909 123 456', nguon: 'facebook', nhu_cau: 'Hỏi giá nhà 2 tầng', muc_do: 'nong' }, ['gmail', 'telegram', 'hubspot'], 'Trợ lý Crewzy');
+assert.equal(r1.data.email_ceo, 'ceo@nhaxinh.vn');
+assert.deepEqual(r1.data.kenh_bao, ['Gmail', 'Telegram']);
+assert.ok(r1.data.viec_tiep[0].includes('ceo@nhaxinh.vn') && r1.data.viec_tiep[1].includes('HubSpot'));
+const r2 = await leadTool(env, 'u3', { ten: 'Lan', sdt: '0909123456', nguon: 'facebook', nhu_cau: 'Muốn xem nhà thứ Bảy' }, ['gmail'], 'x');
+assert.ok(r2.data.trung, 'trùng số phải gộp');
+assert.equal((await listLeads(env, 'u3')).length, 1);
+const r3 = await leadTool(env, 'u3', { ten: 'Anh Minh', sdt: '0911000111', nguon: 'tiktok', muc_do: 'am' }, [], 'x');
+assert.ok(r3.data.ghi_chu, 'chưa nối kênh báo thì nhắc');
+assert.ok((await leadTool(env, 'u3', {}, [], 'x')).error);
+await updateLead(env, 'u3', r1.data.id, { trang_thai: 'da_chot', gia_tri: 1500000000 });
+const st = leadStats(await listLeads(env, 'u3'));
+assert.equal(st.hom_nay, 2); assert.equal(st.chot_thang, 1); assert.equal(st.doanh_thu_thang, 1500000000); assert.equal(st.theo_nguon.facebook.doanh_thu, 1500000000); assert.equal(st.can_goi, 1);
+console.log('leads OK');
