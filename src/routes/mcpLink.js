@@ -3,6 +3,7 @@
 // GET /api/mcp-link[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
 import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid } from '../lib/common.js';
+import { addLink, deviceLabel } from '../lib/mcpLinks.js';
 
 export default async (req, env) => {
   const url = new URL(req.url);
@@ -25,8 +26,10 @@ export default async (req, env) => {
     if (!upstream) {
       return Response.json({ error: 'Composio không trả về link MCP.' }, { status: 502 });
     }
-    const token = await signUpstream(upstream, apiKey, uid);
-    return Response.json({ url: `${url.origin}/mcp/${token}` });
+    // Mỗi link có mã riêng (thu hồi được ở Kết nối → AI của bạn), tên theo thiết bị tạo link.
+    const k = await addLink(env, uid, deviceLabel(req.headers.get('user-agent')));
+    const token = await signUpstream(upstream, apiKey, uid, k);
+    return Response.json({ url: `${url.origin}/mcp/${token}`, k });
   } catch (err) {
     console.error('mcp-link failed', err && err.message);
     return Response.json({ error: 'Không tạo được link nối AI, thử lại sau ít phút.', detail: safeDetail(err) }, { status: 502 });

@@ -52,8 +52,9 @@ async function hmac(secretText, payload) {
 // Link nối AI: token = base64url(payload) + '.' + HMAC (khoá suy ra từ COMPOSIO_API_KEY). Cổng /mcp/* kiểm tra lại.
 // v2: payload = JSON {u: link phiên Composio, id: mã khách} (cổng biết khách là ai để thêm Brain, Skill, công cụ Crewzy).
 // v1 (link cũ): payload = link phiên Composio, vẫn chạy nhưng không có phần Crewzy.
-export async function signUpstream(upstreamUrl, apiKey, uid) {
-  const payload = b64UrlText(uid ? JSON.stringify({ u: upstreamUrl, id: uid }) : upstreamUrl);
+// v3: thêm k = mã link (src/lib/mcpLinks.js) để khách thu hồi từng link; link v2 không có k thu hồi bằng "Thu hồi link cũ".
+export async function signUpstream(upstreamUrl, apiKey, uid, linkId) {
+  const payload = b64UrlText(uid ? JSON.stringify(linkId ? { u: upstreamUrl, id: uid, k: linkId } : { u: upstreamUrl, id: uid }) : upstreamUrl);
   return `${payload}.${await hmac('vpai-mcp|' + apiKey, payload)}`;
 }
 export async function verifyUpstreamToken(token, apiKey) {
@@ -66,6 +67,7 @@ export async function verifyUpstreamToken(token, apiKey) {
       const j = JSON.parse(text);
       const url = new URL(j.u);
       url.crewzyUid = UID_PATTERN.test(j.id || '') ? j.id : null;
+      url.crewzyLink = /^[a-z0-9]{6,16}$/.test(j.k || '') ? j.k : null;
       return url;
     }
     return new URL(text);

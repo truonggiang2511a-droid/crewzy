@@ -123,3 +123,42 @@ await call('CREWZY_VIEC_CAN_LAM');
 assert.equal(JSON.parse(store.get(jobsKey)).find((j) => j.id === 'vtodo1').nguoi_lam, 'Claude');
 
 console.log('gatewaytest OK');
+
+// ---------- Thu hồi link nối AI (src/lib/mcpLinks.js) ----------
+{
+  const { addLink, revokeLink, revokeOld, listLinks, deviceLabel } = await import('../src/lib/mcpLinks.js');
+  const UID2 = 'khach-thu-hoi-02';
+  const init = (tok) => gateway(new Request('https://crewzy.test/mcp/' + tok, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', clientInfo: { name: 'chatgpt' }, capabilities: {} } }),
+  }), env, ctx);
+  assert.match(deviceLabel('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)'), /^iPhone · \d\d\/\d\d \d\d:\d\d$/);
+  const k1 = await addLink(env, UID2, 'Máy A');
+  const k2 = await addLink(env, UID2, 'Máy B');
+  const t1 = await signUpstream(UPSTREAM, API_KEY, UID2, k1);
+  const t2 = await signUpstream(UPSTREAM, API_KEY, UID2, k2);
+  const tOld = await signUpstream(UPSTREAM, API_KEY, UID2); // link v2, không có mã
+  assert.equal((await init(t1)).status, 200);
+  await Promise.all(waits);
+  assert.equal((await listLinks(env, UID2)).links.find((l) => l.k === k1).dung.ten, 'ChatGPT', 'ghi AI đang dùng link');
+  assert.equal(await revokeLink(env, UID2, k1), true);
+  const r1 = await init(t1);
+  assert.equal(r1.status, 403, 'link đã thu hồi bị chặn');
+  assert.match(await r1.text(), /thu hồi/);
+  assert.equal((await init(t2)).status, 200, 'link khác vẫn chạy');
+  assert.equal((await init(tOld)).status, 200, 'link cũ chạy tới khi thu hồi link cũ');
+  await revokeOld(env, UID2);
+  assert.equal((await init(tOld)).status, 403, 'thu hồi link cũ');
+  assert.equal((await init(t2)).status, 200, 'link có tên không bị ảnh hưởng');
+  // Quá 20 link: bỏ link cũ nhất chưa dùng, giữ link đang dùng (k2 đã dùng).
+  for (let i = 0; i < 25; i++) await addLink(env, UID2, 'x' + i);
+  const after = (await listLinks(env, UID2)).links;
+  assert.equal(after.length, 20);
+  assert.ok(after.some((l) => l.k === k2), 'giữ link đang dùng');
+  // Bật gói: link v1 (không mã khách) bị từ chối.
+  const v1 = await signUpstream(UPSTREAM, API_KEY);
+  const envBill = { ...env, DB: {}, GOOGLE_CLIENT_ID: 'x.apps.googleusercontent.com' };
+  const rv1 = await gateway(new Request('https://crewzy.test/mcp/' + v1, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }) }), envBill, ctx);
+  assert.equal(rv1.status, 403);
+  console.log('gatewaytest: thu hồi link OK');
+}

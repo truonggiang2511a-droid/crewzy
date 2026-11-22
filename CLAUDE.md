@@ -87,7 +87,11 @@ src/routes/upload.js      POST /api/upload (trang Brain, ≤95MB ảnh/video/âm
                           CREWZY_TAI_LEN, 2 giờ, dùng 1 lần, src/lib/uploads.js); 40 file/ngày/khách (KV upcount:*); lưu qua putMedia (R2)
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
-src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
+src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token> (token v3 có mã link k, tên theo thiết bị tạo)
+src/lib/mcpLinks.js       Link nối AI của khách: KV mcplinks:<uid> {links:[{k,ten,tao,dung:{ten AI,luc}}] ≤20, cu_off}; linkAllowed (cổng gọi mỗi yêu cầu,
+                          đệm 20 giây) · touchLink lúc initialize (≤1 lần/6 giờ) · thu hồi từng link / mọi link v2 cũ. Quá 20 → bỏ link cũ nhất chưa dùng
+src/routes/mcpLinks.js    GET/POST /api/mcp-links (revoke {k} | revoke_old) → thẻ "Link đang hoạt động" ở Kết nối → AI của bạn (assets/mcp-links.js)
+public/chinh-sach.html · dieu-khoan.html  Chính sách bảo mật + Điều khoản (trang tĩnh, không auth.js; link ở dang-nhap.html và màn đồng ý Google)
 src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ; token v2 có mã khách →
                           chèn instructions (Brain + app đã nối + Skill) vào initialize, thêm CREWZY_* vào tools/list, tự chạy tools/call CREWZY_*.
                           APP_ONLY_TOOLS (CREWZY_TAO_VIDEO tốn tiền thật, CREWZY_CHO treo Worker) không liệt kê VÀ bị chặn khi gọi thẳng qua MCP;
@@ -151,7 +155,8 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
 - Link nối AI: Composio bắt buộc header x-api-key cho mọi link MCP, nên KHÔNG đưa link Composio cho khách.
   Token = base64url(link phiên Composio) + '.' + HMAC-SHA256 (khoá ký = sha256('vpai-mcp|' + COMPOSIO_API_KEY)).
-  Đổi COMPOSIO_API_KEY thì mọi link cũ hết hiệu lực. "Tạo link mới" tạo phiên mới nhưng link cũ vẫn chạy (chưa thu hồi được).
+  Đổi COMPOSIO_API_KEY thì mọi link cũ hết hiệu lực. Từ 22/11 tối: token v3 = {u, id, k}; khách thu hồi từng link ở Kết nối → AI của bạn
+  (cổng trả 403 "đã bị thu hồi", hiệu lực ≤ ~1 phút do đệm + KV). Link v2 (không k) chạy tới khi bấm "Thu hồi link cũ". Bật gói thì link v1 bị từ chối.
   Đã thử qua cổng: initialize, tools/list (6 công cụ gốc COMPOSIO_*), tools/call COMPOSIO_SEARCH_TOOLS ~1 giây.
 - Trợ lý AI (/api/chat): chế độ app, claude, openai, gemini, grok (khoá API riêng), openrouter.
   `gemini` = gemini-3.8-flash qua https://generativelanguage.googleapis.com/v1beta/openai/ (schema công cụ được lọc bằng geminiSafeTool);
@@ -268,6 +273,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   gói Free hết là báo lỗi). flux-2-klein-4b: 26,05 neurons mỗi ô 512×512 đầu ra → ảnh 4:5 (6 ô) ≈ 156 neurons ≈ 60 ảnh/ngày miễn phí,
   sau đó ≈ 0,0017 USD/ảnh. Chat chế độ app dùng khoá Anthropic, không tính vào Workers AI.
 - Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
+- Google Cloud: project riêng **Crewzy** (crewzy-515511, tài khoản truonggiang2511a@gmail.com), Google Auth Platform: External, ĐÃ chuyển
+  production 22/11 (chỉ openid/email/profile → không cần Google duyệt; thêm logo hoặc scope nhạy cảm thì phải duyệt). OAuth client "Crewzy Web"
+  496481547353-1476vkee5aocagfajus82sccpmiu2048.apps.googleusercontent.com, origin https://crewzy.truonggiang2511a.workers.dev
+  (đổi tên miền thì thêm origin mới ở Clients → Crewzy Web; Google báo áp dụng sau 5 phút tới vài giờ). Client secret không dùng.
 - Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.truonggiang2511a.workers.dev và tên miền riêng sau này;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
   Phiên = cookie HttpOnly `vpai_session` 30 ngày, ký HMAC bằng `SESSION_SECRET` (chưa đặt thì suy ra từ COMPOSIO_API_KEY).
@@ -437,6 +446,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   → trang tự sang "Xong", Gói hiện 8.000 credit; admin không bị chặn, cấp 500 credit được. Chưa thử webhook SePay thật và ảnh QR thật
   (sandbox chặn mạng ra vietqr.app). Tự điền Brain từ website dùng readWebsite + Claude Haiku (khoá của Giang, ~1 lượt nhỏ).
 
+- 22/11/2026 (tối): Tạo project Google Cloud Crewzy + OAuth client Web (Chrome, Giang tự tích điều khoản Google), chuyển app production.
+  Màn đồng ý cần trang chủ + chính sách + điều khoản → thêm chinh-sach.html, dieu-khoan.html (cũng là việc bắt buộc trước khi chạy quảng cáo).
+  Thu hồi link nối AI: token v3 có mã k, danh sách KV mcplinks:<uid>, thẻ "Link đang hoạt động" (tên thiết bị, AI đang dùng, Thu hồi).
+  Test: gatewaytest (thu hồi, link khác vẫn chạy, link v2 + revoke_old, giữ link đang dùng khi quá 20, bật gói chặn link v1); Playwright 1440/390.
+
 ## 6. Việc tiếp theo
 
 - (Đã đưa MCP ngoài vào link nối AI và có công tắc 22/11.) Còn: ghi số lượt gọi MCP ngoài vào credit.
@@ -445,7 +459,6 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.
 - Giang bật gói (theo thứ tự): ADMIN_EMAILS → SEPAY_WEBHOOK_KEY, SEPAY_BANK, SEPAY_ACCOUNT, SEPAY_ACCOUNT_NAME (+ trên my.sepay.vn tạo webhook
   https://crewzy.truonggiang2511a.workers.dev/api/sepay/webhook, xác thực API Key) → GOOGLE_CLIENT_ID. Sau đó thử 1 đơn 2.000đ bằng PLANS_JSON tạm.
-- Còn: lưu và thu hồi link nối AI (lộ link = người khác dùng được, giờ ít nhất phải có gói còn hạn mới gọi được công cụ).
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.
 - Trợ lý AI: trừ credit theo từng khách thay cho trần chung 150 lượt/ngày; nút "Duyệt" bấm được thay cho gõ "đồng ý"; trả lời chạy chữ dần (stream).

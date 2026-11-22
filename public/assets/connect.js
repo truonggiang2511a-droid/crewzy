@@ -360,6 +360,7 @@
       if (!res.ok || !res.body.url) throw new Error(res.body.error || 'Không tạo được link, thử lại sau.');
       store(AI_KEY, res.body.url);
       showAiLink(res.body.url);
+      window.dispatchEvent(new Event('crewzy:ai-link'));
       aiCreate.disabled = false;
     }).catch(function (err) { aiCreate.textContent = label; aiCreate.disabled = false; showMsg($('[data-ai-msg]'), err.message); });
   });

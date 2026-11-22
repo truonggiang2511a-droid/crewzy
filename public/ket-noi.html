@@ -105,6 +105,19 @@
 </div></div>
 </div>
 
+<div class="card" data-links-card style="padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
+<div><h2 style="margin:0 0 2px;font-size:18px;font-weight:600">Link đang hoạt động</h2><p class="muted" style="margin:0;font-size:13px">Lỡ gửi link cho người khác hoặc không dùng nữa: bấm Thu hồi, link đó ngừng chạy trong khoảng 1 phút.</p></div>
+<span data-links-count class="pill">0 link</span>
+</div>
+<p data-links-msg role="status" style="margin:0;font-size:13px;color:#8A2A12;display:none"></p>
+<div data-links-list style="display:flex;flex-direction:column;gap:8px"></div>
+<div data-links-old style="display:none;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:8px;background:#F6F6F6;font-size:13px">
+<span>Link tạo trước 22/11/2026 (không có tên, nếu bạn từng tạo) vẫn đang chạy.</span>
+<button type="button" class="btn btn-ghost wrap" data-links-revoke-old>Thu hồi link cũ</button>
+</div>
+</div>
+
 <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
 <div><h2 style="margin:0 0 2px;font-size:18px;font-weight:600">Câu lệnh mẫu</h2><p class="muted" style="margin:0;font-size:13px">Bấm Thử trong Crewzy để chạy ngay bằng Trợ lý AI, hoặc sao chép dán vào AI của bạn.</p></div>
@@ -201,5 +214,6 @@
 <script src="assets/mcp-servers.js"></script>
 <script src="assets/connect.js"></script>
 <script src="assets/ai-install.js"></script>
+<script src="assets/mcp-links.js"></script>
 </body>
 </html>

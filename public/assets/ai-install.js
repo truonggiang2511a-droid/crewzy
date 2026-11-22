@@ -86,6 +86,7 @@
       var input = document.getElementById('ai-link');
       if (input && !input.value) { input.value = url; var box = document.querySelector('[data-ai-box]'); if (box) box.style.display = 'flex'; }
       if (window.crewzyAiTabs) window.crewzyAiTabs.refresh();
+      window.dispatchEvent(new Event('crewzy:ai-link'));
       return url;
     }).finally(function () { creating = null; });
     return creating;

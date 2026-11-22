@@ -8,6 +8,7 @@ import catalog from './routes/catalog.js';
 import chat from './routes/chat.js';
 import connect from './routes/connect.js';
 import mcpLink from './routes/mcpLink.js';
+import mcpLinks from './routes/mcpLinks.js';
 import openrouterKey from './routes/openrouterKey.js';
 import status from './routes/status.js';
 import mcpGateway from './routes/mcpGateway.js';
@@ -26,7 +27,7 @@ import { gate, makeMeter, prices } from './lib/billing.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 

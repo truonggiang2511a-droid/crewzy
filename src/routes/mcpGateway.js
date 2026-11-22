@@ -7,6 +7,7 @@
 //   - máy chủ MCP khách nối ở Kết nối → MCP khác (OpenArt, Apify, Metricool…): thêm công cụ m<id4>_<tool> vào tools/list,
 //     tools/call chạy thẳng tới máy chủ đó (token OAuth giữ ở Crewzy), ảnh/video lưu thành link /api/media cố định
 import { Composio } from '@composio/core';
+import { linkAllowed, touchLink } from '../lib/mcpLinks.js';
 import { APP_NAME, getApiKey, verifyUpstreamToken, userIdFor } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
@@ -96,6 +97,11 @@ export default async (request, env, ctx) => {
   if (!upstream) return plain(403, 'Link nối AI không hợp lệ hoặc đã bị đổi.');
   if (upstream.protocol !== 'https:' || !upstream.hostname.endsWith('composio.dev')) return plain(403, 'Link nối AI không trỏ tới Composio.');
   const uid = upstream.crewzyUid || null;
+  // Bật gói: link v1 (không có mã khách) không tính được credit → bắt tạo link mới. Link đã thu hồi → từ chối.
+  if (!uid && billingOn(env)) return plain(403, 'Link nối AI này đã cũ. Vào Crewzy → Kết nối → AI của bạn để tạo link mới.');
+  if (uid && !(await linkAllowed(env, uid, upstream.crewzyLink).catch(() => true))) {
+    return plain(403, 'Link nối AI này đã bị thu hồi. Vào Crewzy → Kết nối → AI của bạn để tạo link mới rồi nối lại.');
+  }
 
   let bodyBuf = null;
   let rpc = null;
@@ -192,6 +198,7 @@ export default async (request, env, ctx) => {
     // Ghi lại AI của khách vừa nối (Văn phòng → Bộ não hiện "Claude hoạt động 5 phút trước"). Chỉ ghi lúc initialize để đỡ tốn lượt ghi KV.
     const ci = (rpc.params && rpc.params.clientInfo) || {};
     ctx && ctx.waitUntil && ctx.waitUntil(env.KV.put('aiseen:' + uid, JSON.stringify({ ten: aiName(ci.name), luc: new Date().toISOString() }), { expirationTtl: 60 * 86400 }).catch(() => {}));
+    ctx && ctx.waitUntil && ctx.waitUntil(touchLink(env, uid, upstream.crewzyLink, aiName(ci.name)).catch(() => {}));
     const ins = await buildInstructions(env, uid);
     patched = rewriteRpc(text, ct, rpc.id, (result) => {
       result.instructions = [result.instructions, ins.text].filter(Boolean).join('\n\n');
