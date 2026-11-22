@@ -22,7 +22,7 @@
 </div>
 <div>
 <h1 style="margin: 0; font-size: 28px; letter-spacing: -.03em">Đăng nhập <span class="hl">Crewzy</span></h1>
-<p style="margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: #3F4652">Dùng tài khoản Google để vào văn phòng. Các kết nối Facebook, Gmail, AI… đi theo tài khoản này, đổi máy không mất.</p>
+<p style="margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: #3F4652">Dùng tài khoản Google để vào Trung tâm điều hàng. Các kết nối Facebook, Gmail, AI… đi theo tài khoản này, đổi máy không mất.</p>
 </div>
 <div data-google-btn="" style="min-height: 44px; display: flex; justify-content: center"></div>
 <p data-login-msg="" role="status" style="margin: 0; font-size: 14px; color: #8A2A12; display: none"></p>
@@ -64,7 +64,7 @@
   fetch('/api/auth/me', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (me) {
     if (me.user) { location.replace(next); return; }
     if (!me.required || !me.clientId) {
-      show('Bản thử chưa bật đăng nhập Google. Bạn vẫn vào văn phòng được, kết nối lưu theo trình duyệt này.');
+      show('Bản thử chưa bật đăng nhập Google. Bạn vẫn vào Crewzy được, kết nối lưu theo trình duyệt này.');
       msg.style.color = '#3F4652';
       skip.href = next;
       skip.style.display = 'block';

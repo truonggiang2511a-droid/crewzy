@@ -39,9 +39,10 @@ Cập nhật app không được làm ảnh hưởng quảng cáo đang chạy, 
 ```
 public/                 Trang tĩnh (Workers static assets, binding ASSETS, html_handling "none" → giữ đuôi .html); CLAUDE.md, README không lên mạng
 public/_headers          X-Robots-Tag: noindex (bản thử không cho Google lập chỉ mục) + header an toàn · public/404.html
-public/index.html        Màn 1 · Văn phòng THẬT: việc gấp (chờ duyệt), Việc nên làm tiếp (5 bước thiết lập), 5 số liệu, sơ đồ phòng, chi tiết, hoạt động
-public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở). Máy tính: SVG Bộ não AI + 8 phòng (= DEPARTMENTS), hạt sáng CHỈ trên
-                         đường EDGES có việc thật 2 đầu; điện thoại: lưới ô phòng. Trạng thái phòng: work/wait/queue/done/setup/idle
+public/index.html        Màn 1 · TRUNG TÂM ĐIỀU HÀNH (đổi tên từ Văn phòng 23/11; thanh dưới điện thoại ghi "Điều hành"): việc gấp (chờ duyệt), Việc nên làm tiếp (5 bước thiết lập), 5 số liệu, sơ đồ phòng, chi tiết, hoạt động
+public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở). Máy tính: CÂY VẬN HÀNH SVG 1000×800 — rễ (Thương hiệu, Kho & dữ liệu, Đối thủ)
+                         → thân (Bộ não AI) → 6 cành phòng ban (COLOR mỗi phòng một màu, BRANCH toạ độ) → lá = ứng dụng (room.leaves: mỗi vai trò công cụ
+                         = 1 app + nhiệm vụ, đã nối viền liền, chưa nối mờ + dấu +, bấm lá → ket-noi.html?app=); hạt sáng CHỈ chạy khi có việc thật; điện thoại: lưới ô phòng. Trạng thái phòng: work/wait/queue/done/setup/idle
 src/routes/office.js     GET /api/office: phòng (phiếu theo quy_trinh→phong, loai→phòng), app đã nối/nên nối, lịch, sự kiện (lich_su),
                          bộ não (aiseen:<uid> do cổng MCP ghi lúc initialize + Trợ lý app), setup. dang_lam quá 3 giờ coi như cho_lam
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ 22/11, script assets/jobs.js): Giao việc mới (mẫu, Giao cho AI của tôi /
@@ -517,6 +518,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   (3) AI nhìn ảnh: CREWZY_DOC_WEB trả anh[] (og:image + img/srcset, bỏ svg/icon/1px, ≤24); CREWZY_XEM_ANH lưu ảnh sang R2 rồi gửi Claude dạng image url
   (link Crewzy luôn mở được → không làm hỏng cả lượt nếu web chặn hotlink); ảnh khách gửi trong chat: chỉ tin user CUỐI gửi dạng ảnh (Claude image, OpenAI
   image_url, Gemini/Grok chữ). Test: scripts/librarytest.mjs.
+- 23/11/2026: Giang gửi ảnh đồ thị app của composio.dev, muốn đổi tên Văn phòng cho chuyên nghiệp + vẽ kiểu cây (rễ, thân, lá) mô tả luồng việc,
+  phòng ban phối hợp, mỗi app một nhiệm vụ, bộ não AI điều khiển. Đổi tên = "Trung tâm điều hành"; sơ đồ = "Cây vận hành" (office.js renderGraph viết lại,
+  /api/office thêm rooms[].leaves {slug,name,vai,on} ≤6). Điện thoại vẫn lưới ô phòng (thêm viền màu phòng). Đã thử Playwright 1440/390 dữ liệu giả, không lỗi.
 
 ## 6. Việc tiếp theo
 

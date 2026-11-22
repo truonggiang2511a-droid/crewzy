@@ -1,4 +1,4 @@
-// Trang Văn phòng — MÔ PHỎNG THẬT từ /api/office (phiếu việc, lịch hẹn, app đã nối, máy chủ MCP, AI của khách).
+// Trung tâm điều hành (trước là Văn phòng) — Cây vận hành MÔ PHỎNG THẬT từ /api/office (phiếu việc, lịch hẹn, app đã nối, máy chủ MCP, AI của khách).
 // Máy tính: sơ đồ mạng SVG (Bộ não AI ở tâm, 8 phòng = 8 phòng của thư viện quy trình), hạt sáng CHỈ chạy trên đường có việc thật.
 // Điện thoại: lưới ô phòng dễ bấm + khung chi tiết. Bảng tin = lịch sử thật của phiếu việc. Tự cập nhật 20 giây/lần khi đang mở trang.
 (function () {
@@ -69,93 +69,174 @@
     return state.kpis.ai_lam > 0 || (ai && Date.now() - Date.parse(ai.luc) < 15 * 60000);
   }
 
-  // ---------- Sơ đồ SVG (máy tính) ----------
-  function curve(a, b, cx, cy, bend) {
-    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = mx - cx, dy = my - cy;
-    var len = Math.sqrt(dx * dx + dy * dy) || 1;
-    var qx = mx + dx / len * (len * bend), qy = my + dy / len * (len * bend);
-    return 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1) + ' Q' + qx.toFixed(1) + ' ' + qy.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1);
+  // ---------- CÂY VẬN HÀNH (máy tính) ----------
+  // Rễ = nguồn nuôi (Thương hiệu, Kho & dữ liệu, Nghiên cứu đối thủ) · Thân = Bộ não AI điều phối · Cành = phòng ban (mỗi phòng một màu)
+  // · Lá = ứng dụng, mỗi app một nhiệm vụ (vai trò trong quy trình). Đường sáng + hạt chạy CHỈ khi có việc thật (nhựa sống chảy từ rễ lên lá).
+  var COLOR = { thuong_hieu: '#A3E635', doi_thu: '#4ADE80', noi_dung: '#F472B6', quang_cao: '#FBBF24', ban_hang: '#FB923C', cham_soc: '#2DD4BF', bao_cao: '#A78BFA', hang_ngay: '#38BDF8', kho: '#FDE68A', brain: '#6D7BFF' };
+  var BRANCH = { hang_ngay: [110, 330], noi_dung: [255, 205], quang_cao: [420, 130], cham_soc: [580, 130], ban_hang: [745, 205], bao_cao: [890, 330] };
+  var ROOTS = { thuong_hieu: [285, 690], kho: [500, 728], doi_thu: [715, 690] };
+  var TRUNK = { x: 500, top: 372, base: 612 };
+  function roomBusy(r) { return r && (r.counts.lam || r.counts.cho || r.counts.duyet || r.counts.xong_24h); }
+  function cubic(x1, y1, x2, y2, c1x, c1y, c2x, c2y) { return 'M' + x1 + ' ' + y1 + ' C' + c1x + ' ' + c1y + ' ' + c2x + ' ' + c2y + ' ' + x2 + ' ' + y2; }
+  var pathN = 0;
+  function flowPath(parent, d, color, on, w, dur) {
+    var id = 'fp' + (pathN++);
+    el('path', { id: id, d: d, fill: 'none', stroke: color, 'stroke-opacity': on ? 0.95 : 0.22, 'stroke-width': on ? w : Math.max(1.2, w * 0.45), 'stroke-linecap': 'round' }, parent);
+    if (on && !reduceMotion) {
+      for (var k = 0; k < 2; k++) {
+        var dot = el('circle', { r: 3.2, fill: '#FFFFFF', filter: 'url(#glow)' }, parent);
+        var an = el('animateMotion', { dur: dur + 's', repeatCount: 'indefinite', begin: (-k * dur / 2 - pathN * 0.37) + 's' }, dot);
+        el('mpath', { href: '#' + id }, an);
+      }
+    }
+  }
+  function leafRing(parent, x, y, leaf, color) {
+    var g = el('g', { 'data-leaf': leaf.slug, style: 'cursor:pointer' }, parent);
+    el('title', {}, g).textContent = leaf.name + ' · ' + leaf.vai + (leaf.on ? ' (đã nối)' : ' (chưa nối, bấm để nối)');
+    el('circle', { cx: x, cy: y, r: 19, fill: '#151515', stroke: color, 'stroke-width': leaf.on ? 2.2 : 1.4, 'stroke-dasharray': leaf.on ? '3 2.2' : '2 4', opacity: leaf.on ? 1 : 0.55 }, g);
+    el('circle', { cx: x, cy: y, r: 13, fill: '#FFFFFF', opacity: leaf.on ? 1 : 0.35 }, g);
+    var img = el('image', { href: 'https://logos.composio.dev/api/' + leaf.slug, x: x - 9, y: y - 9, width: 18, height: 18 }, g);
+    if (!leaf.on) img.setAttribute('opacity', '0.45');
+    if (!leaf.on) { el('circle', { cx: x + 13, cy: y - 13, r: 6.5, fill: color }, g); var pt = el('text', { x: x + 13, y: y - 10.3, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#0B0B0B' }, g); pt.textContent = '+'; }
   }
   function renderGraph() {
     if (!state || isMobile()) { graphBox.innerHTML = ''; return; }
-    var W = 860, H = 540, cx = W / 2, cy = H / 2, rx = 300, ry = 190;
+    var W = 1000, H = 800;
+    pathN = 0; nodes = {};
     graphBox.innerHTML = '';
-    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Sơ đồ phòng ban: trạng thái thật của từng phòng', style: 'width:100%;height:auto;display:block' }, graphBox);
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cây vận hành: rễ là thương hiệu và dữ liệu, thân là bộ não AI, cành là phòng ban, lá là ứng dụng', style: 'width:100%;height:auto;display:block' }, graphBox);
     var defs = el('defs', {}, svg);
-    var glow = el('filter', { id: 'glow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs);
-    el('feGaussianBlur', { stdDeviation: '3', result: 'b' }, glow);
-    var merge = el('feMerge', {}, glow); el('feMergeNode', { in: 'b' }, merge); el('feMergeNode', { in: 'SourceGraphic' }, merge);
-    var grad = el('radialGradient', { id: 'core' }, defs);
-    el('stop', { offset: '0%', 'stop-color': '#1F2BFF', 'stop-opacity': brainActive() ? '0.65' : '0.35' }, grad);
-    el('stop', { offset: '100%', 'stop-color': '#1F2BFF', 'stop-opacity': '0' }, grad);
-    el('ellipse', { cx: cx, cy: cy, rx: rx, ry: ry, fill: 'none', stroke: 'rgba(255,255,255,0.08)', 'stroke-dasharray': '2 6' }, svg);
-    el('circle', { cx: cx, cy: cy, r: 110, fill: 'url(#core)' }, svg);
-    state.rooms.forEach(function (r, i) {
-      var ang = -Math.PI / 2 + i * (2 * Math.PI / state.rooms.length);
-      nodes[r.id] = { x: cx + rx * Math.cos(ang), y: cy + ry * Math.sin(ang), r: r };
+    var glow = el('filter', { id: 'glow', x: '-80%', y: '-80%', width: '260%', height: '260%' }, defs);
+    el('feGaussianBlur', { stdDeviation: '2.6', result: 'b' }, glow);
+    var mg = el('feMerge', {}, glow); el('feMergeNode', { in: 'b' }, mg); el('feMergeNode', { in: 'SourceGraphic' }, mg);
+    var tg = el('linearGradient', { id: 'trunkG', x1: '0', y1: '1', x2: '0', y2: '0' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#2A2A2A' }, tg); el('stop', { offset: '55%', 'stop-color': '#2B3270' }, tg); el('stop', { offset: '100%', 'stop-color': '#4652FF' }, tg);
+    var halo = el('radialGradient', { id: 'halo' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#4652FF', 'stop-opacity': brainActive() ? 0.45 : 0.22 }, halo); el('stop', { offset: '100%', 'stop-color': '#4652FF', 'stop-opacity': 0 }, halo);
+
+    // Mặt đất + tán lá mờ
+    el('ellipse', { cx: 500, cy: 300, rx: 470, ry: 250, fill: 'url(#halo)' }, svg);
+    el('line', { x1: 60, y1: TRUNK.base, x2: 940, y2: TRUNK.base, stroke: 'rgba(255,255,255,0.10)', 'stroke-dasharray': '2 7' }, svg);
+    var gl = el('text', { x: 66, y: TRUNK.base - 8, fill: '#5C5C5C', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', 'letter-spacing': '1.5' }, svg); gl.textContent = 'MẶT ĐẤT · KHÁCH HÀNG NHÌN THẤY PHẦN TRÊN';
+
+    var flows = el('g', {}, svg), layer = el('g', {}, svg);
+    var brainOn = brainActive();
+    var anyBusy = state.rooms.some(roomBusy);
+
+    // RỄ → thân
+    Object.keys(ROOTS).forEach(function (id, i) {
+      var p = ROOTS[id], r = room(id);
+      var on = id === 'kho' ? brainOn : !!roomBusy(r) || (brainOn && id === 'thuong_hieu');
+      flowPath(flows, cubic(p[0], p[1] - 22, TRUNK.x + (i - 1) * 14, TRUNK.base - 4, p[0], p[1] - 90, TRUNK.x + (i - 1) * 40, TRUNK.base + 40), COLOR[id], on || anyBusy, 5, 2.6);
     });
-    nodes.brain = { x: cx, y: cy };
-    var links = el('g', {}, svg);
-    state.rooms.forEach(function (r) { var n = nodes[r.id]; el('line', { x1: cx, y1: cy, x2: n.x, y2: n.y, stroke: 'rgba(255,255,255,0.08)', 'stroke-dasharray': '3 6' }, links); });
-    EDGES.forEach(function (e, i) {
+    // Thân cây
+    el('path', { d: 'M' + (TRUNK.x - 30) + ' ' + TRUNK.base + ' C' + (TRUNK.x - 18) + ' 520 ' + (TRUNK.x - 14) + ' 430 ' + (TRUNK.x - 22) + ' ' + TRUNK.top +
+      ' L' + (TRUNK.x + 22) + ' ' + TRUNK.top + ' C' + (TRUNK.x + 14) + ' 430 ' + (TRUNK.x + 18) + ' 520 ' + (TRUNK.x + 30) + ' ' + TRUNK.base + ' Z', fill: 'url(#trunkG)', stroke: 'rgba(255,255,255,0.12)' }, flows);
+    if (brainOn && !reduceMotion) {
+      var sap = el('path', { id: 'sap', d: 'M' + TRUNK.x + ' ' + TRUNK.base + ' L' + TRUNK.x + ' ' + TRUNK.top, stroke: 'none', fill: 'none' }, flows);
+      for (var q = 0; q < 3; q++) { var sd = el('circle', { r: 3.5, fill: '#C7CDFF', filter: 'url(#glow)' }, flows); var sa = el('animateMotion', { dur: '2.2s', repeatCount: 'indefinite', begin: (-q * 0.73) + 's' }, sd); el('mpath', { href: '#sap' }, sa); }
+    }
+    // CÀNH: thân → phòng ban
+    Object.keys(BRANCH).forEach(function (id, i) {
+      var p = BRANCH[id], r = room(id); if (!r) return;
+      var on = !!roomBusy(r);
+      var sx = TRUNK.x + (p[0] < 500 ? -8 : 8), sy = TRUNK.top + 18 + Math.abs(p[0] - 500) / 20;
+      // Cành đi vào bên hông nút (phía thân cây) để không đè lên tên phòng ở dưới nút.
+      var vx = sx - p[0], vy = sy - p[1], vl = Math.sqrt(vx * vx + vy * vy) || 1;
+      var ex = p[0] + vx / vl * 34, ey = p[1] + vy / vl * 34;
+      if (Math.abs(p[0] - 500) < 120) { ex = p[0] + (p[0] < 500 ? 30 : -30); ey = p[1] + 14; }
+      flowPath(flows, cubic(sx, sy, ex, ey, sx + (p[0] - 500) * 0.2, sy - 60, ex + (sx - ex) * 0.35, ey + 20), COLOR[id], on, 7, 2.4);
+    });
+    // Luồng chuyển việc giữa các phòng (vòng cung mảnh trong tán)
+    EDGES.forEach(function (e) {
+      if (!BRANCH[e[0]] || !BRANCH[e[1]]) return; // chỉ vẽ luồng giữa các cành (rễ đã nuôi qua thân)
+      var a = BRANCH[e[0]], b2 = BRANCH[e[1]];
       var on = edgeActive(e);
-      var bend = (e[0] === 'brain' || e[1] === 'brain') ? 0.06 : 0.24;
-      var p = el('path', { id: 'edge-' + i, d: curve(nodes[e[0]], nodes[e[1]], cx, cy, bend), fill: 'none', stroke: on ? 'rgba(125,170,255,0.75)' : 'rgba(110,135,255,0.18)', 'stroke-width': on ? 2 : 1.2 }, links);
-      p.setAttribute('data-edge', i);
-      if (on && !reduceMotion) {
-        var dot = el('circle', { r: 4, fill: '#7DD3FC', filter: 'url(#glow)' }, svg);
-        var anim = el('animateMotion', { dur: (3 + (i % 3) * 0.8) + 's', repeatCount: 'indefinite', begin: (-i * 0.6) + 's' }, dot);
-        el('mpath', { href: '#edge-' + i }, anim);
-      }
+      var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - 60;
+      var id = 'x' + (pathN++);
+      el('path', { id: id, d: 'M' + a[0] + ' ' + (a[1] - 30) + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + (b2[1] - 30), fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.8 : 0.12, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '' : '3 5' }, flows);
+      if (on && !reduceMotion) { var dd = el('circle', { r: 2.6, fill: COLOR[e[1]], filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3.4s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa); }
     });
-    var layer = el('g', {}, svg);
-    state.rooms.forEach(function (r) { drawRoom(layer, nodes[r.id], r); });
-    drawBrain(layer, nodes.brain);
+    // LÁ: phòng ban → ứng dụng
+    Object.keys(BRANCH).forEach(function (id) {
+      var p = BRANCH[id], r = room(id); if (!r) return;
+      var leaves = (r.leaves || []).slice(0, 5);
+      var dir = Math.atan2(p[1] - 470, p[0] - 500);
+      leaves.forEach(function (lf, j) {
+        var spread = (j - (leaves.length - 1) / 2) * 0.52;
+        var ang = dir + spread, dist = 78 + (j % 2) * 14;
+        var lx = Math.max(24, Math.min(W - 24, p[0] + Math.cos(ang) * dist)), ly = Math.max(24, p[1] + Math.sin(ang) * dist);
+        el('line', { x1: p[0], y1: p[1], x2: lx, y2: ly, stroke: COLOR[id], 'stroke-opacity': lf.on ? 0.7 : 0.25, 'stroke-width': lf.on ? 1.6 : 1 }, flows);
+        leafRing(layer, lx, ly, lf, COLOR[id]);
+      });
+    });
+    // Rễ con: ứng dụng của Thương hiệu / Đối thủ mọc xuống dưới
+    ['thuong_hieu', 'doi_thu'].forEach(function (id) {
+      var p = ROOTS[id], r = room(id); if (!r) return;
+      (r.leaves || []).slice(0, 3).forEach(function (lf, j) {
+        var lx = p[0] + (id === 'thuong_hieu' ? -1 : 1) * (95 + j * 4) * Math.cos(0.5 - j * 0.5), ly = p[1] + 10 + j * 30;
+        lx = Math.max(24, Math.min(W - 24, lx + (id === 'thuong_hieu' ? -j * 12 : j * 12)));
+        el('path', { d: 'M' + p[0] + ' ' + p[1] + ' Q' + ((p[0] + lx) / 2) + ' ' + (ly + 20) + ' ' + lx + ' ' + ly, fill: 'none', stroke: COLOR[id], 'stroke-opacity': lf.on ? 0.6 : 0.22 }, flows);
+        leafRing(layer, lx, ly, lf, COLOR[id]);
+      });
+    });
+
+    // Nút phòng ban + rễ
+    state.rooms.forEach(function (r) {
+      var p = BRANCH[r.id] || ROOTS[r.id]; if (!p) return;
+      nodes[r.id] = { x: p[0], y: p[1] };
+      drawRoom(layer, nodes[r.id], r, !!ROOTS[r.id]);
+    });
+    drawKho(layer, ROOTS.kho);
+    drawBrain(layer, { x: TRUNK.x, y: 470 });
     highlight(selected);
   }
-  function drawRoom(layer, n, r) {
-    var st = STATUS[r.status];
+  function drawRoom(layer, n, r, isRoot) {
+    var st = STATUS[r.status], col = COLOR[r.id] || '#999';
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': r.name + ': ' + st.label, 'data-node': r.id, style: 'cursor:pointer' }, layer);
-    var R = 32;
+    var R = isRoot ? 24 : 28;
     if (r.status === 'work' && !reduceMotion) {
-      var pulse = el('circle', { cx: n.x, cy: n.y, r: R, fill: 'none', stroke: st.color, 'stroke-width': 2, opacity: 0.6 }, g);
-      el('animate', { attributeName: 'r', values: R + ';' + (R + 13), dur: '1.8s', repeatCount: 'indefinite' }, pulse);
-      el('animate', { attributeName: 'opacity', values: '0.6;0', dur: '1.8s', repeatCount: 'indefinite' }, pulse);
+      var pulse = el('circle', { cx: n.x, cy: n.y, r: R, fill: 'none', stroke: col, 'stroke-width': 2, opacity: 0.7 }, g);
+      el('animate', { attributeName: 'r', values: R + ';' + (R + 14), dur: '1.8s', repeatCount: 'indefinite' }, pulse);
+      el('animate', { attributeName: 'opacity', values: '0.7;0', dur: '1.8s', repeatCount: 'indefinite' }, pulse);
     }
-    el('circle', { cx: n.x, cy: n.y, r: R + 4, fill: 'none', stroke: st.color, 'stroke-width': 2.5 }, g);
-    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#1A1A1A', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
-    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12) + ' ' + (n.y - 12) + ')', fill: 'none', stroke: '#F2F2F2', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    el('circle', { cx: n.x, cy: n.y, r: R + 5, fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-dasharray': '4 2.5' }, g);
+    el('circle', { cx: n.x, cy: n.y, r: R, fill: '#181818', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
+    el('path', { d: ICON[r.id] || ICON.hang_ngay, transform: 'translate(' + (n.x - 12) + ' ' + (n.y - 12) + ')', fill: 'none', stroke: col, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    el('circle', { cx: n.x + R * 0.72, cy: n.y + R * 0.72, r: 5.5, fill: st.color, stroke: '#0F0F0F', 'stroke-width': 2 }, g);
     var badge = r.counts.duyet || r.counts.lam || r.counts.cho;
     if (badge) {
-      el('circle', { cx: n.x + 24, cy: n.y - 24, r: 10, fill: st.color }, g);
-      var bt = el('text', { x: n.x + 24, y: n.y - 20, 'text-anchor': 'middle', fill: '#0B1020', 'font-size': 11, 'font-weight': 700 }, g); bt.textContent = badge;
+      el('circle', { cx: n.x + R * 0.75, cy: n.y - R * 0.75, r: 10, fill: st.color }, g);
+      var bt = el('text', { x: n.x + R * 0.75, y: n.y - R * 0.75 + 4, 'text-anchor': 'middle', fill: '#0B1020', 'font-size': 11, 'font-weight': 700 }, g); bt.textContent = badge;
     }
-    var below = n.y > 270;
-    var ly = below ? n.y + R + 22 : n.y - R - 28;
-    var name = el('text', { x: n.x, y: ly, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 15, 'font-weight': 600 }, g); name.textContent = r.name;
-    var sub = el('text', { x: n.x, y: ly + 16, 'text-anchor': 'middle', fill: st.color, 'font-size': 12 }, g);
-    sub.textContent = st.label + (r.status === 'done' ? ' · ' + r.counts.xong_24h + ' việc' : r.status === 'setup' ? '' : '');
-    // Logo app đã nối của phòng (tối đa 2)
-    r.apps.slice(0, 2).forEach(function (slug, j) {
-      var a = Math.PI / 4 + j * 0.62, bx = n.x + (R + 3) * Math.cos(a), by = n.y + (R + 3) * Math.sin(a);
-      el('circle', { cx: bx, cy: by, r: 11, fill: '#22D3EE' }, g);
-      el('circle', { cx: bx, cy: by, r: 9.5, fill: '#FFFFFF' }, g);
-      el('image', { href: 'https://logos.composio.dev/api/' + slug, x: bx - 7, y: by - 7, width: 14, height: 14 }, g);
-    });
+    var ly = isRoot ? n.y + R + 20 : n.y + R + 20;
+    var name = el('text', { x: n.x, y: ly, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13.5, 'font-weight': 600 }, g); name.textContent = SHORT[r.id] || r.name;
+    var sub = el('text', { x: n.x, y: ly + 15, 'text-anchor': 'middle', fill: st.color, 'font-size': 11 }, g);
+    sub.textContent = st.label + (r.status === 'done' ? ' · ' + r.counts.xong_24h + ' việc' : '');
+  }
+  function drawKho(layer, p) {
+    var g = el('g', { class: 'onode', tabindex: '0', role: 'link', 'aria-label': 'Kho lưu trữ: ảnh, video, tài liệu của bạn', 'data-href': 'kho.html', style: 'cursor:pointer' }, layer);
+    el('circle', { cx: p[0], cy: p[1], r: 27, fill: 'none', stroke: COLOR.kho, 'stroke-width': 2, 'stroke-dasharray': '4 2.5' }, g);
+    el('circle', { cx: p[0], cy: p[1], r: 22, fill: '#181818', stroke: 'rgba(255,255,255,0.22)' }, g);
+    el('path', { d: 'M3 7h18v13H3zM3 7l2-4h14l2 4M9 11h6', transform: 'translate(' + (p[0] - 12) + ' ' + (p[1] - 12) + ')', fill: 'none', stroke: COLOR.kho, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    var t = el('text', { x: p[0], y: p[1] + 42, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13.5, 'font-weight': 600 }, g); t.textContent = 'Kho & dữ liệu';
+    var s = el('text', { x: p[0], y: p[1] + 57, 'text-anchor': 'middle', fill: '#8F8F8F', 'font-size': 11 }, g); s.textContent = 'ảnh, video, tài liệu';
   }
   function drawBrain(layer, n) {
     var on = brainActive();
-    var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': 'Bộ não AI', 'data-node': 'brain', style: 'cursor:pointer' }, layer);
+    var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': 'Bộ não AI điều phối', 'data-node': 'brain', style: 'cursor:pointer' }, layer);
     if (on && !reduceMotion) {
-      var p = el('circle', { cx: n.x, cy: n.y, r: 52, fill: 'none', stroke: '#5662FF', 'stroke-width': 2, opacity: 0.5 }, g);
-      el('animate', { attributeName: 'r', values: '52;68', dur: '2.4s', repeatCount: 'indefinite' }, p);
-      el('animate', { attributeName: 'opacity', values: '0.5;0', dur: '2.4s', repeatCount: 'indefinite' }, p);
+      var p = el('circle', { cx: n.x, cy: n.y, r: 40, fill: 'none', stroke: '#8B95FF', 'stroke-width': 2, opacity: 0.6 }, g);
+      el('animate', { attributeName: 'r', values: '40;58', dur: '2.4s', repeatCount: 'indefinite' }, p);
+      el('animate', { attributeName: 'opacity', values: '0.6;0', dur: '2.4s', repeatCount: 'indefinite' }, p);
     }
-    el('circle', { cx: n.x, cy: n.y, r: 54, fill: 'none', stroke: '#5662FF', 'stroke-width': 1.5, opacity: 0.6 }, g);
-    el('circle', { cx: n.x, cy: n.y, r: 50, fill: '#202020', stroke: 'rgba(255,255,255,0.22)', class: 'onode-core' }, g);
-    el('path', { d: 'M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4 Z', transform: 'translate(' + n.x + ' ' + (n.y - 10) + ')', fill: on ? '#E5E7FF' : '#8C8C8C' }, g);
-    var t = el('text', { x: n.x, y: n.y + 18, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 13, 'font-weight': 700 }, g); t.textContent = 'Bộ não AI';
-    var s = el('text', { x: n.x, y: n.y + 33, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#8F8F8F', 'font-size': 11 }, g); s.textContent = on ? 'hoạt động' : 'chờ việc';
+    el('circle', { cx: n.x, cy: n.y, r: 42, fill: 'none', stroke: '#8B95FF', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g);
+    el('circle', { cx: n.x, cy: n.y, r: 37, fill: '#141633', stroke: 'rgba(255,255,255,0.25)', class: 'onode-core' }, g);
+    el('path', { d: 'M0 -12 L3.5 -3.5 L12 0 L3.5 3.5 L0 12 L-3.5 3.5 L-12 0 L-3.5 -3.5 Z', transform: 'translate(' + n.x + ' ' + (n.y - 9) + ')', fill: on ? '#D4FF4A' : '#9AA0C8' }, g);
+    var t = el('text', { x: n.x, y: n.y + 15, 'text-anchor': 'middle', fill: '#FFFFFF', 'font-size': 11.5, 'font-weight': 700 }, g); t.textContent = 'Bộ não AI';
+    var s = el('text', { x: n.x, y: n.y + 28, 'text-anchor': 'middle', fill: on ? '#86EFAC' : '#9AA0C8', 'font-size': 9.5 }, g);
+    var ai = state.brain.ai_ngoai;
+    s.textContent = on ? 'đang điều phối' : ai ? ai.ten.slice(0, 16) : state.brain.app_mode ? 'Trợ lý Crewzy' : 'chờ nối AI';
   }
   function highlight(id) {
     document.querySelectorAll('[data-node]').forEach(function (g) {
@@ -175,7 +256,7 @@
       var st = STATUS[r.status];
       var line = r.current ? r.current.tieu_de : r.status === 'setup' ? 'Nối app để bắt đầu' : r.schedules.length ? 'Lịch: ' + r.schedules[0].ten : 'Chưa có việc';
       var n = r.counts.duyet || r.counts.lam || r.counts.cho;
-      return '<button type="button" class="of-tile" data-tile="' + r.id + '" aria-pressed="false" style="--st:' + st.color + '">' +
+      return '<button type="button" class="of-tile" data-tile="' + r.id + '" aria-pressed="false" style="--st:' + st.color + ';border-left:3px solid ' + (COLOR[r.id] || '#333') + '">' +
         '<span class="of-tile-dot' + (r.status === 'work' && !reduceMotion ? ' of-pulse' : '') + '"></span>' +
         (n ? '<i class="of-tile-n">' + n + '</i>' : '') +
         '<b>' + esc(SHORT[r.id] || r.name) + '</b><span class="of-tile-st">' + st.label + '</span><small>' + esc(line) + '</small></button>';
@@ -204,13 +285,14 @@
     var cur = r.current;
     var counts = '<div class="od-counts">' +
       '<span><b>' + r.counts.lam + '</b>đang làm</span><span><b>' + r.counts.cho + '</b>chờ AI</span><span><b>' + r.counts.duyet + '</b>chờ duyệt</span><span><b>' + r.counts.xong_24h + '</b>xong 24h</span></div>';
-    var apps = r.apps.length ? '<div class="od-apps">' + r.apps.map(function (s) { return '<a class="od-app" href="ket-noi.html?app=' + s + '" title="Đã nối">' + logo(s, 22) + '</a>'; }).join('') + '</div>' : '';
+    var apps = (r.leaves || []).length ? '<p class="od-meta" style="margin-bottom:4px">Ứng dụng của phòng · mỗi app một nhiệm vụ</p><ul class="od-leaves">' + r.leaves.map(function (l) {
+      return '<li><a href="ket-noi.html?app=' + esc(l.slug) + '"' + (l.on ? '' : ' class="off"') + '>' + logo(l.slug, 20) + '<span><b>' + esc(l.name) + '</b><small>' + esc(l.vai) + (l.on ? '' : ' · chưa nối') + '</small></span></a></li>'; }).join('') + '</ul>' : '';
     var miss = r.suggest.length ? '<p class="od-meta">Nên nối: ' + r.suggest.map(function (s) { return '<a href="ket-noi.html?app=' + s.slug + '">' + esc(s.name) + '</a>'; }).join(', ') + '</p>' : '';
     var sch = r.schedules.length ? '<p class="od-meta">Lịch tự chạy: ' + r.schedules.map(function (s) { return esc(s.ten) + ' (' + (s.lap === 'moi_gio' ? 'mỗi giờ ' + esc(s.gio) + '–' + esc(s.den) : esc(s.gio)) + ')'; }).join('; ') + '</p>' : '';
     var primary = r.status === 'wait' ? '<a class="btn btn-primary" href="cho-duyet.html">Duyệt ' + r.counts.duyet + ' việc</a>'
       : r.status === 'setup' && r.suggest[0] ? '<a class="btn btn-primary" href="ket-noi.html?app=' + r.suggest[0].slug + '">Nối ' + esc(r.suggest[0].name) + ' để bắt đầu</a>'
       : '<a class="btn btn-primary" href="quy-trinh.html?phong=' + r.id + '">Chạy quy trình của phòng</a>';
-    detailEl.innerHTML = '<p class="od-kicker">Phòng</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
+    detailEl.innerHTML = '<p class="od-kicker" style="color:' + (COLOR[r.id] || '#8F8F8F') + '">' + (r.id === 'thuong_hieu' || r.id === 'doi_thu' ? 'Rễ · nguồn nuôi' : 'Cành · phòng ban') + '</p><h3 class="od-title">' + esc(r.name) + '</h3>' +
       '<p class="od-status" style="color:' + st.color + '"><span class="od-dot" style="background:' + st.color + '"></span>' + st.label + '</p>' +
       (cur ? '<a class="od-job" href="cho-duyet.html?id=' + cur.id + '"><b>' + esc(cur.tieu_de) + '</b><small>' + esc(cur.mo_ta) + (cur.nguoi_lam ? ' · ' + esc(cur.nguoi_lam) : '') + ' · ' + ago(cur.luc) + '</small></a>'
         : '<p class="od-text">' + (r.status === 'setup' ? 'Phòng chưa đủ app để chạy quy trình nào.' : 'Chưa có việc. Chạy một quy trình hoặc giao việc để phòng bắt đầu.') + '</p>') +
@@ -222,7 +304,7 @@
     var b = state.brain;
     var ai = b.ai_ngoai;
     var ais = [['claude', 'claude', 'Claude'], ['chatgpt', 'openai', 'ChatGPT'], ['gemini', 'gemini', 'Gemini'], ['grok', 'grok', 'Grok']];
-    return '<p class="od-kicker">Điều phối toàn văn phòng</p><h3 class="od-title">Bộ não AI</h3>' +
+    return '<p class="od-kicker">Thân cây · điều phối mọi phòng ban</p><h3 class="od-title">Bộ não AI</h3>' +
       '<ul class="od-list">' +
       '<li><span class="od-dot" style="background:' + (b.app_mode ? '#22C55E' : '#7C8597') + '"></span>Trợ lý Crewzy: ' + (b.app_mode ? 'sẵn sàng (dùng credit của app)' : 'chưa bật') + '</li>' +
       '<li><span class="od-dot" style="background:' + (ai ? '#22C55E' : '#7C8597') + '"></span>AI của bạn: ' + (ai ? esc(ai.ten) + ' nối lần cuối ' + ago(ai.luc) : 'chưa nối (dán link Crewzy vào Claude, ChatGPT…)') + '</li>' +
@@ -273,7 +355,7 @@
     var live = document.querySelector('[data-live-text]');
     var working = state.rooms.filter(function (r) { return r.status === 'work'; }).length;
     live.textContent = k.ai_lam ? 'AI đang làm ' + k.ai_lam + ' việc' + (k.cho_ai ? ' · ' + k.cho_ai + ' chờ nhận' : '')
-      : k.cho_ai ? k.cho_ai + ' việc chờ AI nhận' : k.lich_bat ? k.lich_bat + ' lịch tự chạy đang bật' : 'Văn phòng đang rảnh';
+      : k.cho_ai ? k.cho_ai + ' việc chờ AI nhận' : k.lich_bat ? k.lich_bat + ' lịch tự chạy đang bật' : 'Đội AI đang rảnh';
     document.querySelector('[data-live]').className = 'pill live-pill ' + (k.ai_lam || working ? 'pill-ok' : k.cho_ai ? 'pill-warn' : '');
     var urgent = document.querySelector('[data-urgent]');
     urgent.hidden = !k.cho_duyet;
@@ -284,7 +366,7 @@
       { done: s.apps >= 3, t: 'Nối 3 app bạn dùng', d: s.apps ? 'Đã nối: ' + s.app_names.slice(0, 4).join(', ') : 'Chọn ngành để biết nên nối app nào trước.', href: 'ket-noi.html' + (nganh ? '?nganh=' + nganh : ''), cta: 'Kết nối' },
       { done: s.ai_linked || s.jobs > 0, t: 'Chọn bộ não AI', d: 'Cài Crewzy vào Claude, ChatGPT… bằng 1 lần bấm, hoặc dùng Trợ lý Crewzy ngay.', href: 'ket-noi.html?tab=ai#cai-dat', cta: 'Cài vào AI' },
       { done: s.jobs > 0, t: 'Chạy quy trình đầu tiên', d: 'Gợi ý: Trả lời bình luận hoặc Lịch nội dung 7 ngày.', href: 'quy-trinh.html' + (nganh ? '?nganh=' + nganh : ''), cta: 'Chạy' },
-      { done: s.schedules > 0, t: 'Hẹn giờ để văn phòng tự chạy', d: 'Ví dụ: trả lời bình luận mỗi giờ, báo cáo sáng thứ Hai.', href: 'quy-trinh.html', cta: 'Hẹn giờ' }
+      { done: s.schedules > 0, t: 'Hẹn giờ để đội AI tự chạy', d: 'Ví dụ: trả lời bình luận mỗi giờ, báo cáo sáng thứ Hai.', href: 'quy-trinh.html', cta: 'Hẹn giờ' }
     ];
     var doneN = steps.filter(function (x) { return x.done; }).length;
     var box = document.querySelector('[data-steps]');
@@ -311,7 +393,7 @@
   function load() {
     return fetch('/api/office?uid=' + encodeURIComponent(uid)).then(function (r) {
       if (r.status === 401 && window.vpaiNeedLogin) window.vpaiNeedLogin();
-      if (!r.ok) throw new Error('Chưa tải được số liệu văn phòng.');
+      if (!r.ok) throw new Error('Chưa tải được số liệu.');
       return r.json();
     }).then(function (d) {
       state = d;
@@ -323,6 +405,10 @@
   }
 
   function pick(e) {
+    var lf = e.target.closest('[data-leaf]');
+    if (lf) { location.href = 'ket-noi.html?app=' + encodeURIComponent(lf.getAttribute('data-leaf')); return; }
+    var lk = e.target.closest('[data-href]');
+    if (lk) { location.href = lk.getAttribute('data-href'); return; }
     var g = e.target.closest('[data-node],[data-tile]');
     if (!g) return;
     showDetail(g.getAttribute('data-node') || g.getAttribute('data-tile'));
@@ -331,6 +417,7 @@
   graphBox.addEventListener('click', pick);
   tilesBox.addEventListener('click', pick);
   graphBox.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e); } });
+  graphBox.addEventListener('mouseover', function (e) { var lf = e.target.closest('[data-leaf]'); graphBox.style.cursor = lf ? 'pointer' : ''; });
 
   var clock = document.querySelector('[data-clock]');
   function tick() { clock.textContent = new Date().toLocaleString('vi-VN', { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }); }

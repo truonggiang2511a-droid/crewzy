@@ -463,3 +463,10 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .kho-acts { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px 10px; }
 .kho-acts .btn { min-height: 32px; padding: 0 9px; font-size: 10.5px; }
 @media (max-width: 760px) { .kho-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .kho-acts .btn { padding: 0 7px; } }
+/* Cây vận hành: danh sách lá (ứng dụng + nhiệm vụ) trong khung chi tiết */
+.od-leaves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.od-leaves a { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; color: #F2F2F2; text-decoration: none; }
+.od-leaves a:hover { background: #202020; }
+.od-leaves a.off { opacity: .6; }
+.od-leaves span { display: flex; flex-direction: column; min-width: 0; }
+.od-leaves b { font-size: 13px; font-weight: 500; } .od-leaves small { font-size: 11.5px; color: #8F8F8F; }

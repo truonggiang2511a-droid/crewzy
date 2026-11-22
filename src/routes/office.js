@@ -43,6 +43,17 @@ export default async (req, env) => {
     const roomApps = [...new Set(flows.flatMap((w) => (w.cong_cu || []).flatMap((g) => g.apps)))];
     const apps = roomApps.filter((s) => connected.includes(s)).slice(0, 4);
     const suggest = [...new Set(flows.flatMap((w) => (w.cong_cu || []).filter((g) => g.bat_buoc).map((g) => g.apps[0])))].filter((s) => !connected.includes(s)).slice(0, 3);
+    // Lá của cây: mỗi vai trò công cụ của phòng = 1 ứng dụng làm 1 nhiệm vụ (app đã nối trước, chưa có thì app gợi ý đầu tiên).
+    const leaves = [];
+    const seenLeaf = new Set();
+    for (const w of flows) for (const g of (w.cong_cu || [])) {
+      if (leaves.length >= 6) break;
+      const pick = g.apps.find((x) => connected.includes(x)) || g.apps[0];
+      if (!pick || seenLeaf.has(pick)) continue;
+      seenLeaf.add(pick);
+      leaves.push({ slug: pick, name: (appBySlug(pick) || { name: pick }).name, vai: g.vai, on: connected.includes(pick) });
+    }
+    leaves.sort((a, b) => (b.on ? 1 : 0) - (a.on ? 1 : 0));
     const sch = schedules.filter((s) => s.bat && flows.some((w) => w.id === s.quy_trinh));
     let status = 'idle';
     if (waiting.length) status = 'wait';
@@ -56,7 +67,7 @@ export default async (req, env) => {
       counts: { lam: working.length, cho: todo.length + approved.length, duyet: waiting.length, xong_24h: doneRecent.length, tong: mine.length },
       current: current ? { id: current.id, tieu_de: current.tieu_de, trang_thai: effective(current), mo_ta: STATUSES[effective(current)], nguoi_lam: current.nguoi_lam || '', luc: current.cap_nhat } : null,
       flows: { tong: flows.length, san_sang: ready.length, goi_y: (ready[0] || flows[0] || {}).id || '' },
-      apps, suggest: suggest.map((slug) => ({ slug, name: (appBySlug(slug) || { name: slug }).name })),
+      apps, leaves, suggest: suggest.map((slug) => ({ slug, name: (appBySlug(slug) || { name: slug }).name })),
       schedules: sch.map((s) => ({ ten: s.ten, gio: s.gio, den: s.den || '', lap: s.lap || '', che_do: s.che_do })),
     };
   });

@@ -29,7 +29,7 @@
 
   var GROUPS = [
     { label: null, links: [
-      { href: 'index.html', text: 'Văn phòng', icon: 'home' },
+      { href: 'index.html', text: 'Trung tâm điều hành', icon: 'home' },
       { href: 'chat.html', text: 'Trợ lý AI', icon: 'chat' },
       { href: 'cho-duyet.html', text: 'Việc chờ duyệt', icon: 'check', badgeKey: 'jobs' }
     ] },
@@ -67,7 +67,7 @@
 
   // Điện thoại (≤760px): thanh trên gọn (logo) + thanh dưới 5 mục kiểu app + bảng "Thêm" trượt lên. Máy tính dùng menu trái.
   var TABS = [
-    { href: 'index.html', text: 'Văn phòng', icon: 'home' },
+    { href: 'index.html', text: 'Điều hành', icon: 'home' },
     { href: 'cho-duyet.html', text: 'Duyệt', icon: 'check', badgeKey: 'jobs' },
     { href: 'chat.html', text: 'Trợ lý', icon: 'chat' },
     { href: 'quy-trinh.html', text: 'Quy trình', icon: 'flow' }
@@ -84,7 +84,7 @@
     var inMore = MORE.some(function (m) { return m.href === page; });
     var top = document.createElement('header');
     top.className = 'mtop';
-    top.innerHTML = '<a href="index.html" class="mtop-brand" aria-label="Crewzy, về Văn phòng"><span class="sb-logo" aria-hidden="true">Cz</span><span><b>Crewzy</b><small data-brand-sub-m>Đội nhân viên AI</small></span></a>' +
+    top.innerHTML = '<a href="index.html" class="mtop-brand" aria-label="Crewzy, về Trung tâm điều hành"><span class="sb-logo" aria-hidden="true">Cz</span><span><b>Crewzy</b><small data-brand-sub-m>Đội nhân viên AI</small></span></a>' +
       '<a href="ket-noi.html" class="mtop-link"' + (page === 'ket-noi.html' ? ' aria-current="page"' : '') + '>' + icon('apps') + '<span>Kết nối</span></a>';
     document.body.insertBefore(top, document.body.firstChild);
     var bar = document.createElement('nav');
