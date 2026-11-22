@@ -44,7 +44,8 @@ public/index.html        Màn 1 · Văn phòng: số liệu, SƠ ĐỒ MẠNG ph
 public/assets/office.js  Vẽ SVG: Bộ não AI ở tâm, 8 phòng trên elip, đường nhánh FLOWS có hạt sáng chạy (animateMotion), huy hiệu app
                          (sáng khi đã kết nối, lấy thật từ /api/status); phòng ban + bảng tin là dữ liệu mẫu; tôn trọng prefers-reduced-motion
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt: chi tiền, lịch đăng, xác minh sản phẩm (bấm duyệt được)
-public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn
+public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
+                         ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
 public/quy-trinh.html    Quy trình: 7 mẫu theo phòng ban, logo app cần có, Chạy → chat.html?q=<câu lệnh>
 public/thuong-hieu.html  Brain thương hiệu: 11 mục, lưu /api/brand, AI đọc mỗi lượt chat
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
@@ -68,6 +69,11 @@ src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoả
 src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
 src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ; token v2 có mã khách →
                           chèn instructions (Brain + app đã nối + Skill) vào initialize, thêm CREWZY_* vào tools/list, tự chạy tools/call CREWZY_*
+src/lib/mcpClient.js      Máy khách MCP Streamable HTTP (SSE/JSON, Mcp-Session-Id) + OAuth chuẩn MCP: oauth-protected-resource → máy chủ cấp quyền
+                          → tự đăng ký app (DCR) → PKCE S256 + resource → đổi mã/làm mới token. Chặn http, IP, localhost, link /sse cũ
+src/lib/mcpServers.js     Lưu máy chủ MCP của khách (KV mcpsrv:<uid>, tối đa 10, token mã hoá AES-GCM sealText), loadExternalTools cho chat
+                          (tối đa 40 công cụ/máy chủ, 80 tổng, tên m<id>_<tool>, mỗi máy chủ chờ tối đa 12 giây)
+src/routes/mcpServers.js  GET/POST /api/mcp-servers (add|remove|test) · GET /api/mcp-callback (app kia trả về sau khi khách đồng ý)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
@@ -91,14 +97,18 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   link nối AI qua /mcp/* initialize OK. 3 khoá bí mật COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET do Giang tự đặt trên dashboard.
   Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
 - KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày),
-  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `imgcount:<ngày>:<uid>`.
+  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `imgcount:<ngày>:<uid>`, `mcpsrv:<uid>` (máy chủ MCP khách nối),
+  `mcpoauth:<state>` (đang chờ đăng nhập, 15 phút).
   KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
 - Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
 - Link nối AI: Composio bắt buộc header x-api-key cho mọi link MCP, nên KHÔNG đưa link Composio cho khách.
   Token = base64url(link phiên Composio) + '.' + HMAC-SHA256 (khoá ký = sha256('vpai-mcp|' + COMPOSIO_API_KEY)).
   Đổi COMPOSIO_API_KEY thì mọi link cũ hết hiệu lực. "Tạo link mới" tạo phiên mới nhưng link cũ vẫn chạy (chưa thu hồi được).
   Đã thử qua cổng: initialize, tools/list (6 công cụ gốc COMPOSIO_*), tools/call COMPOSIO_SEARCH_TOOLS ~1 giây.
-- Trợ lý AI (/api/chat): 3 chế độ.
+- Trợ lý AI (/api/chat): chế độ app, claude, openai, gemini, grok (khoá API riêng), openrouter.
+  `gemini` = gemini-3.8-flash qua https://generativelanguage.googleapis.com/v1beta/openai/ (schema công cụ được lọc bằng geminiSafeTool);
+  `grok` = grok-4.7 qua https://api.x.ai/v1; cả hai dùng `max_tokens`. CHƯA thử với khoá thật (Giang chưa có khoá Gemini/Grok).
+  Công cụ MCP ngoài khách đã nối được nạp thêm mỗi lượt; ảnh MCP trả về được lưu thành /api/img/<id> và hiện trong chat.
   `app` = Claude Haiku 5.5 bằng khoá `ANTHROPIC_API_KEY` của Giang (bí mật Cloudflare; chưa đặt → giao diện tự ẩn chế độ này).
   Trần 30 lượt/ngày mỗi khách + 300 lượt/ngày cả app (KV usage:*, theo giờ Việt Nam; không chống đếm trùng khi gửi cùng lúc).
   `claude` = khoá Anthropic của khách, Claude Sonnet 5.5, `baseURL: 'https://api.anthropic.com'`.
@@ -125,6 +135,14 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Grok (grok.com/connectors → New Connector → Custom, gói trả phí). Cả 4 nhận cùng link /mcp/<token> không cần đăng nhập.
   Link cũ (v1, token bắt đầu aHR0c) vẫn chạy nhưng thiếu Brain/công cụ Crewzy; connect.js tự xoá link cũ đã lưu và nhắc tạo lại.
   Đã thử thật: initialize có instructions + serverInfo "Crewzy (Composio)", tools/list có CREWZY_TAO_ANH, CREWZY_BRAIN, tools/call CREWZY_BRAIN OK.
+- Nối MCP của app khác (22/11/2026, Giang muốn giống Claude: "trên tên máy chủ, dưới link MCP, khách bấm kết nối"):
+  Đã thử thật trên Cloudflare: DeepWiki (không đăng nhập, 3 công cụ) nối được, chat chế độ app gọi DeepWiki: ask_wiki_question
+  trả lời đúng trong ~14 giây; Notion, Canva, Linear tự đăng ký app OAuth và ra link đăng nhập đúng (chưa bấm đồng ý vì cần tài khoản
+  thật); Context7 không đăng nhập, 2 công cụ. Link đăng nhập trả về https://<site>/api/mcp-callback, nên tên miền mới vẫn chạy.
+  Công cụ MCP ngoài CHƯA có trong link nối AI (/mcp/*) — Claude/ChatGPT tự thêm connector đó được.
+- Workers AI (tra 22/11/2026): miễn phí 10.000 neurons/ngày (reset 7 giờ sáng VN), vượt thì 0,011 USD/1.000 neurons (chỉ gói Workers Paid,
+  gói Free hết là báo lỗi). flux-2-klein-4b: 26,05 neurons mỗi ô 512×512 đầu ra → ảnh 4:5 (6 ô) ≈ 156 neurons ≈ 60 ảnh/ngày miễn phí,
+  sau đó ≈ 0,0017 USD/ảnh. Chat chế độ app dùng khoá Anthropic, không tính vào Workers AI.
 - Chat nạp vào lời dặn mỗi lượt: lời dặn chung + Brain thương hiệu + tên app đã kết nối + Skill của các app đó (skillText).
 - Đăng nhập Google: bật bằng biến `GOOGLE_CLIENT_ID` (Client ID loại Web application, origin https://crewzy.truonggiang2511a.workers.dev và tên miền riêng sau này;
   mã công khai, không cần Client secret). Chưa đặt biến → bản thử chạy như cũ (mã khách theo trình duyệt).
@@ -221,7 +239,14 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026: Giang muốn "đăng nhập Google để nối tài khoản AI của khách qua Composio". Phản biện: Composio và Google không làm được
   việc này (xem mục 1, Đăng nhập AI) → làm đăng nhập Google cho tài khoản Văn Phòng AI + nút Đăng nhập OpenRouter, ChatGPT/Claude để "Sắp có".
 
+- 22/11/2026: Giang hỏi "không kết nối SDK các Model vô app được à, Jarvis làm được". Phản biện: gói Claude Pro/Max bị Anthropic cấm dùng
+  trong app khác (2/2026), Sign in with ChatGPT chỉ cho đối tác OpenAI duyệt → làm khoá API cho cả 4 AI (Claude, ChatGPT, Gemini, Grok)
+  + nối MCP của app khác vào Crewzy (máy khách MCP + OAuth tự động). Thử bằng máy chủ giả: `node scripts/mcptest.mjs` (đã gộp vào npm test).
+
 ## 6. Việc tiếp theo
+
+- Đưa công cụ MCP ngoài vào link nối AI /mcp/* (để Claude/ChatGPT nối 1 link là có hết); cho chọn bật/tắt từng công cụ MCP ngoài;
+  ghi số lượt gọi MCP ngoài vào credit.
 
 - Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.
 - Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.
