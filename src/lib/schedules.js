@@ -51,7 +51,7 @@ export function isDue(s, t) {
   return t.minutes >= at && t.minutes - at <= LATE_WINDOW_MIN;
 }
 
-export async function createSchedule(env, uid, { quy_trinh, gio, ngay, che_do, ghi_chu, lap, den, tu_dong }, feat) {
+export async function createSchedule(env, uid, { quy_trinh, gio, ngay, che_do, ghi_chu, lap, den, tu_dong, nguon }, feat) {
   // Tính năng theo gói (billing.js): số lịch tối đa, Trợ lý Crewzy tự làm, tự trả lời bình luận.
   if (feat) {
     if (!feat.lich) return { error: 'Gói hiện tại chưa có hẹn giờ tự chạy. Nâng lên gói Cơ bản trở lên ở trang Gói và credit.' };
@@ -74,7 +74,7 @@ export async function createSchedule(env, uid, { quy_trinh, gio, ngay, che_do, g
     id: 'h' + Array.from(crypto.getRandomValues(new Uint8Array(4)), (x) => x.toString(16).padStart(2, '0')).join(''),
     quy_trinh: w.id, ten: w.ten, gio, ngay, che_do: MODES[che_do] ? che_do : 'ai_cua_toi', bat: true, lan_cuoi: '',
     ghi_chu: String(ghi_chu || '').slice(0, 500), tao_luc: new Date().toISOString(),
-    ...(repeat ? { lap: repeat, den } : {}), ...(tu_dong && w.tu_dong ? { tu_dong: true } : {}),
+    ...(repeat ? { lap: repeat, den } : {}), ...(tu_dong && w.tu_dong ? { tu_dong: true } : {}), ...(nguon === 'cay' ? { nguon } : {}),
   };
   list.push(s);
   await save(env, uid, list);

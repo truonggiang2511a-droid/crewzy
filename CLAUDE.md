@@ -138,6 +138,11 @@ src/lib/activity.js       VIỆC AI ĐÃ LÀM: classify(tên công cụ) → dan
                           (uid, day, kind, n; migrations/0002_activity.sql, ĐÃ áp lên D1 thật 22/11). Chat ghi khi công cụ chạy không lỗi, cổng MCP ghi lúc gọi.
                           buildResults (giờ tiết kiệm theo DEFAULT_MINUTES, 50.000đ/giờ; RESULT_MINUTES_JSON, RESULT_HOUR_VND), runWeeklyReports (cron thứ Hai
                           ≥8 giờ VN, cờ KV weekly:<ngày>, phiếu 'Báo cáo tuần Crewzy' loai bao_cao, không gọi AI; WEEKLY_REPORT=off). Phiếu nguoi_lam 'Crewzy…' không tính.
+src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây vận hành): CHAIN 9 bước (lead → CRM, trả lời bình luận mỗi giờ, nhắc sale, bản tin sáng CEO,
+                          lịch nội dung, đăng bài đã duyệt, báo cáo tuần vào Google Sheets, soi đối thủ, chiến lược tháng) = lịch nguon 'cay'; chỉ bật bước
+                          readiness sẵn sàng, theo số lịch gói (ưu tiên ra khách trước); cần Brain ≥4/6 mục. GET/POST /api/autopilot (src/routes/autopilot.js).
+                          Dây giữa phòng trên cây = EDGES trong office.js (khớp CHAIN tu→toi): bật tự động → dây đứt nét chảy chậm, có việc thật → sáng + hạt.
+                          Nút + mỗi nhánh → ket-noi.html?cat=<BRANCH_CAT>; app khách nối thêm mọc lá ở nhánh theo CAT_BRANCH (src/routes/office.js)
 src/lib/library.js        KHO (D1 library, migrations/0003_library.sql ĐÃ áp lên D1 thật 23/11): addItem (UNIQUE uid+url), listItems, usageBytes, removeItem,
                           CREWZY_KHO + CREWZY_LUU_KHO (AI đọc kho, lưu ảnh web/fanpage vào kho qua rehostUrl). Tự vào kho: upload (tai_len, PUT của AI = ket_qua),
                           ảnh/video AI tạo (ai_tao). Ảnh Nhanh giờ lưu R2 (putMedia) thay KV img 90 ngày khi có MEDIA
@@ -530,6 +535,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   doi_thu = Phân tích đối thủ (rễ, 3 quy trình soi đối thủ); id mới chien_luoc = Nghiên cứu & Chiến lược (nhánh: de_xuat_chien_luoc + quy trình mới
   nghien_cuu_thi_truong). office.js: 1 hàm vẽ cho 2 bố cục (LAYOUT), nhánh gradient từ thân, thân có vân, đất, sao; phòng có việc thật → quầng sáng,
   vòng xoay, xung, lá đã nối sáng nhấp nháy, vạch chảy + hạt chạy trên nhánh/rễ, nhựa chạy trong thân; phòng rảnh thì tối dịu. Tôn trọng prefers-reduced-motion.
+- 22/11/2026 (đêm, lần 3): Giang: "khách chỉ muốn bấm Run trên cây là ra kết quả thật, CEO chỉ gọi khách và chờ Lead, còn lại AI làm; có dấu + nối thêm app
+  thì cây mọc thêm; dây nối các bộ phận theo quy trình; Brain đủ thì bấm chạy hằng ngày đúng giờ". Làm: autopilot.js + thanh "Chạy tự động cả cây" + hộp thoại dây
+  chuyền (từng bước sẵn sàng / Nối app còn thiếu), nút + mỗi nhánh, lá app nối thêm theo thể loại, dây theo CHAIN. Bao_cao_tuan ghi 1 dòng/tuần vào Sheet
+  "Báo cáo Crewzy"; ban_tin_sang đưa số khách mới + danh sách khách cần gọi lên đầu. Đăng bài/gửi khách vẫn qua cổng duyệt (an toàn tài khoản, đúng mục 3).
+  Test: scripts/officetest.mjs (thiếu Brain chặn, giới hạn lịch gói, ưu tiên lead, tắt giữ lịch riêng, gói đủ thì trả lời mỗi giờ). Chưa thử trên tài khoản thật.
 
 ## 6. Việc tiếp theo
 

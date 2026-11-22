@@ -29,10 +29,14 @@
     hang_ngay: 'M5 5h14v14H5zM5 9h14M9 3v4M15 3v4'
   };
   // Đường chuyển việc giữa các phòng (luồng chuẩn của doanh nghiệp). Hạt sáng chỉ chạy khi có việc thật ở 2 đầu.
+  // Dây chuyền tự động (khớp CHAIN trong src/lib/autopilot.js): [từ phòng, tới phòng, quy trình]. Bật chạy tự động → dây hiện "đã nối";
+  // có việc thật ở 2 đầu → dây sáng + hạt chạy.
   var EDGES = [
-    ['hang_ngay', 'noi_dung'], ['noi_dung', 'phan_phoi'], ['noi_dung', 'quang_cao'], ['phan_phoi', 'quang_cao'],
-    ['quang_cao', 'cham_soc'], ['cham_soc', 'ban_hang'], ['ban_hang', 'bao_cao'], ['bao_cao', 'chien_luoc'], ['chien_luoc', 'noi_dung']
+    ['doi_thu', 'chien_luoc', 'doi_thu_reels'], ['chien_luoc', 'noi_dung', 'lich_noi_dung_tuan'], ['noi_dung', 'phan_phoi', 'dang_bai_da_duyet'],
+    ['phan_phoi', 'cham_soc', 'tra_loi_binh_luan'], ['cham_soc', 'ban_hang', 'tra_loi_binh_luan'], ['quang_cao', 'ban_hang', 'lead_vao_crm'],
+    ['ban_hang', 'hang_ngay', 'nhac_cham_soc_deal'], ['ban_hang', 'bao_cao', 'bao_cao_tuan'], ['bao_cao', 'hang_ngay', 'ban_tin_sang'], ['bao_cao', 'chien_luoc', 'de_xuat_chien_luoc']
   ];
+  var DAY_TXT = { hang_ngay: 'Mỗi ngày', t2_t6: 'Thứ Hai – Sáu', t2: 'Thứ Hai', cn: 'Chủ nhật', ngay_1: 'Ngày 1 hằng tháng', t3: 'Thứ Ba', t4: 'Thứ Tư', t5: 'Thứ Năm', t6: 'Thứ Sáu', t7: 'Thứ Bảy' };
 
   var graphBox = document.querySelector('[data-graph]');
   var tilesBox = document.querySelector('[data-tiles]');
@@ -114,7 +118,15 @@
     }
   }
   function leafRing(parent, x, y, leaf, color, lit) {
-    var r = L.leafR, g = el('g', { 'data-leaf': leaf.slug, class: 'oleaf', style: 'cursor:pointer' }, parent);
+    var r = L.leafR;
+    if (leaf.plus) { // nút + : nối thêm app vào nhánh, Crewzy tự mọc thêm lá
+      var pg = el('g', { 'data-href': 'ket-noi.html' + (leaf.cat ? '?cat=' + leaf.cat : ''), class: 'oleaf', role: 'link', 'aria-label': 'Nối thêm ứng dụng', style: 'cursor:pointer' }, parent);
+      el('title', {}, pg).textContent = 'Nối thêm ứng dụng vào nhánh này';
+      el('circle', { cx: x, cy: y, r: r * 0.82, fill: '#111', stroke: color, 'stroke-width': 1.4, 'stroke-dasharray': '3 3' }, pg);
+      var tp = el('text', { x: x, y: y + r * 0.38, 'text-anchor': 'middle', 'font-size': r * 1.15, 'font-weight': 600, fill: color }, pg); tp.textContent = '+';
+      return;
+    }
+    var g = el('g', { 'data-leaf': leaf.slug, class: 'oleaf', style: 'cursor:pointer' }, parent);
     el('title', {}, g).textContent = leaf.name + ' · ' + leaf.vai + (leaf.on ? ' (đã nối)' : ' (chưa nối, bấm để nối)');
     if (lit && leaf.on) {
       var gl = el('circle', { cx: x, cy: y, r: r + 4, fill: color, opacity: 0.35, filter: 'url(#soft)' }, g);
@@ -211,19 +223,19 @@
       flowPath(flows, d, COLOR[id], on, isMobile() ? 4 : 7, 2.4, [sx, sy, '#5560FF', ex, ey]);
     });
     // Luồng chuyển việc giữa các phòng (vòng cung mảnh trong tán)
+    var auto = state.autopilot || { buoc: [] };
     EDGES.forEach(function (e) {
-      var a = L.branch[e[0]], b2 = L.branch[e[1]]; if (!a || !b2) return;
-      var on = edgeActive(e);
-      if (!on && isMobile()) return; // điện thoại: chỉ vẽ luồng đang chạy cho gọn
+      var a = L.branch[e[0]] || L.roots[e[0]], b2 = L.branch[e[1]] || L.roots[e[1]]; if (!a || !b2) return;
+      var on = edgeActive(e), armed = auto.buoc.indexOf(e[2]) >= 0;
+      if (!on && !armed && isMobile()) return; // điện thoại: chỉ vẽ dây đang chạy hoặc đã bật tự động
       var off = L.R + 2;
       var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - H * 0.07, ay = a[1] - off, by = b2[1] - off;
       if (Math.abs(a[1] - b2[1]) > H * 0.18) { mx = (a[0] + b2[0]) / 2 + (mx < T.x ? W * 0.07 : -W * 0.07); my = (a[1] + b2[1]) / 2; ay = a[1]; by = b2[1]; }
-      var id = 'x' + (pathN++);
-      el('path', { id: id, d: 'M' + a[0] + ' ' + ay + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + by, fill: 'none', stroke: COLOR[e[1]], 'stroke-opacity': on ? 0.85 : 0.1, 'stroke-width': on ? 1.8 : 1, 'stroke-dasharray': on ? '4 4' : '3 6' }, flows);
-      if (on && !reduceMotion) {
-        el('animate', { attributeName: 'stroke-dashoffset', from: '0', to: '-16', dur: '0.8s', repeatCount: 'indefinite' }, flows.lastChild);
-        var dd = el('circle', { r: 2.6, fill: COLOR[e[1]], filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3.4s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa);
-      }
+      var id = 'x' + (pathN++), col = COLOR[e[1]];
+      var path = el('path', { id: id, d: 'M' + a[0] + ' ' + ay + ' Q' + mx + ' ' + my + ' ' + b2[0] + ' ' + by, fill: 'none', stroke: col, 'stroke-opacity': on ? 0.9 : armed ? 0.5 : 0.1, 'stroke-width': on ? 2 : armed ? 1.5 : 1, 'stroke-dasharray': on || armed ? '5 5' : '3 6' }, flows);
+      el('title', {}, path).textContent = (SHORT[e[0]] || e[0]) + ' → ' + (SHORT[e[1]] || e[1]) + (armed ? ' · tự động' : '');
+      if ((on || armed) && !reduceMotion) el('animate', { attributeName: 'stroke-dashoffset', from: '0', to: '-20', dur: on ? '0.7s' : '2.4s', repeatCount: 'indefinite' }, path);
+      if (on && !reduceMotion) { var dd = el('circle', { r: 2.8, fill: col, filter: 'url(#glow)' }, flows); var aa = el('animateMotion', { dur: '3s', repeatCount: 'indefinite' }, dd); el('mpath', { href: '#' + id }, aa); }
     });
     // LÁ: phòng ban → ứng dụng (cuống cong; nhánh có việc thì lá đã nối sáng theo)
     function grow(id, p, leaves, angles, dir, mult) {
@@ -231,14 +243,14 @@
       leafSpots(p, leaves.length, angles, dir, mult).forEach(function (pt, j) {
         var lf = leaves[j];
         var cx = (p[0] + pt[0]) / 2 + (pt[1] - p[1]) * 0.15, cy = (p[1] + pt[1]) / 2 - (pt[0] - p[0]) * 0.15;
-        el('path', { d: 'M' + p[0] + ' ' + p[1] + ' Q' + cx + ' ' + cy + ' ' + pt[0] + ' ' + pt[1], fill: 'none', stroke: COLOR[id], 'stroke-opacity': lf.on ? (lit ? 0.9 : 0.55) : 0.2, 'stroke-width': lf.on ? (lit ? 1.8 : 1.3) : 1 }, flows);
+        el('path', { d: 'M' + p[0] + ' ' + p[1] + ' Q' + cx + ' ' + cy + ' ' + pt[0] + ' ' + pt[1], fill: 'none', stroke: COLOR[id], 'stroke-opacity': lf.on ? (lit ? 0.9 : 0.55) : 0.2, 'stroke-width': lf.on ? (lit ? 1.8 : 1.3) : 1, 'stroke-dasharray': lf.plus ? '2 4' : '' }, flows);
         leafRing(layer, pt[0], pt[1], lf, COLOR[id], lit);
       });
     }
     Object.keys(L.branch).forEach(function (id) {
       var p = L.branch[id], r = room(id); if (!r) return;
       var dir = p[2] != null ? p[2] * Math.PI / 180 : Math.atan2(p[1] - B[1], p[0] - B[0]);
-      grow(id, p, (r.leaves || []).slice(0, L.maxLeaf), null, dir);
+      grow(id, p, (r.leaves || []).slice(0, L.maxLeaf).concat([{ plus: true, cat: r.them_cat }]), null, dir);
     });
     Object.keys(L.roots).forEach(function (id) {
       var p = L.roots[id], r = room(id); if (!r || !p[2]) return;
@@ -461,8 +473,58 @@
     }).join('');
   }
 
+  // ---------- Chạy tự động cả cây ----------
+  var autoBox = document.querySelector('[data-auto]');
+  var autoDlg = document.querySelector('[data-auto-dlg]');
+  var autoBody = document.querySelector('[data-auto-body]');
+  function renderAuto() {
+    var a = state.autopilot || {};
+    autoBox.className = 'of-auto' + (a.bat ? ' on' : '');
+    autoBox.innerHTML = a.bat
+      ? '<p><span class="of-auto-dot" aria-hidden="true"></span><b>Đang chạy tự động</b> · ' + a.so_lich + ' bước theo giờ<small>AI tự làm theo dây chuyền. Bạn chỉ cần duyệt bài và gọi khách trong bản tin sáng.</small></p><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" data-auto-open>Xem dây chuyền</button></div>'
+      : '<p><b>Chạy tự động cả cây</b><small>Bấm 1 lần: nội dung → đăng kênh → trả lời bình luận → khách vào CRM → nhắc sale → báo cáo vào Sheet, mỗi ngày đúng giờ.</small></p><button type="button" class="btn btn-run" data-auto-open>▶ Run</button>';
+  }
+  function openAuto() {
+    autoBody.innerHTML = '<p class="muted">Đang kiểm tra app và Brain…</p>';
+    if (autoDlg.showModal) autoDlg.showModal(); else autoDlg.setAttribute('open', '');
+    fetch('/api/autopilot?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(drawPlan).catch(function () { autoBody.innerHTML = '<p>Chưa tải được. Thử lại sau ít phút.</p>'; });
+  }
+  function drawPlan(p, msg) {
+    var steps = p.steps || [];
+    var nOn = steps.filter(function (x) { return x.se_bat; }).length;
+    var html = '';
+    if (msg) html += '<p class="of-auto-note" style="color:#B45309">' + esc(msg) + '</p>';
+    if (!p.brand_ok) html += '<p class="of-auto-note" style="color:#B45309">Cần điền Brain thương hiệu trước (tên, sản phẩm, khách hàng, giọng văn) để AI làm đúng thương hiệu. <a href="thuong-hieu.html">Điền Brain</a></p>';
+    html += '<p class="of-auto-note">' + (p.che_do === 'crewzy' ? 'Trợ lý Crewzy tự làm đúng giờ bằng credit của gói.' : 'Tới giờ Crewzy giao phiếu việc cho AI của bạn (Claude, ChatGPT…).') +
+      ' Bài đăng và tin gửi khách vẫn chờ bạn duyệt 1 chạm ở Việc chờ duyệt.</p><ol class="of-chain">' + steps.map(function (x) {
+      var right = x.dang_chay ? '<span class="ok">● Đang chạy</span>' : x.se_bat ? '<span class="ok">✓ Sẵn sàng</span>'
+        : x.thieu.length ? '<a class="btn btn-ghost" href="ket-noi.html?app=' + esc(x.thieu[0].slug) + '">Nối ' + esc(x.thieu[0].name) + '</a>' : '<span class="muted" style="font-size:12px">Chưa bật</span>';
+      return '<li class="' + (x.se_bat || x.dang_chay ? '' : 'off') + '"><i style="background:' + (COLOR[x.toi] || '#999') + '"></i><div><b>' + esc(x.buoc) + '</b><small>' +
+        esc((SHORT[x.tu] || '') + ' → ' + (SHORT[x.toi] || '')) + ' · ' + esc(DAY_TXT[x.ngay] || '') + ' ' + esc(x.lap ? x.gio + '–' + x.den + ' mỗi giờ' : x.gio) + (x.ly_do ? ' · ' + esc(x.ly_do) : '') + '</small></div>' + right + '</li>';
+    }).join('') + '</ol>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' + (p.bat ? '<button type="button" class="btn btn-ghost" data-auto-off>Tắt chạy tự động</button>' : '') +
+      '<button type="button" class="btn btn-primary" data-auto-on' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>' + (p.bat ? 'Cập nhật dây chuyền (' + nOn + ' bước)' : 'Bật chạy tự động (' + nOn + ' bước)') + '</button></div>';
+    autoBody.innerHTML = html;
+  }
+  function autoPost(action) {
+    autoBody.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    fetch('/api/autopilot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uid: uid, action: action }) })
+      .then(function (r) { return r.json(); }).then(function (out) {
+        if (out.error) { if (out.plan) drawPlan(out.plan, out.error); else fetch('/api/autopilot?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(function (pl) { drawPlan(pl, out.error); }); return; }
+        if (out.plan) drawPlan(out.plan, out.loi && out.loi.length ? 'Một số bước chưa bật: ' + out.loi.join('; ') : ''); else autoDlg.close();
+        load();
+      });
+  }
+  autoBox.addEventListener('click', function (e) { if (e.target.closest('[data-auto-open]')) openAuto(); });
+  autoDlg.addEventListener('click', function (e) {
+    if (e.target === autoDlg || e.target.closest('[data-auto-close]')) autoDlg.close();
+    else if (e.target.closest('[data-auto-on]')) autoPost('bat');
+    else if (e.target.closest('[data-auto-off]')) autoPost('tat');
+  });
+
   function renderAll() {
     renderTop();
+    renderAuto();
     renderGraph();
     renderTiles();
     renderFeed();

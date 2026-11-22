@@ -11,7 +11,7 @@
   var catalog = { categories: [], apps: [], mcp: [] };
   var MCP_CAT = { id: 'mcp', name: 'Máy chủ MCP (nối thẳng)' };
   var accounts = {};
-  var state = { filter: 'all', cat: 'all', q: '' };
+  var state = { filter: 'all', cat: new URLSearchParams(location.search).get('cat') || 'all', q: '' }; // ?cat= từ nút + trên Cây vận hành
   // Ngành của khách: ?nganh= hoặc đã chọn trước (localStorage crewzy.nganh, dùng chung với trang Quy trình).
   state.nganh = new URLSearchParams(location.search).get('nganh') || store('crewzy.nganh') || '';
 

@@ -26,6 +26,13 @@ export const BRANCH_APPS = {
   hang_ngay: [['gmail', 'Hộp thư'], ['googlecalendar', 'Lịch làm việc'], ['slack', 'Nhắn nội bộ'], ['trello', 'Việc cần làm'], ['googledrive', 'Tài liệu']],
 };
 
+// App khách tự nối thêm (ngoài BRANCH_APPS) mọc vào nhánh theo thể loại trong catalog; nút + của nhánh mở Kết nối lọc đúng thể loại.
+export const CAT_BRANCH = { social: 'phan_phoi', web: 'phan_phoi', ads: 'quang_cao', analytics: 'quang_cao', chat: 'cham_soc', care: 'cham_soc', phone: 'cham_soc', email: 'cham_soc',
+  sales: 'ban_hang', leads: 'ban_hang', money: 'ban_hang', creative: 'noi_dung', media: 'noi_dung', research: 'chien_luoc', office: 'hang_ngay', work: 'hang_ngay' };
+export const BRANCH_CAT = { thuong_hieu: 'creative', doi_thu: 'research', chien_luoc: 'research', noi_dung: 'creative', phan_phoi: 'social', quang_cao: 'ads', ban_hang: 'sales', cham_soc: 'chat', bao_cao: 'analytics', hang_ngay: 'office' };
+const CAT_NAME = { social: 'Kênh đăng bài', web: 'Website', ads: 'Quảng cáo', analytics: 'Phân tích', chat: 'Nhắn tin khách', care: 'Hỗ trợ khách', phone: 'Gọi điện, SMS', email: 'Email khách',
+  sales: 'Bán hàng', leads: 'Tìm khách', money: 'Thanh toán', creative: 'Thiết kế', media: 'Ảnh, video', research: 'Nghiên cứu', office: 'Văn phòng', work: 'Quản lý việc' };
+
 const ALL_BRANCH_APPS = new Set(Object.values(BRANCH_APPS).flat().map(([slug]) => slug));
 
 const KIND_ROOM = { bai_dang: 'phan_phoi', noi_dung: 'noi_dung', cham_soc: 'cham_soc', bao_cao: 'bao_cao', brain: 'thuong_hieu', khac: 'hang_ngay' };
@@ -62,11 +69,11 @@ export default async (req, env) => {
     const suggest = [...new Set(flows.flatMap((w) => (w.cong_cu || []).filter((g) => g.bat_buoc).map((g) => g.apps[0])))].filter((s) => !connected.includes(s)).slice(0, 3);
     // Lá của cây: bộ app đúng chuyên môn của nhánh (BRANCH_APPS) + app đã nối khác mà quy trình của nhánh dùng.
     const curated = (BRANCH_APPS[d.id] || []).filter(([slug]) => appBySlug(slug));
-    const extra = roomApps.filter((x) => connected.includes(x) && !ALL_BRANCH_APPS.has(x)); // app đã nối chưa thuộc nhánh nào
-    const leaves = [...curated.map(([slug, vai]) => ({ slug, vai })), ...extra.map((slug) => ({ slug, vai: 'Dùng trong quy trình' }))]
+    const extra = connected.filter((x) => !ALL_BRANCH_APPS.has(x) && CAT_BRANCH[(appBySlug(x) || {}).cat] === d.id); // app khách nối thêm → mọc vào nhánh đúng thể loại
+    const leaves = [...curated.map(([slug, vai]) => ({ slug, vai })), ...extra.map((slug) => ({ slug, vai: CAT_NAME[(appBySlug(slug) || {}).cat] || 'Ứng dụng của bạn', them: true }))]
       .map((l) => ({ ...l, name: (appBySlug(l.slug) || { name: l.slug }).name, on: connected.includes(l.slug) }));
     leaves.sort((a, b) => (b.on ? 1 : 0) - (a.on ? 1 : 0));
-    leaves.splice(7);
+    leaves.splice(8);
     const sch = schedules.filter((s) => s.bat && flows.some((w) => w.id === s.quy_trinh));
     let status = 'idle';
     if (waiting.length) status = 'wait';
@@ -80,7 +87,7 @@ export default async (req, env) => {
       counts: { lam: working.length, cho: todo.length + approved.length, duyet: waiting.length, xong_24h: doneRecent.length, tong: mine.length },
       current: current ? { id: current.id, tieu_de: current.tieu_de, trang_thai: effective(current), mo_ta: STATUSES[effective(current)], nguoi_lam: current.nguoi_lam || '', luc: current.cap_nhat } : null,
       flows: { tong: flows.length, san_sang: ready.length, goi_y: (ready[0] || flows[0] || {}).id || '' },
-      apps, leaves, suggest: suggest.map((slug) => ({ slug, name: (appBySlug(slug) || { name: slug }).name })),
+      apps, leaves, them_cat: BRANCH_CAT[d.id] || '', suggest: suggest.map((slug) => ({ slug, name: (appBySlug(slug) || { name: slug }).name })),
       schedules: sch.map((s) => ({ ten: s.ten, gio: s.gio, den: s.den || '', lap: s.lap || '', che_do: s.che_do })),
     };
   });
@@ -113,6 +120,8 @@ export default async (req, env) => {
       apps: connected.length, ai_linked: !!aiseen, jobs: jobs.length, schedules: schedules.length, composio_ok: accounts !== null,
       app_names: connected.slice(0, 12).map((s) => (appBySlug(s) || { name: s }).name),
     },
+    autopilot: { bat: schedules.some((s) => s.nguon === 'cay' && s.bat), so_lich: schedules.filter((s) => s.nguon === 'cay' && s.bat).length,
+      buoc: schedules.filter((s) => s.nguon === 'cay' && s.bat).map((s) => s.quy_trinh) },
     now: new Date(now).toISOString(),
   }, { headers: { 'cache-control': 'no-store' } });
 };
