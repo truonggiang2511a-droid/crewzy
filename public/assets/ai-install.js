@@ -111,8 +111,10 @@
 
   render();
   // Mở tab AI của bạn là tạo sẵn link (một lần), để mọi nút bấm là chạy ngay.
-  function warm() { if (!link() && !document.querySelector('[data-view="ai"]').hidden) ensureLink().catch(function (err) { say(err.message); }); }
+  // connect.js mở tab sau khi tải danh mục (bất đồng bộ) → theo dõi lúc khối AI hiện ra.
+  var view = document.querySelector('[data-view="ai"]');
+  function warm() { if (!link() && view && !view.hidden) ensureLink().catch(function (err) { say(err.message); }); }
+  if (new URLSearchParams(location.search).get('tab') === 'ai') ensureLink().catch(function (err) { say(err.message); });
+  if (view && window.MutationObserver) new MutationObserver(warm).observe(view, { attributes: true, attributeFilter: ['hidden'] });
   warm();
-  document.addEventListener('click', function (e) { if (e.target.closest('[data-tab="ai"]')) setTimeout(warm, 50); });
-  window.addEventListener('popstate', function () { setTimeout(warm, 50); });
 })();
