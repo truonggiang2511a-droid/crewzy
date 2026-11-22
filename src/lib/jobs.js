@@ -75,7 +75,10 @@ export const JOB_TOOL_DEFS = [
     function: {
       name: 'CREWZY_VIEC_CAN_LAM',
       description: 'Xem các phiếu việc Crewzy đang giao: việc "cho_lam" (cần làm), "da_duyet" (khách đã duyệt, cần đăng/gửi rồi báo lại), và việc bị yêu cầu làm lại kèm ghi chú của khách. Gọi đầu tiên khi người dùng bảo "làm việc Crewzy" hoặc "làm các việc được giao".',
-      parameters: { type: 'object', properties: { tat_ca: { type: 'boolean', description: 'true để xem cả việc đã xong (mặc định chỉ việc cần làm).' } } },
+      parameters: { type: 'object', properties: {
+        tat_ca: { type: 'boolean', description: 'true để xem cả việc đã xong, 30 phiếu gần nhất (mặc định chỉ việc cần làm).' },
+        id: { type: 'string', description: 'Mã một phiếu: trả đủ nội dung đã nộp (bài, báo cáo, Sổ tay phong cách…) để dùng kết quả quy trình trước. Chỉ đọc, không nhận việc.' },
+      } },
     },
   },
   {
@@ -115,8 +118,17 @@ export async function markWorking(env, uid, id, who) {
   await saveJobs(env, uid, jobs);
 }
 
-export async function jobsForAi(env, uid, all, who) {
+export async function jobsForAi(env, uid, all, who, id) {
   const jobs = await listJobs(env, uid);
+  if (id) {
+    const j = jobs.find((x) => x.id === id);
+    if (!j) return { error: 'Không có phiếu việc ' + id + '. Gọi CREWZY_VIEC_CAN_LAM với tat_ca để xem mã các phiếu.' };
+    return { data: { viec: [{
+      id: j.id, tieu_de: j.tieu_de, loai: j.loai, quy_trinh: j.quy_trinh || undefined, trang_thai: j.trang_thai, mo_ta_trang_thai: STATUSES[j.trang_thai],
+      yeu_cau: j.yeu_cau, ghi_chu_cua_khach: j.ghi_chu_khach || undefined, nguoi_lam: j.nguoi_lam || undefined, cap_nhat: j.cap_nhat || undefined,
+      ket_qua_da_nop: j.ket_qua || undefined,
+    }] } };
+  }
   const want = all ? jobs.slice(0, 30) : jobs.filter((j) => ['cho_lam', 'dang_lam', 'da_duyet'].includes(j.trang_thai));
   if (!all) {
     const todo = want.filter((j) => j.trang_thai === 'cho_lam');
@@ -138,6 +150,7 @@ export async function jobsForAi(env, uid, all, who) {
       })),
       huong_dan: want.length
         ? 'Việc cho_lam: làm rồi nộp bằng CREWZY_NOP_KET_QUA (kèm id). Việc da_duyet: đăng/gửi đúng nội dung đã duyệt rồi nộp lại với trang_thai da_dang và link bài.'
+          + (all ? ' Cần nội dung một phiếu cũ (Sổ tay phong cách, báo cáo tuần, báo cáo đối thủ): gọi lại CREWZY_VIEC_CAN_LAM với id của phiếu đó.' : '')
         : 'Hiện không có việc nào cần làm.',
     },
   };

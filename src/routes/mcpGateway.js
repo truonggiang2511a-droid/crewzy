@@ -12,12 +12,21 @@ import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
+import { APP_ONLY_TOOLS } from '../lib/workflows.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
 const plain = (status, text) => new Response(text, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
-const MCP_TOOLS = CREWZY_TOOL_DEFS.filter((t) => t.function.name !== 'CREWZY_CHO').map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters }));
+// Công cụ Crewzy đưa ra link MCP. CREWZY_TAO_VIDEO, CREWZY_CHO chỉ dùng trong Trợ lý AI của app (APP_ONLY_TOOLS):
+// không liệt kê VÀ không cho gọi thẳng qua MCP (gọi đúng tên vẫn bị chặn, tránh tốn tiền làm video / treo Worker).
+const MCP_TOOLS = CREWZY_TOOL_DEFS.filter((t) => !APP_ONLY_TOOLS.includes(t.function.name)).map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters }));
+const MCP_TOOL_NAMES = new Set(MCP_TOOLS.map((t) => t.name));
+
+// Tên AI của khách ghi lúc initialize (aiseen:<uid>) — để phiếu việc ghi "Claude nhận việc" thay vì "AI của bạn".
+async function seenAi(env, uid) {
+  try { const v = await env.KV.get('aiseen:' + uid, { type: 'json' }); return (v && v.ten) || 'AI của bạn'; } catch (e) { return 'AI của bạn'; }
+}
 
 async function connectedApps(env, uid) {
   try {
@@ -108,10 +117,17 @@ export default async (request, env, ctx) => {
 
   // Công cụ của Crewzy: tự trả lời, không gửi Composio.
   if (rpc && rpc.method === 'tools/call' && rpc.params && isCrewzyTool(rpc.params.name)) {
+    if (!MCP_TOOL_NAMES.has(rpc.params.name)) {
+      const msg = APP_ONLY_TOOLS.includes(rpc.params.name)
+        ? `Lỗi: ${rpc.params.name} chỉ có trong Trợ lý AI của Crewzy (dùng credit của app), AI nối qua link MCP không gọi được. Làm video bằng app đã nối (HyperFrames, OpenArt…) hoặc nhờ khách mở Trợ lý AI trong Crewzy.`
+        : `Lỗi: Không có công cụ ${rpc.params.name}.`;
+      return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: msg }], isError: true } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
+    }
     const needApps = rpc.params.name === 'CREWZY_BRAIN' || rpc.params.name === 'CREWZY_QUY_TRINH';
     const slugs = needApps ? await connectedApps(env, uid) : [];
     const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
-    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names, connected: slugs, agent: 'AI của bạn' });
+    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names, connected: slugs, surface: 'mcp',
+      agent: rpc.params.name === 'CREWZY_VIEC_CAN_LAM' ? await seenAi(env, uid) : 'AI của bạn' });
     const text = out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data);
     const result = { content: [{ type: 'text', text }], isError: !!out.error };
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });

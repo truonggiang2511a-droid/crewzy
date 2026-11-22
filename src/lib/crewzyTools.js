@@ -6,7 +6,7 @@ import { getBrand, brandText, brandPack } from './brand.js';
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl } from './media.js';
-import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS } from './workflows.js';
+import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS, forMcp } from './workflows.js';
 import { readWebsite } from './webRead.js';
 import { listJobs } from './jobs.js';
 import { mcpById } from './mcpDirectory.js';
@@ -154,7 +154,11 @@ function mcpHint(groups) {
   const ids = [...new Set(groups.filter((g) => !g.dat).flatMap((g) => g.goi_y_mcp || []))].map(mcpById).filter((m) => m && !m.ngoai);
   return ids.length ? ' (' + ids.map((m) => `${m.name}: ${m.url}`).join(', ') + ')' : '';
 }
-async function workflowTool(env, uid, args, connected) {
+// surface 'mcp' = AI ngoài qua link nối AI: viết lại câu nhắc công cụ chỉ có trong Trợ lý AI của app (forMcp, san_co_mcp).
+async function workflowTool(env, uid, args, connected, surface) {
+  const mcp = surface === 'mcp';
+  const tx = (t) => (mcp ? forMcp(t) : t);
+  const groupsOut = (gs) => gs.map(({ san_co_mcp, ...g }) => (mcp && san_co_mcp ? { ...g, san_co: san_co_mcp } : g));
   const servers = (await listServers(env, uid).catch(() => [])).filter((x) => !x.off);
   const urls = servers.map((x) => x.url);
   const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
@@ -165,7 +169,7 @@ async function workflowTool(env, uid, args, connected) {
   if (!id) {
     return { data: { quy_trinh: WORKFLOWS.map((w) => {
       const r = readiness(w, ctx);
-      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: r.thieu_nhom, thieu_du_lieu: short(r), san_sang: r.san_sang };
+      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: tx(w.mo_ta), lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: r.thieu_nhom, thieu_du_lieu: short(r), san_sang: r.san_sang };
     }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết. Khách mới: bắt đầu bằng brain_tu_website.' } };
   }
   const w = workflowById(id);
@@ -177,13 +181,13 @@ async function workflowTool(env, uid, args, connected) {
     doc_truoc: 'BƯỚC 0: đọc kỹ thuong_hieu dưới đây (và mở các link mẫu tham khảo) trước khi làm bất cứ bước nào.',
     thuong_hieu: brandPack(brand, !!w.media),
     dinh_dang_kenh: formatsFor(connected, mcpIds),
-    id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, can_hoi_khach: w.hoi || undefined,
+    id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: tx(w.mo_ta), can_hoi_khach: w.hoi || undefined,
     kenh: w.kenh, loai_ket_qua: w.loai,
-    cong_cu: miss.groups, thieu_nhom: miss.nhom, san_sang: r.san_sang,
+    cong_cu: groupsOut(miss.groups), thieu_nhom: miss.nhom, san_sang: r.san_sang,
     thieu_du_lieu: r.thieu_du_lieu.length ? short(r) : undefined,
     nen_co: r.nen_co.length ? r.nen_co.map((x) => x.ten + ' → ' + x.cach) : undefined,
     luu_y_du_lieu: r.thieu_du_lieu.length ? 'Chưa đủ dữ liệu để ra kết quả thật. Báo khách mục còn thiếu và cách bổ sung (hoặc chạy quy trình cần chạy trước), KHÔNG tự bịa nội dung thay cho dữ liệu thiếu.' : undefined,
-    cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${b}`),
+    cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${tx(b)}`),
     quy_tac: WORKFLOW_RULES,
     huong_dan_noi: miss.nhom.length
       ? 'Còn thiếu: ' + miss.nhom.join(', ') + '. Khách nối MỘT app bất kỳ trong goi_y của nhóm đó ở Crewzy → Kết nối → Ứng dụng (app dùng khoá API như vidIQ, Apify, Firecrawl, Semrush: Composio mở trang để dán khoá). MCP ngoài' + mcpHint(miss.groups) + ': Kết nối → MCP khác (máy chủ nối ở đó dùng được ngay trong link nối AI).'
@@ -276,13 +280,13 @@ export async function readBrain(env, uid, connectedNames) {
   return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
 }
 
-export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent }) {
+export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent, surface }) {
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
-    if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || []);
-    if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent);
+    if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface);
+    if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent, args && args.id);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_DOC_WEB') return await readWebsite(args && args.url);
     if (name === 'CREWZY_TAI_LEN') return await createPutLink(env, origin, uid, args && args.loai_file);

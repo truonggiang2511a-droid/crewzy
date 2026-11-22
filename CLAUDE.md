@@ -84,7 +84,9 @@ src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nh
 src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
 src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
 src/routes/mcpGateway.js  /mcp/* kiểm tra chữ ký token rồi chuyển tiếp MCP tới phiên Composio, gắn x-api-key ở máy chủ; token v2 có mã khách →
-                          chèn instructions (Brain + app đã nối + Skill) vào initialize, thêm CREWZY_* vào tools/list, tự chạy tools/call CREWZY_*
+                          chèn instructions (Brain + app đã nối + Skill) vào initialize, thêm CREWZY_* vào tools/list, tự chạy tools/call CREWZY_*.
+                          APP_ONLY_TOOLS (CREWZY_TAO_VIDEO tốn tiền thật, CREWZY_CHO treo Worker) không liệt kê VÀ bị chặn khi gọi thẳng qua MCP;
+                          tools/call gửi surface 'mcp' → CREWZY_QUY_TRINH trả bản forMcp (workflows.js); nhận việc ghi tên AI từ aiseen:<uid>
 src/lib/mcpClient.js      Máy khách MCP Streamable HTTP (SSE/JSON, Mcp-Session-Id) + OAuth chuẩn MCP: oauth-protected-resource → máy chủ cấp quyền
                           → tự đăng ký app (DCR) → PKCE S256 + resource → đổi mã/làm mới token. Chặn http, IP, localhost, link /sse cũ
 src/lib/mcpServers.js     Lưu máy chủ MCP của khách (KV mcpsrv:<uid>, tối đa 10, token mã hoá AES-GCM sealText), loadExternalTools cho chat
@@ -93,11 +95,13 @@ src/routes/mcpServers.js  GET/POST /api/mcp-servers (add|remove|test) · GET /ap
 src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoài (dữ liệu base64, resource, link trong JSON/chữ), tải về lưu KV media:<id>
                           (90 ngày, ≤24MB, lớn hơn giữ link gốc), phục vụ /api/media/<id>.<đuôi> công khai có Range (tua video)
 src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của khách): KV jobs:<uid> (≤150), trạng thái cho_lam → cho_duyet → da_duyet → da_dang
-                          (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM, CREWZY_NOP_KET_QUA (tự lưu ảnh/video về /api/media); MCP_PROMPTS
+                          (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM (id = đọc đủ nội dung một phiếu cũ, chỉ đọc), CREWZY_NOP_KET_QUA
+                          (tự lưu ảnh/video về /api/media); MCP_PROMPTS
 src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
 src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (8 phòng, có Nghiên cứu đối thủ), WORKFLOWS (20 quy trình: bước,
                           lịch gợi ý, loại kết quả), CHANNELS (12 kênh/nền tảng), nhóm công cụ G + TOOLSETS (mỗi quy trình: kenh + cong_cu = các vai trò,
-                          mỗi vai trò nhiều app thay thế, bat_buoc/san_co), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm CHỈ ở đây
+                          mỗi vai trò nhiều app thay thế, bat_buoc/san_co/san_co_mcp), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES,
+                          APP_ONLY_TOOLS + forMcp (viết lại câu nhắc công cụ chỉ có trong app cho AI ngoài). Sửa/thêm CHỈ ở đây
 src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; cron */15 (wrangler triggers) → tạo phiếu việc; che_do 'crewzy' thì
                           runAgent chế độ app tự làm (≤3 lượt mỗi lần cron, tính vào trần lượt của app). scripts/schedtest.mjs
 src/routes/workflows.js   GET /api/workflows · GET /api/workflows/status?uid= (sẵn sàng thật) · GET/POST /api/schedules (tao | bat | tat | xoa)
@@ -108,6 +112,7 @@ src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
 src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
 wrangler.jsonc            Worker "crewzy", nodejs_compat, AI binding AI (Workers AI), KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
 scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
+scripts/gatewaytest.mjs   Thử cổng MCP như AI ngoài (KV + Composio giả): tools/list, chặn APP_ONLY_TOOLS, quy trình không nhắc công cụ ẩn, đọc phiếu theo id
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 
@@ -380,6 +385,12 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 - 22/11/2026: Giang hỏi "không kết nối SDK các Model vô app được à, Jarvis làm được". Phản biện: gói Claude Pro/Max bị Anthropic cấm dùng
   trong app khác (2/2026), Sign in with ChatGPT chỉ cho đối tác OpenAI duyệt → làm khoá API cho cả 4 AI (Claude, ChatGPT, Gemini, Grok)
   + nối MCP của app khác vào Crewzy (máy khách MCP + OAuth tự động). Thử bằng máy chủ giả: `node scripts/mcptest.mjs` (đã gộp vào npm test).
+- 22/11/2026: Claude (claude.ai, nối qua link MCP) tự gọi thử từng công cụ và tìm ra 4 lỗi, Giang đồng ý sửa:
+  (1) CREWZY_TAO_VIDEO đã giấu khỏi tools/list nhưng gọi đúng tên vẫn chạy (cổng chuyển mọi CREWZY_* vào runCrewzyTool) → chặn theo danh sách MCP_TOOLS;
+  (2) quy trình video bảo AI ngoài gọi CREWZY_TAO_VIDEO/CREWZY_CHO → bản MCP viết lại bằng forMcp; (3) VIEC_CAN_LAM chỉ trả nội dung phiếu
+  da_duyet nên quy trình sau không đọc được Sổ tay phong cách/báo cáo tuần → thêm tham số id; (4) phiếu ghi "AI của bạn" → lấy tên từ aiseen.
+  Bài học: claude.ai giữ danh sách công cụ cũ của connector (bấm làm mới vẫn không thấy công cụ mới như CREWZY_DOC_WEB) → thêm công cụ mới thì
+  báo khách ngắt/nối lại connector. Cổng không giữ kết nối nên khai tools.listChanged cũng vô ích (không gửi được thông báo).
 
 ## 6. Việc tiếp theo
 

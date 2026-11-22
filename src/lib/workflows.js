@@ -325,8 +325,10 @@ const G = {
   bao_gia: { vai: 'Báo giá, hợp đồng', apps: ['pandadoc', 'qwilr', 'dropbox_sign', 'googledocs', 'zoho_invoice'] },
   lich: { vai: 'Lịch, cuộc hẹn', apps: ['googlecalendar', 'outlook', 'calendly', 'cal', 'savvycal', 'zoom', 'googlemeet', 'webex'] },
   ghi_hop: { vai: 'Ghi âm, chép lời cuộc gọi/họp', apps: ['fireflies', 'gong', 'aircall', 'dialpad', 'assemblyai', 'rev'] },
-  anh_video: { vai: 'Làm ảnh, video', apps: ['canva', 'heygen', 'elevenlabs', 'figma', 'runway', 'fal_ai', 'synthesia', 'bannerbear', 'creatomate', 'shotstack', 'placid', 'remove_bg', 'cloudinary', 'pexels', 'unsplash', 'openai', 'gemini'], mcp: ['openart', 'heygen'], san_co: 'Crewzy có sẵn tạo ảnh và video (credit của app)' },
-  dung_video: { vai: 'Dựng, render video', apps: ['shotstack', 'creatomate', 'descript_mcp', 'heygen', 'synthesia', 'runway', 'luma_labs', 'fal_ai', 'cloudinary'], mcp: ['hyperframes', 'shotstack', 'invideo', 'heygen', 'openart'], san_co: 'Crewzy có sẵn làm video ngắn bằng AI (credit của app); AI chạy trên máy (Claude Code, Codex) dựng bằng Remotion, HyperFrames, ffmpeg rồi tải lên Crewzy' },
+  anh_video: { vai: 'Làm ảnh, video', apps: ['canva', 'heygen', 'elevenlabs', 'figma', 'runway', 'fal_ai', 'synthesia', 'bannerbear', 'creatomate', 'shotstack', 'placid', 'remove_bg', 'cloudinary', 'pexels', 'unsplash', 'openai', 'gemini'], mcp: ['openart', 'heygen'], san_co: 'Crewzy có sẵn tạo ảnh và video (credit của app)',
+    san_co_mcp: 'Crewzy có sẵn tạo ảnh (CREWZY_TAO_ANH); làm video bằng credit Crewzy chỉ có trong Trợ lý AI của app, AI ngoài dùng app làm video đã nối' },
+  dung_video: { vai: 'Dựng, render video', apps: ['shotstack', 'creatomate', 'descript_mcp', 'heygen', 'synthesia', 'runway', 'luma_labs', 'fal_ai', 'cloudinary'], mcp: ['hyperframes', 'shotstack', 'invideo', 'heygen', 'openart'], san_co: 'Crewzy có sẵn làm video ngắn bằng AI (credit của app); AI chạy trên máy (Claude Code, Codex) dựng bằng Remotion, HyperFrames, ffmpeg rồi tải lên Crewzy',
+    san_co_mcp: 'AI chạy trên máy (Claude Code, Codex) dựng bằng Remotion, HyperFrames, ffmpeg rồi tải lên bằng CREWZY_TAI_LEN; làm video bằng credit Crewzy chỉ có trong Trợ lý AI của app' },
   giong_doc: { vai: 'Giọng đọc, lồng tiếng', apps: ['elevenlabs', 'cartesia', 'fish_audio', 'heygen', 'openai', 'gemini'], mcp: ['elevenlabs', 'heygen'], san_co: 'Giọng mẫu và mã giọng trong Brain thương hiệu' },
   cat_clip: { vai: 'Cắt clip ngắn, phụ đề tự động', apps: ['captions', 'descript_mcp', 'assemblyai', 'rev'], mcp: ['captions', 'opus', 'reap'] },
   soi_video: { vai: 'Soi video đối thủ (Reels, TikTok, YouTube)', apps: ['vidiq_mcp', 'apify', 'youtube'], mcp: ['apify', 'vidiq'] },
@@ -410,7 +412,7 @@ export function groupStatus(w, connected, mcpUrls) {
   return (w.cong_cu || []).map((g) => {
     const apps = (g.apps || []).filter((s) => set.has(s));
     const mcp = (g.mcp || []).filter((m) => urls.includes(MCP_HOSTS[m] || m));
-    return { vai: g.vai, bat_buoc: !!g.bat_buoc, san_co: g.san_co || '', da_noi: [...apps, ...mcp.map((m) => 'mcp:' + m)], goi_y: g.apps || [], goi_y_mcp: g.mcp || [], dat: !!(apps.length || mcp.length || g.san_co) };
+    return { vai: g.vai, bat_buoc: !!g.bat_buoc, san_co: g.san_co || '', san_co_mcp: g.san_co_mcp, da_noi: [...apps, ...mcp.map((m) => 'mcp:' + m)], goi_y: g.apps || [], goi_y_mcp: g.mcp || [], dat: !!(apps.length || mcp.length || g.san_co) };
   });
 }
 export function missingFor(w, connected, mcpUrls) {
@@ -472,6 +474,24 @@ export function readiness(w, ctx) {
 export function workflowPrompt(w, extra) {
   return `Chạy quy trình "${w.ten}" (mã ${w.id}) của Crewzy. Gọi CREWZY_QUY_TRINH với id "${w.id}" để lấy đúng các bước, làm lần lượt từng bước, `
     + 'cuối cùng nộp kết quả bằng CREWZY_NOP_KET_QUA kèm quy_trinh "' + w.id + '".' + (extra ? '\nThông tin thêm: ' + extra : '');
+}
+
+// ---------- Bản cho AI ngoài (link MCP) ----------
+// CREWZY_TAO_VIDEO (tốn tiền thật của Giang) và CREWZY_CHO (treo Worker) chỉ có trong Trợ lý AI của app.
+// Cổng MCP từ chối gọi thẳng hai công cụ này; quy trình trả qua MCP được viết lại để không bảo AI ngoài gọi chúng.
+// Thêm câu mới nhắc hai công cụ này vào quy trình thì phải thêm luật viết lại ở đây (scripts/gatewaytest.mjs sẽ báo).
+export const APP_ONLY_TOOLS = ['CREWZY_TAO_VIDEO', 'CREWZY_CHO'];
+const MCP_VIDEO_FALLBACK = 'chưa nối công cụ dựng video nào thì làm ảnh bằng CREWZY_TAO_ANH, nộp kịch bản + ảnh để khách duyệt, ghi_chu gợi ý khách nối HyperFrames (Kết nối → MCP khác) hoặc mở Trợ lý AI trong Crewzy để làm video bằng credit của app';
+const MCP_REWRITES = [
+  [/; không có thì CREWZY_TAO_ANH rồi CREWZY_TAO_VIDEO \(trường anh = link ảnh\)\./g, '; ' + MCP_VIDEO_FALLBACK + '.'],
+  [/Không có công cụ nào thì CREWZY_TAO_ANH \+ CREWZY_TAO_VIDEO\./g, 'Không có công cụ nào: ' + MCP_VIDEO_FALLBACK + '.'],
+  [/Công cụ tạo lâu thì chờ bằng CREWZY_CHO rồi xem trạng thái\./g, 'Công cụ tạo lâu thì đợi 20–30 giây rồi gọi công cụ xem trạng thái của app đó.'],
+  [/bằng credit Crewzy hoặc OpenArt/g, 'bằng công cụ dựng video đã nối (HyperFrames, OpenArt…)'],
+];
+export function forMcp(text) {
+  let t = String(text || '');
+  for (const [re, to] of MCP_REWRITES) t = t.replace(re, to);
+  return t;
 }
 
 export const WORKFLOW_RULES = [
