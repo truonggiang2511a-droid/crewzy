@@ -9,6 +9,7 @@
   // status: work = đang làm · wait = chờ bạn duyệt · idle = rảnh · done = vừa xong
   var DEPTS = [
     { id: 'product', name: 'Sản phẩm', short: 'Sản phẩm', staff: 'Minh', status: 'wait', task: 'Căn A15 chờ bạn xác minh giá', progress: 100, queue: 2, apps: ['googledrive'] },
+    { id: 'research', name: 'Nghiên cứu đối thủ', short: 'Đối thủ', staff: 'Vy', status: 'work', task: 'Soi 12 Reels của 3 đối thủ, học hook 3 giây đầu', progress: 45, queue: 1, apps: [], phong: 'doi_thu' },
     { id: 'image', name: 'Hình ảnh', short: 'Hình ảnh', staff: 'Lan', status: 'work', task: 'Làm bộ ảnh căn A12 (6/10 ảnh)', progress: 60, queue: 1, apps: ['canva'] },
     { id: 'video', name: 'Video', short: 'Video', staff: 'Huy', status: 'work', task: 'Dựng video 30 giây căn A12', progress: 35, queue: 2, apps: ['youtube', 'heygen'] },
     { id: 'content', name: 'Nội dung', short: 'Nội dung', staff: 'Thảo', status: 'wait', task: 'Lịch 7 bài tuần 23–29/11 chờ duyệt', progress: 100, queue: 0, apps: ['facebook', 'instagram'] },
@@ -17,10 +18,14 @@
     { id: 'sales', name: 'Sale', short: 'Sale', staff: 'Tuấn', status: 'work', task: 'Nhắc gọi 2 khách mới trong 9 phút', progress: 80, queue: 3, apps: ['hubspot', 'googlesheets'] },
     { id: 'report', name: 'Báo cáo', short: 'Báo cáo', staff: 'An', status: 'idle', task: 'Báo cáo ngày lúc 7:30 sáng mai', progress: 0, queue: 0, apps: ['google_analytics'] }
   ];
+  // Phòng ở sơ đồ → phòng trong thư viện quy trình (src/lib/workflows.js DEPARTMENTS).
+  var ROOM_DEP = { product: 'thuong_hieu', research: 'doi_thu', image: 'noi_dung', video: 'noi_dung', content: 'noi_dung', ads: 'quang_cao', care: 'cham_soc', sales: 'ban_hang', report: 'bao_cao' };
   var CENTER = { id: 'brain', name: 'Ban giám đốc', sub: 'Bộ não AI', staff: 'Trợ lý điều hành' };
   // Dòng việc chuyển giữa các phòng (đường nhánh). Mỗi lần "chuyển phiếu" có hạt sáng chạy theo.
   var FLOWS = [
     ['product', 'image', 'Căn A12 đủ thông tin, bắt đầu làm ảnh'],
+    ['research', 'video', 'Sổ tay phong cách video tuần này: 5 mẫu hook đối thủ hiệu quả'],
+    ['research', 'ads', '3 góc quảng cáo đối thủ chạy lâu nhất, đề xuất thử A/B'],
     ['image', 'video', 'Bộ ảnh căn A12 đủ để dựng video'],
     ['video', 'content', 'Video 30 giây xong, chuyển viết bài'],
     ['content', 'ads', 'Bài nhiều tương tác nhất đề xuất chạy quảng cáo'],
@@ -213,7 +218,7 @@
       '<p class="od-meta">Nhận việc từ: ' + (ins.length ? esc(ins.join(', ')) : '—') + '<br>Chuyển việc cho: ' + (outs.length ? esc(outs.join(', ')) : '—') + '</p>' +
       '<div class="od-apps">' + apps + '</div>' +
       '<div class="od-actions">' + (d.status === 'wait' ? '<a class="btn btn-primary" href="cho-duyet.html">Duyệt ngay</a>' : '<a class="btn btn-primary" href="chat.html?q=' + encodeURIComponent('Giao việc cho Phòng ' + d.name + ': ') + '">Giao việc</a>') +
-      '<a class="btn btn-ghost od-ghost" href="quy-trinh.html">Quy trình của phòng</a></div>';
+      '<a class="btn btn-ghost od-ghost" href="quy-trinh.html?phong=' + (ROOM_DEP[d.id] || '') + '">Quy trình của phòng</a></div>';
   }
 
   graphBox.addEventListener('click', function (e) {

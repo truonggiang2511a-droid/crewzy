@@ -47,7 +47,8 @@ public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ
                          Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, Duyệt/Sửa/Làm lại/Từ chối/Đăng/Xoá, ?id= làm nổi
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
                          ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
-public/quy-trinh.html    Quy trình: 7 mẫu theo phòng ban, logo app cần có, Chạy → chat.html?q=<câu lệnh>
+public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 18 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
+                         nối, MCP ngoài (Apify/Firecrawl/OpenArt), Chạy ngay · Giao cho AI của tôi · Hẹn giờ (hộp thoại), danh sách Lịch đang hẹn
 public/thuong-hieu.html  Brain thương hiệu: 11 mục, lưu /api/brand, AI đọc mỗi lượt chat
 public/chat.html         Màn 4 · Trợ lý AI: khung chat ra lệnh, AI dùng công cụ Composio (chọn AI, khoá API, gợi ý nhanh)
 public/dang-nhap.html    Đăng nhập bằng Google (nút Google Identity Services, chế độ popup); chưa bật thì cho vào thẳng
@@ -80,6 +81,11 @@ src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoà
 src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của khách): KV jobs:<uid> (≤150), trạng thái cho_lam → cho_duyet → da_duyet → da_dang
                           (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM, CREWZY_NOP_KET_QUA (tự lưu ảnh/video về /api/media); MCP_PROMPTS
 src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
+src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (8 phòng, có Nghiên cứu đối thủ), WORKFLOWS (18 quy trình: bước,
+                          app/nen_co/mcp, lịch gợi ý, loại kết quả), missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm quy trình CHỈ ở đây
+src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; cron */15 (wrangler triggers) → tạo phiếu việc; che_do 'crewzy' thì
+                          runAgent chế độ app tự làm (≤3 lượt mỗi lần cron, tính vào trần lượt của app). scripts/schedtest.mjs
+src/routes/workflows.js   GET /api/workflows · GET/POST /api/schedules (tao | bat | tat | xoa)
 src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-klein-4b → dự phòng flux-1-schnell, lưu KV img:<id> 90 ngày,
                           phục vụ /api/img/<id>.jpg công khai, 20 ảnh/ngày/khách) và CREWZY_BRAIN; dùng chung cho chat và MCP
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
@@ -189,6 +195,17 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   (curl /api/skill.md vào ~/.claude/skills/crewzy/ hoặc ~/.codex/skills/crewzy/). Trợ lý trong app cũng nộp kết quả vào phiếu việc.
   Menu "Việc chờ duyệt" hiện số phiếu cho_duyet thật (layout.js → /api/jobs). Tự chạy khi khách vắng: khách đặt lịch trong AI của họ
   (scheduled task của Claude/ChatGPT, cron `claude -p "/mcp__crewzy__lam_viec_crewzy"`) — Crewzy không gọi được AI của khách (không có sampling).
+- Quy trình chuẩn + phòng Nghiên cứu đối thủ (22/11, Giang: "tham khảo n8n/Make, thêm quy trình, skill cho AI của khách, phòng đối thủ soi
+  Reels/website, hẹn giờ, app liên kết chặt"): 18 quy trình học từ mẫu n8n/Make dùng nhiều nhất (nội dung + đăng đa kênh, lead → CRM →
+  chăm sóc, soạn trả lời bình luận + chuyển câu nhạy cảm, email tự trả lời từ kiến thức, theo dõi đối thủ, báo cáo định kỳ).
+  AI lấy bước bằng CREWZY_QUY_TRINH (không id → danh sách + app thiếu; có id → bước, quy tắc, app thiếu) — có trong chat, link MCP;
+  mỗi quy trình là MCP prompt qt_<mã> (Claude Code: /mcp__crewzy__qt_<mã>); SKILL.md liệt kê đủ quy trình + quy tắc.
+  Phiếu có trường quy_trinh; loai 'brain': khách Duyệt → Crewzy tự lưu Brain thương hiệu (cleanBrand, giữ mục cũ).
+  Soi đối thủ (đã thử 22/11): Apify MCP https://mcp.apify.com nhận Crewzy (CIMD → console.apify.com), Firecrawl https://mcp.firecrawl.dev/mcp
+  không cần đăng nhập (3 công cụ scrape/search/parse). vidIQ (https://mcp.vidiq.com/mcp) và Canva chặn redirect_uri lạ ("redirect_uri is not
+  allowed") → vidIQ chỉ dùng trong Claude/ChatGPT của khách; quy trình ghi "có vidIQ thì dùng thêm". Composio có toolkit vidiq_mcp (API key) — chưa thử.
+  Văn phòng có thêm phòng Nghiên cứu đối thủ (office.js), nút "Quy trình của phòng" → quy-trinh.html?phong=<id> (ROOM_DEP).
+  runAgent (src/routes/chat.js) tách riêng để cron dùng lại; takeAppQuota export.
 - Bấm nút Bộ não AI ở Văn phòng: khung chi tiết có 4 nút Claude/ChatGPT/Gemini/Grok → ket-noi.html?tab=ai&ai=<x> (làm nổi hướng dẫn).
   Logo AI: logos.composio.dev/api/claude|openai|gemini|grok (anthropic, chatgpt, xai trả ảnh mặc định).
 - Đăng nhập AI (đã nghiên cứu 22/11/2026):

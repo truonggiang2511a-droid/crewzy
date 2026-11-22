@@ -34,6 +34,7 @@ async function buildInstructions(env, uid) {
     'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. Cần ảnh mới thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ).',
     'Luôn trả lời bằng tiếng Việt. Trước khi đăng bài, gửi tin/email cho người khác, xoá dữ liệu hay chi tiền quảng cáo: tóm tắt và hỏi người dùng đồng ý.',
     'Không bịa giá, số liệu; không đưa số điện thoại khách lên bài công khai. Làm ra kết quả thật (bài đăng, ảnh, báo cáo), không đẩy việc về cho người dùng.',
+    'Quy trình chuẩn: khi chạy một quy trình (hoặc phiếu việc có quy_trinh), gọi CREWZY_QUY_TRINH với id để lấy đúng các bước, kiểm tra app thiếu và làm đúng thứ tự. Lệnh nhanh: prompts qt_<mã>.',
     'Phiếu việc: khách giao việc trong Crewzy → xem bằng CREWZY_VIEC_CAN_LAM. Làm xong MỌI sản phẩm (bài viết, báo cáo, kịch bản, danh sách khách, ảnh/video, file bạn tạo bằng skill của mình) thì nộp về Crewzy bằng CREWZY_NOP_KET_QUA (ghi nguoi_lam là tên của bạn) để khách duyệt, đăng và xem báo cáo. Việc khách đã duyệt (da_duyet): đăng/gửi rồi nộp lại trạng thái da_dang kèm link. Khách bảo "đăng luôn" ngay trong cuộc trò chuyện thì đó là đồng ý: đăng ngay rồi nộp phiếu trạng thái da_dang kèm link (không cần chờ duyệt trong Crewzy).',
     '# Brain thương hiệu\n' + (brandText(brand) || 'Chưa điền (người dùng điền ở trang Brain thương hiệu của Crewzy). Hỏi khi cần.'),
     '# App đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa có. Người dùng kết nối ở trang Kết nối của Crewzy.'),
@@ -86,8 +87,10 @@ export default async (request, env) => {
 
   // Công cụ của Crewzy: tự trả lời, không gửi Composio.
   if (rpc && rpc.method === 'tools/call' && rpc.params && isCrewzyTool(rpc.params.name)) {
-    const names = rpc.params.name === 'CREWZY_BRAIN' ? (await connectedApps(env, uid)).map((s) => (appBySlug(s) || { name: s }).name) : [];
-    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names });
+    const needApps = rpc.params.name === 'CREWZY_BRAIN' || rpc.params.name === 'CREWZY_QUY_TRINH';
+    const slugs = needApps ? await connectedApps(env, uid) : [];
+    const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
+    const out = await runCrewzyTool(env, { uid, origin: reqUrl.origin, name: rpc.params.name, args: rpc.params.arguments || {}, connectedNames: names, connected: slugs });
     const text = out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data);
     const result = { content: [{ type: 'text', text }], isError: !!out.error };
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });

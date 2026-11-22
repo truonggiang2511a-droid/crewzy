@@ -50,6 +50,8 @@ Quy tắc bắt buộc:
 - Làm ra kết quả thật, không đẩy việc về cho người dùng: khi được nhờ làm ảnh thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ),
   hiện ảnh bằng cú pháp ![ảnh](link); khi người dùng muốn chỉnh trong Canva thì tải ảnh đó lên Canva (CANVA_CREATE_URL_ASSET_UPLOAD_JOB)
   rồi tạo design từ ảnh (CANVA_POST_DESIGNS) và gửi link chỉnh sửa. Đăng bài có ảnh thì dùng đúng link ảnh đã tạo.
+- Người dùng nhờ "chạy quy trình" hoặc việc khớp một quy trình chuẩn (lịch nội dung, soi đối thủ, báo cáo tuần, trả lời bình luận…):
+  gọi CREWZY_QUY_TRINH để lấy đúng các bước, kiểm tra app thiếu, làm đúng thứ tự, nộp kết quả kèm quy_trinh.
 - Làm xong một sản phẩm (bài viết, kịch bản, báo cáo, danh sách, ảnh/video) thì nộp về Việc chờ duyệt bằng CREWZY_NOP_KET_QUA (nguoi_lam "Trợ lý Crewzy")
   để khách duyệt và lưu lại; khách bảo "làm việc được giao" thì gọi CREWZY_VIEC_CAN_LAM trước.
 - Chỉ nói "không làm được" khi công cụ thật sự báo lỗi; nói rõ lỗi gì và cách khắc phục.
@@ -74,7 +76,7 @@ async function buildSystem(env, composio, uid) {
   parts.push('# Ứng dụng đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa kết nối ứng dụng nào. Hướng dẫn người dùng vào trang Kết nối (ket-noi.html).'));
   const skills = skillText(connected);
   if (skills) parts.push('# Skill từng ứng dụng\n' + skills);
-  return { system: parts.join('\n\n'), names };
+  return { system: parts.join('\n\n'), names, slugs: connected };
 }
 
 const encoder = new TextEncoder();
@@ -102,6 +104,7 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_VIDEO') return 'Đang làm video (1–3 phút)';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
   if (name === 'CREWZY_VIEC_CAN_LAM') return 'Xem việc Crewzy đang giao';
+  if (name === 'CREWZY_QUY_TRINH') return input && input.id ? 'Đọc các bước quy trình ' + input.id : 'Xem thư viện quy trình';
   if (name === 'CREWZY_NOP_KET_QUA') return 'Nộp kết quả vào Việc chờ duyệt';
   if (name === 'CREWZY_CHO') return 'Đang chờ kết quả (' + Math.round(Number((input && input.giay) || 15)) + ' giây)';
   if (name === 'COMPOSIO_SEARCH_TOOLS') return 'Tìm công cụ phù hợp';
@@ -135,7 +138,7 @@ function cleanMessages(raw) {
 
 // Đếm lượt chế độ credit của app trong KV (không tuyệt đối chính xác khi gửi cùng lúc, đủ để chặn lạm dụng).
 // Trả về null nếu còn lượt, hoặc câu báo lỗi.
-async function takeAppQuota(env, uid) {
+export async function takeAppQuota(env, uid) {
   const day = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); // theo giờ Việt Nam
   const userKey = `usage:${day}:${uid}`;
   const allKey = `usage:${day}:all`;
@@ -203,6 +206,75 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
   emit({ type: 'text', text: 'Em đã chạy nhiều bước, anh/chị nhắn "tiếp tục" để em làm tiếp nhé.' });
 }
 
+
+// Chạy một lượt AI có công cụ (Composio + Crewzy + MCP ngoài). Dùng cho khung chat và cho hẹn giờ tự chạy (cron).
+// emit(event): {type:'tool'|'text'|'image'|'video'|'audio', ...}. Lỗi thì ném ra cho nơi gọi xử lý.
+export async function runAgent({ env, uid, origin, mode, key, orModel, messages, emit, timeBudgetMs = TIME_BUDGET_MS }) {
+  const composioKey = getApiKey(env);
+  const deadline = Date.now() + timeBudgetMs;
+    const composio = new Composio({ apiKey: composioKey });
+    const session = await composio.create(userIdFor(uid), {
+      toolkits: TOOLKITS,
+      multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+    });
+    const [composioTools, built, ext] = await Promise.all([
+      session.tools(), buildSystem(env, composio, uid),
+      loadExternalTools(env, uid).catch((e) => { console.error('external mcp failed', e && e.message); return { defs: [], names: [], failed: [] }; }),
+    ]);
+    let tools = [...composioTools, ...CREWZY_TOOL_DEFS, VIDEO_TOOL, ...ext.defs];
+    if (mode === 'gemini') tools = tools.map(geminiSafeTool);
+    let system = built.system;
+    if (ext.names.length || ext.failed.length) {
+      system += '\n\n# Máy chủ MCP khác khách đã nối\n'
+        + (ext.names.length ? 'Đang dùng được: ' + ext.names.join(', ') + '. Công cụ của chúng có tiền tố m…_ và ghi [tên máy chủ] ở đầu mô tả; gọi thẳng, không cần COMPOSIO_SEARCH_TOOLS.' : '')
+        + (ext.failed.length ? '\nTạm không nối được: ' + ext.failed.join(', ') + ' (nhắc khách vào Kết nối → MCP khác để kiểm tra).' : '');
+    }
+    const seenMedia = new Set();
+    const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
+        // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
+    const exec = async (name, args) => {
+      if (isCrewzyTool(name)) {
+        const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names, connected: built.slugs });
+        if (out && out.image) emit({ type: 'image', url: out.image });
+        if (out && out.video) emit({ type: 'video', url: out.video });
+        return out;
+      }
+      if (ext.run) {
+        const res = await ext.run(name, args);
+        if (res) {
+          // Ảnh/video máy chủ MCP trả về (dạng dữ liệu hoặc link): lưu thành link cố định của Crewzy, hiện trong chat.
+          const media = res.raw ? await collectMedia(env, uid, origin, res.raw, seenMedia) : [];
+          delete res.raw;
+          delete res.images;
+          for (const m of media) emit({ type: m.kind === 'video' ? 'video' : m.kind === 'audio' ? 'audio' : 'image', url: m.link });
+          if (media.length) {
+            res.media_crewzy = media.map((m) => ({ loai: m.kind, link: m.link, ...(m.goc ? { ghi_chu: 'File lớn hơn 24MB, đây là link gốc của nhà cung cấp, có thể hết hạn' } : {}) }));
+          }
+          return res;
+        }
+      }
+      try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
+    };
+    const model = mode === 'openrouter' ? orModel : MODELS[mode];
+    if (mode === 'openrouter') {
+      const client = new OpenAI({
+        apiKey: key.trim(),
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: { 'HTTP-Referer': origin, 'X-Title': APP_NAME },
+      });
+      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+    } else if (OPENAI_COMPAT[mode]) {
+      const client = new OpenAI({ apiKey: key.trim(), baseURL: OPENAI_COMPAT[mode] });
+      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
+    } else if (mode === 'openai') {
+      const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
+      await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
+    } else {
+      const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
+      await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system });
+    }
+}
+
 export default async (req, env) => {
   if (req.method === 'GET') {
     // Cho giao diện biết chế độ credit của app có bật không.
@@ -237,70 +309,8 @@ export default async (req, env) => {
   const stream = new ReadableStream({
     async start(controller) {
       const emit = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
-      const deadline = Date.now() + TIME_BUDGET_MS;
       try {
-        const composio = new Composio({ apiKey: composioKey });
-        const session = await composio.create(userIdFor(uid), {
-          toolkits: TOOLKITS,
-          multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
-        });
-        const [composioTools, built, ext] = await Promise.all([
-          session.tools(), buildSystem(env, composio, uid),
-          loadExternalTools(env, uid).catch((e) => { console.error('external mcp failed', e && e.message); return { defs: [], names: [], failed: [] }; }),
-        ]);
-        let tools = [...composioTools, ...CREWZY_TOOL_DEFS, VIDEO_TOOL, ...ext.defs];
-        if (mode === 'gemini') tools = tools.map(geminiSafeTool);
-        let system = built.system;
-        if (ext.names.length || ext.failed.length) {
-          system += '\n\n# Máy chủ MCP khác khách đã nối\n'
-            + (ext.names.length ? 'Đang dùng được: ' + ext.names.join(', ') + '. Công cụ của chúng có tiền tố m…_ và ghi [tên máy chủ] ở đầu mô tả; gọi thẳng, không cần COMPOSIO_SEARCH_TOOLS.' : '')
-            + (ext.failed.length ? '\nTạm không nối được: ' + ext.failed.join(', ') + ' (nhắc khách vào Kết nối → MCP khác để kiểm tra).' : '');
-        }
-        const seenMedia = new Set();
-        const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
-        const origin = new URL(req.url).origin;
-        // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
-        const exec = async (name, args) => {
-          if (isCrewzyTool(name)) {
-            const out = await runCrewzyTool(env, { uid, origin, name, args, connectedNames: built.names });
-            if (out && out.image) emit({ type: 'image', url: out.image });
-            if (out && out.video) emit({ type: 'video', url: out.video });
-            return out;
-          }
-          if (ext.run) {
-            const res = await ext.run(name, args);
-            if (res) {
-              // Ảnh/video máy chủ MCP trả về (dạng dữ liệu hoặc link): lưu thành link cố định của Crewzy, hiện trong chat.
-              const media = res.raw ? await collectMedia(env, uid, origin, res.raw, seenMedia) : [];
-              delete res.raw;
-              delete res.images;
-              for (const m of media) emit({ type: m.kind === 'video' ? 'video' : m.kind === 'audio' ? 'audio' : 'image', url: m.link });
-              if (media.length) {
-                res.media_crewzy = media.map((m) => ({ loai: m.kind, link: m.link, ...(m.goc ? { ghi_chu: 'File lớn hơn 24MB, đây là link gốc của nhà cung cấp, có thể hết hạn' } : {}) }));
-              }
-              return res;
-            }
-          }
-          try { return await session.execute(name, args); } catch (e) { return { error: safeDetail(e) }; }
-        };
-        const model = mode === 'openrouter' ? orModel : MODELS[mode];
-        if (mode === 'openrouter') {
-          const client = new OpenAI({
-            apiKey: key.trim(),
-            baseURL: 'https://openrouter.ai/api/v1',
-            defaultHeaders: { 'HTTP-Referer': new URL(req.url).origin, 'X-Title': APP_NAME },
-          });
-          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
-        } else if (OPENAI_COMPAT[mode]) {
-          const client = new OpenAI({ apiKey: key.trim(), baseURL: OPENAI_COMPAT[mode] });
-          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system, tokenParam: 'max_tokens' });
-        } else if (mode === 'openai') {
-          const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-          await runOpenAI({ client, model, tools, exec, label, messages, emit, deadline, system });
-        } else {
-          const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
-          await runClaude({ client, model, tools, exec, label, messages, emit, deadline, system });
-        }
+        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, messages, emit, timeBudgetMs: TIME_BUDGET_MS });
         emit({ type: 'done' });
       } catch (err) {
         console.error('chat failed', mode, err && err.message);

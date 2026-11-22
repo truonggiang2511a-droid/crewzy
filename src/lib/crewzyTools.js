@@ -5,6 +5,8 @@
 import { getBrand, brandText } from './brand.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl } from './media.js';
+import { WORKFLOWS, DEPARTMENTS, workflowById, missingFor, WORKFLOW_RULES } from './workflows.js';
+import { listServers } from './mcpServers.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -124,6 +126,41 @@ export async function createVideo(env, uid, origin, args) {
   };
 }
 
+// Quy trình chuẩn (src/lib/workflows.js): AI lấy đúng các bước + kiểm tra app thiếu trước khi chạy.
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_QUY_TRINH',
+    description: 'Thư viện quy trình chuẩn của Crewzy (thương hiệu, nghiên cứu đối thủ, nội dung & video, quảng cáo, bán hàng, chăm sóc khách, báo cáo & chiến lược, việc hằng ngày). Không truyền id → danh sách quy trình kèm app còn thiếu. Truyền id → các bước chi tiết, quy tắc bắt buộc và app thiếu. LUÔN gọi trước khi chạy một quy trình và làm đúng thứ tự các bước.',
+    parameters: { type: 'object', properties: { id: { type: 'string', description: 'Mã quy trình, ví dụ lich_noi_dung_tuan, doi_thu_reels, bao_cao_tuan.' } } },
+  },
+});
+
+async function workflowTool(env, uid, args, connected) {
+  const urls = (await listServers(env, uid).catch(() => [])).map((s) => s.url);
+  const depName = Object.fromEntries(DEPARTMENTS.map((d) => [d.id, d.name]));
+  const id = args && args.id;
+  if (!id) {
+    return { data: { quy_trinh: WORKFLOWS.map((w) => {
+      const miss = missingFor(w, connected, urls);
+      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, thieu_app: miss.app, thieu_mcp: miss.mcp };
+    }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết.' } };
+  }
+  const w = workflowById(id);
+  if (!w) return { error: 'Không có quy trình ' + id + '. Gọi CREWZY_QUY_TRINH không kèm id để xem danh sách.' };
+  const miss = missingFor(w, connected, urls);
+  return { data: {
+    id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, can_hoi_khach: w.hoi || undefined,
+    app_bat_buoc: w.app, app_nen_co: w.nen_co, mcp_can_noi: w.mcp, loai_ket_qua: w.loai,
+    thieu: miss, san_sang: !miss.app.length,
+    cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${b}`),
+    quy_tac: WORKFLOW_RULES,
+    huong_dan_noi: miss.app.length || miss.mcp.length
+      ? 'Còn thiếu kết nối. App: Crewzy → Kết nối → Ứng dụng. MCP ngoài (apify: https://mcp.apify.com, firecrawl: https://mcp.firecrawl.dev/mcp, openart: https://mcp.openart.ai/mcp): Kết nối → MCP khác. vidIQ chỉ dùng được nếu AI của khách đã tự thêm connector vidIQ.'
+      : undefined,
+  } };
+}
+
 // Phiếu việc: AI của khách nhận việc và nộp kết quả về Crewzy (src/lib/jobs.js).
 CREWZY_TOOL_DEFS.push(...JOB_TOOL_DEFS);
 
@@ -197,11 +234,12 @@ export async function readBrain(env, uid, connectedNames) {
   return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', app_da_ket_noi: connectedNames || [] } };
 }
 
-export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames }) {
+export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected }) {
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
+    if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || []);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca);
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_CHO') {

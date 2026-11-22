@@ -17,9 +17,33 @@
 <div style="min-height: 100vh; display: flex; flex-wrap: wrap">
 <nav aria-label="Điều hướng chính" data-sidebar></nav>
 <main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 22px; max-width: 1180px">
-<div class="page-head"><h1>Quy trình</h1><p>Mẫu việc làm sẵn cho từng phòng ban. Kết nối đủ app, bấm Chạy là Trợ lý AI làm theo, tới bước cần duyệt thì hỏi bạn.</p></div>
-<p data-brand-warn hidden style="margin:0;padding:12px 14px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:14px;line-height:1.5">Bạn chưa điền <a href="thuong-hieu.html">Brain thương hiệu</a>. Điền trước để AI viết đúng giọng, đúng sản phẩm, không bịa giá.</p>
+<div class="page-head" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+<div><h1>Quy trình</h1><p>Quy trình chuẩn cho từng phòng: nối đủ app, bấm Chạy hoặc hẹn giờ. AI làm đúng từng bước, kết quả về Việc chờ duyệt, việc đăng hay gửi luôn chờ bạn duyệt.</p></div>
+<a class="btn btn-ghost" href="cho-duyet.html">Xem kết quả</a>
+</div>
+<p data-brand-warn hidden style="margin:0;padding:12px 14px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:14px;line-height:1.5">Bạn chưa điền <a href="thuong-hieu.html">Brain thương hiệu</a>. Chạy quy trình <b>Dựng Brain thương hiệu từ website</b> ở phòng Thương hiệu để AI tự điền, hoặc điền tay.</p>
+
+<section class="card" data-sched-box hidden style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:17px;font-weight:600">Lịch đang hẹn</h2>
+<div data-sched-list style="display:flex;flex-direction:column;gap:8px"></div>
+<p class="muted" style="margin:0;font-size:12px">Crewzy kiểm tra lịch mỗi 15 phút (giờ Việt Nam). Tới giờ: tạo phiếu việc cho AI của bạn nhận, hoặc Trợ lý Crewzy tự làm bằng credit của app.</p>
+</section>
+
+<div class="seg" role="group" aria-label="Lọc theo phòng" data-deps style="align-self:flex-start;flex-wrap:wrap"></div>
+<p data-msg role="status" style="margin:0;display:none;padding:10px 12px;border-radius:6px;font-size:14px"></p>
 <div data-flows style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px"><p class="muted">Đang tải…</p></div>
+
+<dialog data-sched-dialog style="border:0;border-radius:10px;padding:0;max-width:420px;width:92vw">
+<form method="dialog" data-sched-form style="padding:18px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:17px;font-weight:600" data-sched-title>Hẹn giờ chạy</h2>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ngày chạy<select class="field" name="ngay"></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Giờ (giờ Việt Nam)<input class="field" name="gio" type="time" value="08:00" required></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ai làm<select class="field" name="che_do"></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Ghi chú cho AI (không bắt buộc)<input class="field" name="ghi_chu" maxlength="500" placeholder="Ví dụ: đối thủ là @abc, @xyz"></label>
+<p data-sched-msg role="status" style="margin:0;display:none;font-size:13px;color:#8A2A12"></p>
+<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost" data-sched-cancel>Huỷ</button><button type="submit" class="btn btn-primary" value="ok">Lưu lịch</button></div>
+</form>
+</dialog>
 </main>
 </div>
 <script src="assets/quy-trinh.js"></script>

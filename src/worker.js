@@ -11,13 +11,17 @@ import status from './routes/status.js';
 import mcpGateway from './routes/mcpGateway.js';
 import mcpServers from './routes/mcpServers.js';
 import jobs from './routes/jobs.js';
+import workflows from './routes/workflows.js';
+import { runAgent, takeAppQuota } from './routes/chat.js';
+import { runDueSchedules } from './lib/schedules.js';
+import { submitResult } from './lib/jobs.js';
 import { serveImage } from './lib/crewzyTools.js';
 import { serveMedia } from './lib/media.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
+  '/api/mcp-link': mcpLink, '/api/jobs': jobs, '/api/workflows': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status,
 };
 
 export default {
@@ -37,5 +41,25 @@ export default {
       console.error('worker error', pathname, err && err.stack);
       return Response.json({ error: 'Máy chủ gặp lỗi, thử lại sau ít phút.' }, { status: 500 });
     }
+  },
+
+  // Cron mỗi 15 phút (wrangler.jsonc → triggers.crons): chạy các quy trình đã hẹn giờ.
+  async scheduled(controller, env, ctx) {
+    const origin = env.PUBLIC_ORIGIN || 'https://crewzy.truonggiang2511a.workers.dev';
+    const runAuto = async (uid, job, prompt) => {
+      if (!env.ANTHROPIC_API_KEY) {
+        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: máy chủ chưa bật credit của Crewzy. Hãy giao cho AI của bạn hoặc bấm Làm ngay bằng Trợ lý Crewzy.', trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
+        return;
+      }
+      const over = await takeAppQuota(env, uid).catch(() => null);
+      if (over) {
+        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: ' + over, trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
+        return;
+      }
+      const texts = [];
+      await runAgent({ env, uid, origin, mode: 'app', messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000 });
+      console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
+    };
+    ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
 };

@@ -4,6 +4,8 @@
 // KV `jobs:<uid>` = mảng phiếu (mới nhất trước, tối đa 150). Chưa chống ghi đè khi 2 nơi ghi cùng lúc (đủ cho giai đoạn thử).
 import { kvGetJson, kvPutJson } from './common.js';
 import { rehostUrl } from './media.js';
+import { getBrand, putBrand, cleanBrand, BRAND_FIELDS } from './brand.js';
+import { WORKFLOWS, workflowById, workflowPrompt } from './workflows.js';
 
 export const STATUSES = {
   cho_lam: 'Chờ AI làm',
@@ -14,7 +16,7 @@ export const STATUSES = {
   xong: 'Xong',
   tu_choi: 'Đã từ chối',
 };
-export const KINDS = { bai_dang: 'Bài đăng', bao_cao: 'Báo cáo', noi_dung: 'Nội dung', cham_soc: 'Chăm sóc khách', khac: 'Việc khác' };
+export const KINDS = { bai_dang: 'Bài đăng', bao_cao: 'Báo cáo', noi_dung: 'Nội dung', cham_soc: 'Chăm sóc khách', brain: 'Brain thương hiệu', khac: 'Việc khác' };
 const MAX_JOBS = 150;
 const key = (uid) => 'jobs:' + uid;
 
@@ -29,10 +31,12 @@ function cleanList(v, n, len) {
   return arr.map((x) => clip(typeof x === 'string' ? x : JSON.stringify(x), len)).filter(Boolean).slice(0, n);
 }
 
-export async function createJob(env, uid, { tieu_de, yeu_cau, loai, nguon }) {
+export async function createJob(env, uid, { tieu_de, yeu_cau, loai, nguon, quy_trinh }) {
   const jobs = await listJobs(env, uid);
+  const w = workflowById(quy_trinh);
   const job = {
-    id: newId(), tieu_de: clip(tieu_de, 120) || 'Việc mới', yeu_cau: clip(yeu_cau, 4000), loai: KINDS[loai] ? loai : 'khac',
+    id: newId(), tieu_de: clip(tieu_de, 120) || (w ? w.ten : 'Việc mới'), yeu_cau: clip(yeu_cau || (w ? workflowPrompt(w) : ''), 4000),
+    loai: KINDS[loai] ? loai : w ? w.loai : 'khac', quy_trinh: w ? w.id : undefined,
     trang_thai: 'cho_lam', ket_qua: null, nguoi_lam: '', nguon: clip(nguon || 'khach', 40),
     tao_luc: now(), cap_nhat: now(), lich_su: [{ luc: now(), viec: 'Tạo phiếu việc' }],
   };
@@ -49,6 +53,11 @@ export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu
   if (action === 'xoa') { jobs.splice(i, 1); await saveJobs(env, uid, jobs); return { ok: true }; }
   const j = jobs[i];
   const map = { duyet: 'da_duyet', tu_choi: 'tu_choi', lam_lai: 'cho_lam', xong: 'xong', da_dang: 'da_dang' };
+  if (action === 'duyet' && j.loai === 'brain' && j.ket_qua && j.ket_qua.brain) {
+    // Duyệt Brain thương hiệu AI đề xuất → lưu luôn (chỉ ghi đè mục AI có điền, giữ mục khách đã có).
+    const current = (await getBrand(env, uid)) || {};
+    await putBrand(env, uid, { ...current, ...cleanBrand(j.ket_qua.brain) });
+  }
   if (action === 'sua' && j.ket_qua) j.ket_qua.noi_dung = clip(noi_dung, 20000);
   else if (map[action]) j.trang_thai = map[action];
   else return { error: 'Thao tác không hợp lệ.' };
@@ -86,6 +95,8 @@ export const JOB_TOOL_DEFS = [
           lien_ket: { type: 'array', items: { type: 'string' }, description: 'Link liên quan: bài đã đăng, Google Sheet/Docs, thiết kế Canva…' },
           trang_thai: { type: 'string', enum: ['cho_duyet', 'da_dang', 'xong'], description: 'cho_duyet (mặc định, chờ khách duyệt), da_dang (đã đăng/gửi xong), xong (việc nội bộ không cần duyệt).' },
           nguoi_lam: { type: 'string', description: 'Tên AI đang làm, ví dụ "Claude Code", "Codex", "ChatGPT".' },
+          quy_trinh: { type: 'string', description: 'Mã quy trình Crewzy đang chạy (lấy từ CREWZY_QUY_TRINH), nếu có.' },
+          brain: { type: 'object', description: 'Chỉ dùng với loai "brain": các mục Brain đề xuất (name, industry, products, customers, voice, dos, donts, offers, faq, links, hashtags). Khách duyệt là Crewzy lưu.', properties: Object.fromEntries(Object.keys(BRAND_FIELDS).map((k) => [k, { type: 'string' }])) },
           ghi_chu: { type: 'string', description: 'Ghi chú cho khách (điều cần kiểm tra, số liệu còn thiếu…).' },
         },
         required: ['tieu_de', 'noi_dung'],
@@ -100,7 +111,7 @@ export async function jobsForAi(env, uid, all) {
   return {
     data: {
       viec: want.map((j) => ({
-        id: j.id, tieu_de: j.tieu_de, loai: j.loai, trang_thai: j.trang_thai, mo_ta_trang_thai: STATUSES[j.trang_thai],
+        id: j.id, tieu_de: j.tieu_de, loai: j.loai, quy_trinh: j.quy_trinh || undefined, trang_thai: j.trang_thai, mo_ta_trang_thai: STATUSES[j.trang_thai],
         yeu_cau: j.yeu_cau, ghi_chu_cua_khach: j.ghi_chu_khach || undefined,
         ket_qua_da_nop: j.trang_thai === 'da_duyet' && j.ket_qua ? j.ket_qua : undefined,
       })),
@@ -131,12 +142,14 @@ export async function submitResult(env, uid, origin, args) {
   const prev = job.ket_qua || {};
   job.tieu_de = clip(a.tieu_de, 120) || job.tieu_de || 'Kết quả';
   if (KINDS[a.loai]) job.loai = a.loai;
+  if (a.quy_trinh && workflowById(a.quy_trinh)) job.quy_trinh = a.quy_trinh;
   job.ket_qua = {
     noi_dung: a.noi_dung ? clip(a.noi_dung, 20000) : prev.noi_dung || '',
     media: media.length ? media : prev.media || [],
     kenh: a.kenh ? cleanList(a.kenh, 10, 120) : prev.kenh || [],
     lien_ket: [...new Set([...(prev.lien_ket || []), ...cleanList(a.lien_ket, 10, 1000)])].slice(0, 15),
     ghi_chu: a.ghi_chu ? clip(a.ghi_chu, 2000) : prev.ghi_chu || '',
+    brain: a.brain && typeof a.brain === 'object' ? cleanBrand(a.brain) : prev.brain,
   };
   job.trang_thai = status;
   job.nguoi_lam = clip(a.nguoi_lam, 40) || job.nguoi_lam || 'AI';
@@ -162,3 +175,8 @@ export const MCP_PROMPTS = [
   { name: 'video_quang_cao', title: 'Video quảng cáo ngắn', description: 'Làm video dọc 9:16 bằng app tạo video đã nối (OpenArt…), nộp video + caption về Crewzy.',
     text: 'Dùng app tạo video đã kết nối (ví dụ OpenArt) làm 1 video dọc 9:16 khoảng 15 giây giới thiệu sản phẩm chính theo Brain thương hiệu. Chờ tới khi video xong, viết caption kèm lời mời nhắn tin, rồi nộp về Crewzy bằng CREWZY_NOP_KET_QUA với link video trong media.' },
 ];
+
+// Mỗi quy trình chuẩn cũng là một lệnh nhanh: Claude Code gõ /mcp__crewzy__qt_<mã>.
+for (const w of WORKFLOWS) {
+  MCP_PROMPTS.push({ name: 'qt_' + w.id, title: w.ten, description: w.mo_ta.slice(0, 200), text: workflowPrompt(w) });
+}

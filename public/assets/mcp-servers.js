@@ -5,6 +5,8 @@
   // Canva KHÔNG có ở đây: MCP của Canva chỉ nhận Claude/ChatGPT/localhost → khách dùng Canva ở tab Ứng dụng (Composio).
   var PICKS = [
     { name: 'OpenArt', url: 'https://mcp.openart.ai/mcp', logo: '', letter: 'O', note: 'Ảnh + video AI' },
+    { name: 'Apify', url: 'https://mcp.apify.com', logo: '', letter: 'A', note: 'Soi Reels, TikTok, quảng cáo đối thủ' },
+    { name: 'Firecrawl', url: 'https://mcp.firecrawl.dev/mcp', logo: '', letter: 'F', note: 'Đọc website đối thủ' },
     { name: 'Notion', url: 'https://mcp.notion.com/mcp', logo: 'notion', note: 'Đăng nhập Notion' },
     { name: 'Linear', url: 'https://mcp.linear.app/mcp', logo: 'linear', note: 'Đăng nhập Linear' },
     { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', logo: 'github', note: 'Không cần đăng nhập' },

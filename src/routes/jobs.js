@@ -5,6 +5,7 @@
 // GET  /api/skill.md                      → file SKILL.md cho Claude Code / Codex (cách làm việc với Crewzy)
 import { resolveUid, APP_NAME } from '../lib/common.js';
 import { listJobs, createJob, updateJobByOwner, STATUSES, KINDS, MCP_PROMPTS } from '../lib/jobs.js';
+import { WORKFLOWS, DEPARTMENTS, WORKFLOW_RULES } from '../lib/workflows.js';
 
 function skillMd(origin) {
   return `---
@@ -34,8 +35,18 @@ Bạn là bộ não: nhận việc, làm bằng công cụ MCP "crewzy" cùng c�
 - Không đưa số điện thoại hay thông tin cá nhân của khách lên bài công khai.
 - Mỗi trang/kênh một bản nội dung khác nhau khi đăng nhiều nơi.
 
+## Quy trình chuẩn (gọi \`CREWZY_QUY_TRINH\` với id để lấy đúng các bước và app còn thiếu)
+${DEPARTMENTS.map((d) => `### ${d.name}\n` + WORKFLOWS.filter((w) => w.phong === d.id).map((w) => `- \`${w.id}\` — ${w.ten} (gợi ý: ${w.lich})`).join('\n')).join('\n')}
+
+Quy tắc khi chạy quy trình:
+${WORKFLOW_RULES.map((r) => '- ' + r).join('\n')}
+
+Nghiên cứu đối thủ cần MCP ngoài nối trong Crewzy (Kết nối → MCP khác): Apify (Reels/TikTok, quảng cáo Facebook), Firecrawl (website).
+Nếu bạn (AI) đã có connector vidIQ thì dùng thêm vidIQ để xem từng cảnh video của đối thủ.
+
 ## Lệnh nhanh (MCP prompts)
-${MCP_PROMPTS.map((p) => `- \`${p.name}\` — ${p.description}`).join('\n')}
+- \`lam_viec_crewzy\` — nhận và làm các việc Crewzy giao.
+- \`qt_<mã quy trình>\` — chạy một quy trình chuẩn, ví dụ \`qt_lich_noi_dung_tuan\`, \`qt_doi_thu_reels\`, \`qt_bao_cao_tuan\`.
 
 Xem và duyệt kết quả: ${origin}/cho-duyet.html
 `;
@@ -60,8 +71,8 @@ export default async (req, env) => {
     return Response.json({ jobs, counts, statuses: STATUSES, kinds: KINDS }, { headers: { 'cache-control': 'no-store' } });
   }
   if (body.action === 'tao') {
-    if (!String(body.yeu_cau || '').trim()) return Response.json({ error: 'Hãy ghi việc cần làm.' }, { status: 400 });
-    return Response.json({ job: await createJob(env, uid, { tieu_de: body.tieu_de, yeu_cau: body.yeu_cau, loai: body.loai, nguon: 'khach' }) });
+    if (!String(body.yeu_cau || '').trim() && !body.quy_trinh) return Response.json({ error: 'Hãy ghi việc cần làm.' }, { status: 400 });
+    return Response.json({ job: await createJob(env, uid, { tieu_de: body.tieu_de, yeu_cau: body.yeu_cau, loai: body.loai, nguon: 'khach', quy_trinh: body.quy_trinh }) });
   }
   const out = await updateJobByOwner(env, uid, String(body.id || ''), body);
   if (out.error) return Response.json(out, { status: 400 });

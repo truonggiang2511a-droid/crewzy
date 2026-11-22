@@ -19,5 +19,7 @@
   // Khoá bí mật đặt trong dashboard (Worker → Settings → Variables and Secrets), KHÔNG ghi ở đây:
   // COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET, GOOGLE_CLIENT_ID. keep_vars giữ biến đặt trên dashboard khi deploy.
   "keep_vars": true,
+  // Hẹn giờ chạy quy trình (src/lib/schedules.js): mỗi 15 phút
+  "triggers": { "crons": ["*/15 * * * *"] },
   "observability": { "enabled": true }
 }
