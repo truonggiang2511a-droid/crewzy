@@ -11,25 +11,65 @@ import { listServers } from './mcpServers.js';
 
 const DAY = 86400 * 1000;
 
-// Mô tả gói: mọi gói đều nối KHÔNG GIỚI HẠN kênh/app (code không giới hạn theo gói) — gói khác nhau ở credit.
-// Số lượng ước tính theo giá credit thật (bộ não Cân bằng = Sonnet 5.5, có cache; Opus tốn ~gấp đôi, Haiku ~1/5):
-//   1 bài có ảnh đăng lên mọi kênh đã nối ≈ 55 credit (4 bước Sonnet ~48 + ảnh 3 + đăng ~1/kênh)
-//   1 trả lời bình luận/tin nhắn (lịch tự trả lời chạy Haiku) ≈ 6 · 1 báo cáo tuần ≈ 100 · 1 video AI 10 giây = 150 · 1 lần soi đối thủ ≈ 200
-//   Cơ bản 3.000 = 30×55 + 150×6 + 4×100 = 2.950 · Tăng trưởng 8.000 = 80×55 + 400×6 + 5×150 + 4×100 = 7.950
-//   Doanh nghiệp 20.000 = 180×55 + 1.000×6 + 15×150 + 8×100 + 4×200 = 19.750. Đổi credit gói thì sửa lại các số này.
+// GÓI = TÍNH NĂNG + CREDIT. Gói cao mở thêm tính năng (kiểm tra ở máy chủ bằng planFeatures/getFeatures), không chỉ thêm credit,
+// để gói rẻ MCP For You không thay được gói trên: gói này không có Trợ lý Crewzy trong app, không tự chạy khi vắng, không ảnh/video đẹp.
+// Mọi gói nối không giới hạn kênh (176 app). Số lượng ước tính theo giá credit thật (bộ não Cân bằng = Sonnet 5.5, có cache):
+//   1 bài có ảnh đăng mọi kênh ≈ 55 credit trong Trợ lý Crewzy (≈ 10 khi dùng AI của khách qua link) · 1 trả lời bình luận ≈ 6 (≈ 2 qua link)
+//   1 ảnh Đẹp (Seedream 4.5, 0,04 USD) = 25 · 1 video Nhanh 6 giây (LTX, 0,03 USD/giây) = 6×17 · 1 video Đẹp 5 giây (Seedance 2.0 Fast, 0,12 USD/giây) = 5×65
+//   Cơ bản 3.000 ≈ 30×55 + 150×6 + 4×100 · Tăng trưởng 8.000 ≈ 70×55 + 400×6 + 20 ảnh đẹp + 5 video nhanh
+//   Doanh nghiệp 20.000 ≈ 150×55 + 1.000×6 + 60 ảnh đẹp + 10 video nhanh + 4 video đẹp. Đổi credit gói thì sửa lại các số này.
+export const PLAN_FEATURES = {
+  mcp_for_you:  { tro_ly: false, opus: false, anh_dep: false, video: false, video_dep: false, lich: 0,  tu_tra_loi: false, kho_gb: 1,  mcp_ngoai: 3 },
+  co_ban:       { tro_ly: true,  opus: false, anh_dep: false, video: false, video_dep: false, lich: 3,  tu_tra_loi: false, kho_gb: 3,  mcp_ngoai: 3 },
+  tang_truong:  { tro_ly: true,  opus: true,  anh_dep: true,  video: true,  video_dep: false, lich: 10, tu_tra_loi: true,  kho_gb: 10, mcp_ngoai: 10 },
+  doanh_nghiep: { tro_ly: true,  opus: true,  anh_dep: true,  video: true,  video_dep: true,  lich: 10, tu_tra_loi: true,  kho_gb: 50, mcp_ngoai: 10 },
+};
+PLAN_FEATURES.dung_thu = { ...PLAN_FEATURES.tang_truong, kho_gb: 1 }; // dùng thử = trải nghiệm gói Tăng trưởng
+const ALL_FEATURES = { ...PLAN_FEATURES.doanh_nghiep };
+const NO_FEATURES = { ...PLAN_FEATURES.mcp_for_you, kho_gb: 0.2 };
+// Tên gói thấp nhất có tính năng (để báo khách nâng gói).
+const FEATURE_NAMES = { tro_ly: 'Trợ lý Crewzy trong app', opus: 'bộ não Mạnh nhất (Opus)', anh_dep: 'ảnh Đẹp', video: 'làm video', video_dep: 'video Đẹp', tu_tra_loi: 'tự trả lời bình luận', lich: 'hẹn giờ tự chạy' };
+export function upgradeHint(feature) {
+  const order = ['mcp_for_you', 'co_ban', 'tang_truong', 'doanh_nghiep'];
+  const id = order.find((p) => PLAN_FEATURES[p][feature]);
+  const p = DEFAULT_PLANS.find((x) => x.id === id);
+  return `${FEATURE_NAMES[feature] || feature} có từ gói ${p ? p.ten : 'cao hơn'}. Vào Gói và credit để nâng gói.`;
+}
+export function planFeatures(planId) { return PLAN_FEATURES[planId] || NO_FEATURES; }
+// Tính năng của khách: tắt billing hoặc admin → mở hết; gói hết hạn → như chưa có gói.
+export async function getFeatures(env, uid, email) {
+  if (!billingOn(env) || !uid) return ALL_FEATURES;
+  const acc = await getAccount(env, uid).catch(() => null);
+  if (acc && isAdminEmail(env, acc.email || email)) return ALL_FEATURES;
+  return isActive(acc) ? planFeatures(acc.plan) : NO_FEATURES;
+}
+
+// Điều chỉnh lời gọi công cụ theo gói TRƯỚC khi trừ credit: hạ ảnh/video Đẹp xuống Nhanh nếu gói chưa có, chặn video nếu gói không có.
+// Trả {args, error?, note?}; note gửi kèm kết quả để AI báo khách.
+export function applyFeatures(name, args, feat) {
+  const a = { ...(args || {}) };
+  if (!feat) return { args: a };
+  if (name === 'CREWZY_TAO_ANH' && a.chat_luong === 'dep' && !feat.anh_dep) return { args: { ...a, chat_luong: 'nhanh' }, note: 'Đã làm ảnh Nhanh vì ' + upgradeHint('anh_dep') };
+  if (name === 'CREWZY_TAO_VIDEO') {
+    if (!feat.video) return { args: a, error: upgradeHint('video') };
+    if (a.chat_luong === 'dep' && !feat.video_dep) return { args: { ...a, chat_luong: 'nhanh' }, note: 'Đã làm video Nhanh vì ' + upgradeHint('video_dep') };
+  }
+  return { args: a };
+}
+
 const ALL_CHANNELS = 'Nối không giới hạn kênh: Facebook, Instagram, YouTube, LinkedIn, Pinterest, Telegram, WhatsApp, Gmail… (176 app)';
 export const DEFAULT_PLANS = [
-  // MCP For You: khách dùng Claude/ChatGPT/Gemini/Grok CỦA HỌ qua link nối AI → Giang không trả token AI, chỉ trả lượt Composio (~8đ, bán 1 credit = 75–100đ)
-  // + ảnh. 1 bài kèm ảnh đăng 6 kênh ≈ 10 credit (ảnh 3 + 6 lượt đăng + 1 đọc), 1 trả lời bình luận ≈ 2, báo cáo tuần (đọc số các kênh) ≈ 50.
-  // 2.000 = 100×10 + 400×2 + 4×50 = 2.000. Giá vốn/credit 74,5đ ≥ 50đ nên dù khách tiêu credit vào Trợ lý Crewzy (Opus/Sonnet) vẫn lời.
-  { id: 'mcp_for_you', ten: 'MCP For You', gia: 149000, credits: 2000, ngay: 30, mo_ta: 'Đã có Claude, ChatGPT, Gemini hay Grok? Nối Crewzy vào AI của bạn bằng 1 link, AI của bạn làm việc thật trên mọi kênh.',
-    loi_ich: [ALL_CHANNELS, '1 link nối Claude, ChatGPT, Gemini, Grok, Claude Code, Codex, Cursor (Claude và Cursor cài 1 bấm), không cần khoá API', '100 bài kèm ảnh mỗi tháng, mỗi bài đăng cùng lúc mọi kênh: 6 kênh = 600 lượt đăng', '400 bình luận, tin nhắn được AI của bạn trả lời', '23 quy trình + 28 lệnh nhanh (/mcp__crewzy__…) + Brain thương hiệu tự nạp vào AI', 'Kết quả nộp về Crewzy để duyệt, đăng, xem báo cáo', 'Tiền AI không tính vào credit: AI của bạn suy nghĩ, Crewzy chỉ tính lượt chạy app'] },
-  { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh tự động hoá nội dung và chăm khách.',
-    loi_ich: [ALL_CHANNELS, '30 bài kèm ảnh mỗi tháng, mỗi bài đăng cùng lúc lên MỌI kênh (6 kênh = 180 lượt đăng)', '150 bình luận, tin nhắn được trả lời tự động', '4 báo cáo tuần: bài nào ra khách, kênh nào hiệu quả', '23 quy trình mẫu + Brain thương hiệu + hẹn giờ tự chạy'] },
-  { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ muốn có mặt hằng ngày trên mọi kênh.', noi_bat: true,
-    loi_ich: [ALL_CHANNELS, '80 bài kèm ảnh mỗi tháng (gần 3 bài/ngày), đăng cùng lúc mọi kênh: 6 kênh = 480 lượt đăng', '400 bình luận, tin nhắn được trả lời tự động', '5 video ngắn AI dọc 9:16 cho Reels, TikTok, Shorts', '4 báo cáo tuần + gợi ý nội dung tuần sau', 'Mỗi credit rẻ hơn 13% so với gói Cơ bản'] },
-  { id: 'doanh_nghiep', ten: 'Doanh nghiệp', gia: 1490000, credits: 20000, ngay: 30, mo_ta: 'Cả đội nhân viên AI: nhiều phòng, nhiều thương hiệu chạy cùng lúc.',
-    loi_ich: [ALL_CHANNELS, '180 bài kèm ảnh mỗi tháng (6 bài/ngày), mọi kênh: 6 kênh = 1.080 lượt đăng', '1.000 bình luận, tin nhắn được trả lời tự động', '15 video ngắn AI mỗi tháng', '8 báo cáo + 4 lần soi đối thủ (Reels, website, quảng cáo)', 'Tìm khách doanh nghiệp, báo giá, chăm khách vào CRM', 'Mỗi credit rẻ hơn 25% so với gói Cơ bản'] },
+  { id: 'mcp_for_you', ten: 'MCP For You', gia: 149000, credits: 2000, ngay: 30, mo_ta: 'Đã có Claude, ChatGPT, Gemini hay Grok? Nối Crewzy vào AI của bạn, AI của bạn làm việc thật trên mọi kênh.',
+    loi_ich: [ALL_CHANNELS, '1 link nối Claude, ChatGPT, Gemini, Grok, Claude Code, Codex, Cursor (Claude và Cursor cài 1 bấm)', 'Tới 100 bài kèm ảnh/tháng khi AI của bạn làm (6 kênh = 600 lượt đăng)', 'Brain thương hiệu, 23 quy trình, 28 lệnh nhanh tự nạp vào AI của bạn', 'Kho lưu trữ 1GB, kết quả nộp về Crewzy để duyệt'],
+    khong: ['Trợ lý Crewzy trong app (chat, giọng nói)', 'Tự chạy khi bạn vắng mặt', 'Ảnh Đẹp, video AI'] },
+  { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh: có sẵn Trợ lý AI trong Crewzy, không cần tài khoản AI riêng.',
+    loi_ich: [ALL_CHANNELS, 'Trợ lý Crewzy trong app: chat, ra lệnh bằng giọng nói, gửi ảnh/video cho AI xem', 'Khoảng 30 bài kèm ảnh/tháng, mỗi bài đăng cùng lúc mọi kênh (6 kênh = 180 lượt đăng)', '150 bình luận, tin nhắn được AI trả lời', 'Hẹn giờ 3 quy trình tự chạy khi bạn vắng', 'AI đọc website, lấy ảnh làm content · Kho lưu trữ 3GB', 'Bao gồm mọi thứ của MCP For You'],
+    khong: ['Bộ não Mạnh nhất (Opus)', 'Ảnh Đẹp, video AI', 'Tự trả lời bình luận mỗi giờ'] },
+  { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ muốn có mặt hằng ngày trên mọi kênh, có ảnh và video đẹp.', noi_bat: true,
+    loi_ich: ['Mọi thứ của gói Cơ bản', 'Bộ não Mạnh nhất Claude Opus 5.5', 'Khoảng 70 bài/tháng (gần 3 bài/ngày) · 6 kênh = 420 lượt đăng', 'Ảnh Đẹp (Seedream 4.5) theo ảnh sản phẩm thật của bạn · 20 ảnh/tháng', 'Video AI ngắn cho Reels, TikTok, Shorts · 5 video/tháng', 'Tự trả lời bình luận mỗi giờ · 400 bình luận/tháng', 'Hẹn giờ 10 quy trình · Kho lưu trữ 10GB · Credit rẻ hơn 13%'],
+    khong: ['Video Đẹp (Seedance)'] },
+  { id: 'doanh_nghiep', ten: 'Doanh nghiệp', gia: 1490000, credits: 20000, ngay: 30, mo_ta: 'Cả đội nhân viên AI: nhiều phòng ban chạy cùng lúc, video đẹp như quay thật.',
+    loi_ich: ['Mọi thứ của gói Tăng trưởng', 'Video Đẹp (Seedance 2.0) dựng từ ảnh thật của bạn · 4 video/tháng + 10 video nhanh', 'Khoảng 150 bài/tháng (5 bài/ngày) · 6 kênh = 900 lượt đăng', '60 ảnh Đẹp/tháng · 1.000 bình luận được trả lời', 'Soi đối thủ, tìm khách doanh nghiệp, báo giá, chăm khách vào CRM', 'Kho lưu trữ 50GB · Credit rẻ hơn 25%'] },
 ];
 export const DEFAULT_TOPUPS = [
   { id: 'nap_1000', ten: '1.000 credit', gia: 120000, credits: 1000 },
@@ -41,7 +81,10 @@ export const DEFAULT_PRICES = {
   tool: 1,            // mỗi lượt chạy công cụ app (Composio) hoặc MCP ngoài
   workbench: 3,       // COMPOSIO_REMOTE_WORKBENCH / REMOTE_BASH (chạy nhiều lệnh một lần)
   image: 3,           // CREWZY_TAO_ANH
-  video_second: 15,   // CREWZY_TAO_VIDEO, mỗi giây
+  video_second: 17,   // CREWZY_TAO_VIDEO Nhanh (LTX 0,03 USD/giây × 26.000 × 2 / 100 = 15,6), mỗi giây
+  video_second_dep: 65, // CREWZY_TAO_VIDEO Đẹp (Seedance 2.0 Fast 720p 0,12 USD/giây → 62,4), mỗi giây
+  image_dep: 25,      // CREWZY_TAO_ANH Đẹp (Seedream 4.5, 0,04 USD/ảnh → 20,8)
+  voice: 1,           // nói để ra lệnh (Whisper 0,0005 USD/phút, tính tượng trưng)
   usd_rate: 26000,    // đổi chi phí AI (USD) ra đồng
   ai_markup: 2,       // giá bán = chi phí AI × 2
   instant_markup: 2,  // giá bán công cụ Instant = tiền Composio tính × 2
@@ -183,8 +226,8 @@ export function toolPrice(env, name, args) {
   if (!name || FREE_TOOLS.has(name)) return 0;
   if (name === 'COMPOSIO_MULTI_EXECUTE_TOOL') return p.tool * Math.max(1, Math.min(50, ((args && args.tools) || []).length));
   if (name === 'COMPOSIO_REMOTE_WORKBENCH' || name === 'COMPOSIO_REMOTE_BASH_TOOL') return p.workbench;
-  if (name === 'CREWZY_TAO_ANH') return p.image;
-  if (name === 'CREWZY_TAO_VIDEO') return p.video_second * (Number(args && args.giay) || 6);
+  if (name === 'CREWZY_TAO_ANH') return args && args.chat_luong === 'dep' ? p.image_dep : p.image;
+  if (name === 'CREWZY_TAO_VIDEO') return (args && args.chat_luong === 'dep' ? p.video_second_dep : p.video_second) * (Number(args && args.giay) || 6);
   if (name.startsWith('CREWZY_')) return 0; // đọc Brain, quy trình, phiếu, đọc web, tải file: miễn phí
   return p.tool; // công cụ app (Composio) hoặc MCP ngoài (m…_)
 }

@@ -15,7 +15,7 @@ import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTool
 import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
-import { billingOn, gate, makeMeter } from '../lib/billing.js';
+import { billingOn, gate, makeMeter, getFeatures, applyFeatures } from '../lib/billing.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
@@ -121,6 +121,12 @@ export default async (request, env, ctx) => {
     const p = MCP_PROMPTS.find((x) => x.name === (rpc.params && rpc.params.name));
     if (!p) return Response.json({ jsonrpc: '2.0', id: rpc.id, error: { code: -32602, message: 'Không có câu lệnh này' } }, sid);
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { description: p.description, messages: [{ role: 'user', content: { type: 'text', text: p.text } }] } }, sid);
+  }
+
+  // Tính năng theo gói: ảnh Đẹp chỉ từ gói Tăng trưởng (hạ xuống Nhanh trước khi trừ credit).
+  if (rpc && rpc.method === 'tools/call' && rpc.params && uid && rpc.params.name === 'CREWZY_TAO_ANH') {
+    const fx = applyFeatures(rpc.params.name, rpc.params.arguments || {}, await getFeatures(env, uid).catch(() => null));
+    rpc.params.arguments = fx.args;
   }
 
   // Gói và credit (khi bật): mọi tools/call cần gói còn hạn; công cụ tốn tiền trừ credit TRƯỚC khi chạy (kể cả gửi sang Composio).

@@ -10,8 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveUid, safeDetail, sameText } from '../lib/common.js';
 import {
-  billingOn, plans, topups, prices, startTrial, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant,
-} from '../lib/billing.js';
+  billingOn, plans, topups, prices, startTrial, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant, getFeatures } from '../lib/billing.js';
 import { readWebsite } from '../lib/webRead.js';
 import { BRAND_FIELDS } from '../lib/brand.js';
 
@@ -154,7 +153,7 @@ export default async (req, env, ctx) => {
     ]);
     const p = prices(env);
     return Response.json({
-      bat: billingOn(env), admin, account: publicAccount(env, acc), goi: plans(env), nap: topups(env),
+      bat: billingOn(env), admin, account: publicAccount(env, acc), goi: plans(env), nap: topups(env), tinh_nang: await getFeatures(env, uid, email),
       gia: { cong_cu: p.tool, anh: p.image, video_giay: p.video_second, workbench: p.workbench },
       don: (orders.results || []).map((o) => publicOrder(env, o)), so: ledger.results || [], thanh_toan_mo: sepayReady(env),
     }, { headers: noStore });

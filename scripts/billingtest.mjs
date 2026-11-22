@@ -121,7 +121,23 @@ assert.equal(toolPrice(env, 'COMPOSIO_SEARCH_TOOLS', {}), 0);
 assert.equal(toolPrice(env, 'COMPOSIO_MULTI_EXECUTE_TOOL', { tools: [{}, {}, {}] }), 3);
 assert.equal(toolPrice(env, 'CREWZY_QUY_TRINH', {}), 0);
 assert.equal(toolPrice(env, 'CREWZY_TAO_ANH', {}), 3);
-assert.equal(toolPrice(env, 'CREWZY_TAO_VIDEO', { giay: 8 }), 120);
+assert.equal(toolPrice(env, 'CREWZY_TAO_VIDEO', { giay: 8 }), 136, 'video Nhanh 17 credit/giây (LTX 0,03 USD)');
+assert.equal(toolPrice(env, 'CREWZY_TAO_VIDEO', { giay: 5, chat_luong: 'dep' }), 325, 'video Đẹp 65 credit/giây (Seedance 0,12 USD)');
+assert.equal(toolPrice(env, 'CREWZY_TAO_ANH', { chat_luong: 'dep' }), 25, 'ảnh Đẹp (Seedream 0,04 USD)');
+{ // Tính năng theo gói: gói rẻ không có Trợ lý, ảnh/video đẹp; gói cao mở thêm.
+  const { planFeatures, applyFeatures } = await import('../src/lib/billing.js');
+  assert.equal(planFeatures('mcp_for_you').tro_ly, false);
+  assert.equal(planFeatures('co_ban').tro_ly, true);
+  assert.equal(planFeatures('co_ban').opus, false);
+  assert.equal(planFeatures('tang_truong').anh_dep, true);
+  assert.equal(planFeatures('tang_truong').video_dep, false);
+  assert.equal(planFeatures('doanh_nghiep').video_dep, true);
+  assert.equal(planFeatures('khong_co').tro_ly, false, 'gói lạ / hết hạn = không có tính năng');
+  assert.equal(applyFeatures('CREWZY_TAO_ANH', { chat_luong: 'dep' }, planFeatures('co_ban')).args.chat_luong, 'nhanh', 'gói Cơ bản hạ ảnh Đẹp xuống Nhanh trước khi trừ credit');
+  assert.ok(applyFeatures('CREWZY_TAO_VIDEO', {}, planFeatures('co_ban')).error, 'gói Cơ bản không làm video');
+  assert.equal(applyFeatures('CREWZY_TAO_VIDEO', { chat_luong: 'dep' }, planFeatures('tang_truong')).args.chat_luong, 'nhanh');
+  assert.equal(applyFeatures('CREWZY_TAO_VIDEO', { chat_luong: 'dep' }, planFeatures('doanh_nghiep')).args.chat_luong, 'dep');
+}
 assert.equal(toolPrice(env, 'm28b8_compose', {}), 1);
 assert.equal(toolPrice({ PRICES_JSON: '{"tool":2}' }, 'FACEBOOK_CREATE_POST', {}), 2, 'đổi giá bằng biến PRICES_JSON');
 assert.ok(tokenCredits(env, { input_tokens: 20000, output_tokens: 800 }) >= 1);

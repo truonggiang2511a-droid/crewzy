@@ -3,6 +3,7 @@
 // GET  /api/workflows/status?uid=         → {status: {id: {san_sang, thieu_nhom, thieu_du_lieu, nen_co}}} (đủ app + đủ dữ liệu)
 // GET  /api/schedules?uid=                → {schedules, days, modes}
 // POST /api/schedules {uid, action:'tao', quy_trinh, gio, ngay, che_do, ghi_chu} | {uid, action:'bat'|'tat'|'xoa', id}
+import { getFeatures } from '../lib/billing.js';
 import { instantOn } from '../lib/instant.js';
 import { resolveUid } from '../lib/common.js';
 import { publicWorkflows, WORKFLOWS, readiness, doneFlows } from '../lib/workflows.js';
@@ -29,6 +30,6 @@ export default async (req, env) => {
     return Response.json({ status, app_loi: accounts === null }, { headers: { 'cache-control': 'no-store' } });
   }
   if (req.method === 'GET') return Response.json({ schedules: await listSchedules(env, who.uid), days: DAYS, modes: MODES }, { headers: { 'cache-control': 'no-store' } });
-  const out = body.action === 'tao' ? await createSchedule(env, who.uid, body) : await updateSchedule(env, who.uid, String(body.id || ''), body.action);
+  const out = body.action === 'tao' ? await createSchedule(env, who.uid, body, await getFeatures(env, who.uid).catch(() => null)) : await updateSchedule(env, who.uid, String(body.id || ''), body.action);
   return Response.json(out, { status: out.error ? 400 : 200 });
 };

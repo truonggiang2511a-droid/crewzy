@@ -51,7 +51,14 @@ export function isDue(s, t) {
   return t.minutes >= at && t.minutes - at <= LATE_WINDOW_MIN;
 }
 
-export async function createSchedule(env, uid, { quy_trinh, gio, ngay, che_do, ghi_chu, lap, den, tu_dong }) {
+export async function createSchedule(env, uid, { quy_trinh, gio, ngay, che_do, ghi_chu, lap, den, tu_dong }, feat) {
+  // Tính năng theo gói (billing.js): số lịch tối đa, Trợ lý Crewzy tự làm, tự trả lời bình luận.
+  if (feat) {
+    if (!feat.lich) return { error: 'Gói hiện tại chưa có hẹn giờ tự chạy. Nâng lên gói Cơ bản trở lên ở trang Gói và credit.' };
+    if (che_do === 'crewzy' && !feat.tro_ly) return { error: 'Trợ lý Crewzy tự làm có từ gói Cơ bản. Chọn "AI của tôi" hoặc nâng gói.' };
+    if ((lap === 'moi_gio' || tu_dong) && !feat.tu_tra_loi) return { error: 'Tự trả lời bình luận mỗi giờ có từ gói Tăng trưởng. Vào Gói và credit để nâng gói.' };
+    if ((await listSchedules(env, uid)).length >= feat.lich) return { error: `Gói hiện tại hẹn tối đa ${feat.lich} lịch. Xoá bớt hoặc nâng gói.` };
+  }
   const w = workflowById(quy_trinh);
   if (!w) return { error: 'Không có quy trình này.' };
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(gio || ''))) return { error: 'Giờ không hợp lệ (dạng 08:00).' };

@@ -14,6 +14,7 @@ import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
 import { recordActivity } from '../lib/activity.js';
+import { getFeatures, upgradeHint, applyFeatures } from '../lib/billing.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 import { billingOn, gate, makeMeter, prices } from '../lib/billing.js';
@@ -248,6 +249,16 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
 export async function runAgent({ env, uid, origin, mode, key, orModel, brain, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null }) {
   const composioKey = getApiKey(env);
   const deadline = Date.now() + timeBudgetMs;
+    // Tính năng theo gói (billing.js PLAN_FEATURES): gói MCP For You không có Trợ lý Crewzy; Opus từ gói Tăng trưởng.
+    const feat = mode === 'app' ? await getFeatures(env, uid).catch(() => null) : null;
+    if (feat && !feat.tro_ly) {
+      emit({ type: 'text', text: 'Gói của anh/chị dùng AI riêng (Claude, ChatGPT…) qua link nối AI ở trang Kết nối → AI của bạn. ' + upgradeHint('tro_ly') });
+      return;
+    }
+    if (feat && !feat.opus && (!brain || brain === 'manh')) {
+      brain = 'can_bang';
+      emit({ type: 'tool', label: 'Gói hiện tại dùng bộ não Cân bằng (Sonnet 5.5). Bộ não Mạnh nhất có từ gói Tăng trưởng.' });
+    }
     const composio = new Composio({ apiKey: composioKey });
     // Instant chỉ cho Trợ lý Crewzy (khoá của Giang): đo được tiền từng lần gọi để trừ credit. Khoá riêng của khách thì tắt.
     const instant = mode === 'app' ? await instantConfig(env, uid).catch(() => false) : false;
@@ -278,7 +289,12 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
       if (res && !res.error && !(res.successful === false)) await recordActivity(env, uid, name, args);
       return res;
     };
-    const execRaw = async (name, args) => {
+    const execRaw = async (name, rawArgs) => {
+      // Tính năng theo gói: hạ/chặn ảnh-video Đẹp trước khi trừ credit.
+      const fx = applyFeatures(name, rawArgs, feat);
+      if (fx.error) return { error: fx.error };
+      const args = fx.args;
+      if (fx.note) emit({ type: 'tool', label: fx.note });
       // Gói và credit: trừ trước khi chạy công cụ tốn tiền (Composio, MCP ngoài, ảnh, video); hết credit thì báo AI.
       if (meter) {
         const no = await meter.tool(name, args);
