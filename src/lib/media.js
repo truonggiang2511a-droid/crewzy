@@ -1,10 +1,17 @@
 // Lấy ảnh/video mà máy chủ MCP khác (OpenArt, Higgsfield, Runway…) trả về, lưu lại thành link cố định của Crewzy
 // để hiện trong khung chat và đăng Facebook/Instagram (link gốc của nhà cung cấp thường hết hạn sau vài giờ).
-// KV `media:<id>` (90 ngày, metadata ct/uid/src), phục vụ GET /api/media/<id>.<đuôi> có hỗ trợ Range (tua video).
-// KV giới hạn 25 MiB mỗi giá trị → file lớn hơn giữ link gốc và báo AI biết link có thể hết hạn.
+// Từ 22/11/2026 lưu vào R2 (binding MEDIA, bucket crewzy-media, khoá media/<id>): miễn phí 10GB, không tính băng thông,
+// file tới 95MB (Worker nhận thân tối đa 100MB). Chưa có binding MEDIA thì lưu KV `media:<id>` như cũ (90 ngày, ≤24MB).
+// GET /api/media/<id>.<đuôi> đọc R2 trước rồi tới KV (file cũ trước khi chuyển vẫn mở được), có hỗ trợ Range (tua video).
+// File lớn hơn giới hạn → giữ link gốc và báo AI biết link có thể hết hạn.
 
 const MEDIA_TTL = 90 * 86400;
-export const MAX_BYTES = 24 * 1024 * 1024;
+export const MAX_BYTES_KV = 24 * 1024 * 1024;
+export const MAX_BYTES_R2 = 95 * 1024 * 1024;
+export const MAX_BYTES = MAX_BYTES_KV; // giữ tên cũ cho nơi chưa có env
+export const maxBytes = (env) => (env && env.MEDIA ? MAX_BYTES_R2 : MAX_BYTES_KV);
+export const maxLabel = (env) => Math.round(maxBytes(env) / 1024 / 1024) + 'MB';
+const r2Key = (id) => 'media/' + id;
 const MAX_PER_CALL = 4;
 export const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/mp4': 'm4a' };
 const MEDIA_EXT = /\.(png|jpe?g|webp|gif|mp4|webm|mov|m4v|mp3|wav|m4a)(\?|#|$)/i;
@@ -62,10 +69,37 @@ export function findMediaCandidates(result) {
   return out.slice(0, MAX_PER_CALL * 2);
 }
 
-export async function putMedia(env, uid, origin, bytes, ct, src, fixedId) {
+// Luồng có độ dài biết trước → đưa thẳng vào R2 không giữ cả file trong bộ nhớ (FixedLengthStream của Workers);
+// không biết độ dài hoặc chạy ngoài Workers (test) thì đọc hết rồi lưu.
+async function bodyFor(stream, len) {
+  if (len > 0 && typeof FixedLengthStream === 'function') {
+    const f = new FixedLengthStream(len);
+    stream.pipeTo(f.writable).catch((e) => console.error('media pipe failed', e && e.message));
+    return f.readable;
+  }
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// body: Uint8Array/ArrayBuffer hoặc ReadableStream (khi đó truyền len = content-length).
+export async function putMedia(env, uid, origin, body, ct, src, fixedId, len) {
   const id = fixedId || newId();
-  await env.KV.put('media:' + id, bytes, { expirationTtl: MEDIA_TTL, metadata: { ct, uid, src: (src || '').slice(0, 300) } });
+  const meta = { uid: String(uid || ''), src: (src || '').slice(0, 300) };
+  if (env.MEDIA) {
+    const data = body && typeof body.getReader === 'function' ? await bodyFor(body, len || 0) : body;
+    await env.MEDIA.put(r2Key(id), data, { httpMetadata: { contentType: ct }, customMetadata: meta });
+  } else {
+    const data = body && typeof body.getReader === 'function' ? new Uint8Array(await new Response(body).arrayBuffer()) : body;
+    await env.KV.put('media:' + id, data, { expirationTtl: MEDIA_TTL, metadata: { ct, ...meta } });
+  }
   return `${origin}/api/media/${id}.${EXT[ct] || 'bin'}`;
+}
+
+// Mã file đã có chưa (link tải lên dùng 1 lần).
+export async function mediaExists(env, id) {
+  if (env.MEDIA && (await env.MEDIA.head(r2Key(id)))) return true;
+  const v = await env.KV.get('media:' + id, { type: 'stream' });
+  if (v) { v.cancel(); return true; }
+  return false;
 }
 
 // Tải một link về và lưu lại. Trả {kind, link, goc?} hoặc null nếu không phải ảnh/video.
@@ -78,9 +112,11 @@ export async function rehostUrl(env, uid, origin, url) {
     const ct = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
     if (!/^(image|video|audio)\//.test(ct)) { res.body && res.body.cancel(); return null; }
     const len = Number(res.headers.get('content-length') || 0);
-    if (len > MAX_BYTES) { res.body && res.body.cancel(); return { kind: kindOf(ct), link: url, goc: true }; }
+    const max = maxBytes(env);
+    if (len > max) { res.body && res.body.cancel(); return { kind: kindOf(ct), link: url, goc: true }; }
+    if (len > 0 && env.MEDIA) return { kind: kindOf(ct), link: await putMedia(env, uid, origin, res.body, ct, url, null, len) };
     const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.length > MAX_BYTES) return { kind: kindOf(ct), link: url, goc: true };
+    if (buf.length > max) return { kind: kindOf(ct), link: url, goc: true };
     return { kind: kindOf(ct), link: await putMedia(env, uid, origin, buf, ct, url) };
   } catch (e) {
     console.error('rehost failed', url.slice(0, 120), e && e.message);
@@ -105,7 +141,7 @@ export async function collectMedia(env, uid, origin, result, seen, toolName) {
     if (c.data) {
       try {
         const bytes = b64ToBytes(c.data);
-        if (bytes.length > MAX_BYTES) continue;
+        if (bytes.length > maxBytes(env)) continue;
         const ct = EXT[c.ct] ? c.ct : 'image/png';
         found.push({ kind: kindOf(ct), link: await putMedia(env, uid, origin, bytes, ct, 'mcp') });
       } catch (e) { console.error('store media failed', e && e.message); }
@@ -123,6 +159,10 @@ export async function collectMedia(env, uid, origin, result, seen, toolName) {
 export async function serveMedia(request, env) {
   const m = new URL(request.url).pathname.match(/^\/api\/media\/([a-f0-9]{24})(\.[a-z0-9]{2,4})?$/);
   if (!m) return new Response('Không tìm thấy file', { status: 404 });
+  if (env.MEDIA) {
+    const r = await serveR2(request, env, m[1]);
+    if (r) return r;
+  }
   const { value, metadata } = await env.KV.getWithMetadata('media:' + m[1], { type: 'arrayBuffer' });
   if (!value) return new Response('File đã hết hạn hoặc không tồn tại', { status: 404 });
   const ct = (metadata && metadata.ct) || 'application/octet-stream';
@@ -136,4 +176,24 @@ export async function serveMedia(request, env) {
     return new Response(value.slice(start, end + 1), { status: 206, headers: { ...base, 'content-range': `bytes ${start}-${end}/${size}`, 'content-length': String(end - start + 1) } });
   }
   return new Response(value, { headers: { ...base, 'content-length': String(size) } });
+}
+
+// Đọc từ R2: không có file → null (thử tiếp KV). Range "bytes=a-b" | "bytes=a-" | "bytes=-n".
+async function serveR2(request, env, id) {
+  const head = await env.MEDIA.head(r2Key(id));
+  if (!head) return null;
+  const size = head.size;
+  const base = { 'content-type': (head.httpMetadata && head.httpMetadata.contentType) || 'application/octet-stream', 'accept-ranges': 'bytes', 'cache-control': 'public, max-age=86400', etag: head.httpEtag };
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') || '');
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
+    const obj = await env.MEDIA.get(r2Key(id), { range: { offset: start, length: end - start + 1 } });
+    if (!obj) return null;
+    return new Response(obj.body, { status: 206, headers: { ...base, 'content-range': `bytes ${start}-${end}/${size}`, 'content-length': String(end - start + 1) } });
+  }
+  const obj = await env.MEDIA.get(r2Key(id));
+  if (!obj) return null;
+  return new Response(obj.body, { headers: { ...base, 'content-length': String(size) } });
 }

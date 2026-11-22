@@ -258,7 +258,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, messages,
           delete res.images;
           for (const m of media) emit({ type: m.kind === 'video' ? 'video' : m.kind === 'audio' ? 'audio' : 'image', url: m.link });
           if (media.length) {
-            res.media_crewzy = media.map((m) => ({ loai: m.kind, link: m.link, ...(m.goc ? { ghi_chu: 'File lớn hơn 24MB, đây là link gốc của nhà cung cấp, có thể hết hạn' } : {}) }));
+            res.media_crewzy = media.map((m) => ({ loai: m.kind, link: m.link, ...(m.goc ? { ghi_chu: 'File quá lớn để lưu ở Crewzy, đây là link gốc của nhà cung cấp, có thể hết hạn' } : {}) }));
           }
           return res;
         }

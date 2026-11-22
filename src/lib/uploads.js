@@ -20,7 +20,7 @@ export async function createPutLink(env, origin, uid, ct) {
     put_url: put,
     link_sau_khi_tai: `${origin}/api/media/${id}.${EXT[type]}`,
     lenh: `curl -sS -T "<đường dẫn file>" -H "content-type: ${type}" "${put}"`,
-    luu_y: 'Link tải lên dùng 1 lần trong 2 giờ, file ≤ 24MB. Tải xong dùng link_sau_khi_tai để đăng bài hoặc nộp CREWZY_NOP_KET_QUA.',
+    luu_y: 'Link tải lên dùng 1 lần trong 2 giờ, file ≤ 95MB. Tải xong dùng link_sau_khi_tai để đăng bài hoặc nộp CREWZY_NOP_KET_QUA.',
   } };
 }
 

@@ -78,8 +78,8 @@ src/lib/industries.js     GÓI THEO NGÀNH (7 ngành): app nên nối (5–7, th
 src/lib/common.js         APP_NAME, TOOLKITS, Web Crypto (HMAC phiên, ký link MCP, xác minh ID token Google), resolveUid, KV
 src/lib/brand.js          Mục Brain (BRAND_FIELDS gồm visual, video_style, audio, voice_provider, voice_id), REF_TYPES, cleanBrand (refs chỉ ghi
                           khi gửi lên → phiếu brain của AI không xoá refs), brandText, brandPack (gói cho quy trình: tóm tắt, mẫu, giọng, nhạc, thiếu)
-src/routes/upload.js      POST /api/upload (trang Brain, ≤24MB ảnh/video/âm thanh) · PUT /api/upload/<mã ký> (AI trên máy curl -T, mã từ
-                          CREWZY_TAI_LEN, 2 giờ, dùng 1 lần, src/lib/uploads.js); 40 file/ngày/khách (KV upcount:*); lưu media:<id>
+src/routes/upload.js      POST /api/upload (trang Brain, ≤95MB ảnh/video/âm thanh) · PUT /api/upload/<mã ký> (AI trên máy curl -T, mã từ
+                          CREWZY_TAI_LEN, 2 giờ, dùng 1 lần, src/lib/uploads.js); 40 file/ngày/khách (KV upcount:*); lưu qua putMedia (R2)
 src/routes/connect.js     GET /api/connect?toolkit=…[&uid=] → link đăng nhập Composio (multiAccount, alias riêng mỗi lần)
 src/routes/status.js      GET /api/status → {accounts: {slug: số tài khoản ACTIVE}}
 src/routes/mcpLink.js     GET /api/mcp-link → link https://<site>/mcp/<token>
@@ -92,8 +92,9 @@ src/lib/mcpClient.js      Máy khách MCP Streamable HTTP (SSE/JSON, Mcp-Session
 src/lib/mcpServers.js     Lưu máy chủ MCP của khách (KV mcpsrv:<uid>, tối đa 10, token mã hoá AES-GCM sealText), loadExternalTools cho chat
                           (tối đa 40 công cụ/máy chủ, 80 tổng, tên m<id>_<tool>, mỗi máy chủ chờ tối đa 12 giây)
 src/routes/mcpServers.js  GET/POST /api/mcp-servers (add|remove|test) · GET /api/mcp-callback (app kia trả về sau khi khách đồng ý)
-src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoài (dữ liệu base64, resource, link trong JSON/chữ), tải về lưu KV media:<id>
-                          (90 ngày, ≤24MB, lớn hơn giữ link gốc), phục vụ /api/media/<id>.<đuôi> công khai có Range (tua video)
+src/lib/media.js          Lấy ảnh/video/âm thanh từ kết quả MCP ngoài (dữ liệu base64, resource, link trong JSON/chữ), tải về lưu R2
+                          (binding MEDIA, bucket crewzy-media, khoá media/<id>, ≤95MB, truyền luồng thẳng bằng FixedLengthStream; không có MEDIA
+                          thì KV media:<id> ≤24MB như cũ), lớn hơn giữ link gốc. /api/media/<id>.<đuôi> đọc R2 rồi tới KV (file cũ), có Range
 src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của khách): KV jobs:<uid> (≤150), trạng thái cho_lam → cho_duyet → da_duyet → da_dang
                           (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM (id = đọc đủ nội dung một phiếu cũ, chỉ đọc), CREWZY_NOP_KET_QUA
                           (tự lưu ảnh/video về /api/media); MCP_PROMPTS
@@ -110,8 +111,10 @@ src/lib/crewzyTools.js    Công cụ riêng: CREWZY_TAO_ANH (Workers AI flux-2-k
 src/routes/chat.js        POST /api/chat → NDJSON {tool|text|done|error}; GET → {appMode, openrouterModels}
 src/routes/auth.js        /api/auth/me · /api/auth/google · /api/auth/logout
 src/routes/brand.js · catalog.js · openrouterKey.js   GET/POST /api/brand · GET /api/catalog · POST /api/openrouter-key
-wrangler.jsonc            Worker "crewzy", nodejs_compat, AI binding AI (Workers AI), KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data), keep_vars
+wrangler.jsonc            Worker "crewzy", nodejs_compat, AI binding AI (Workers AI), KV binding KV (id cefc3dfec3b248929a490ff8cd5cc216, tên crewzy-data),
+                          R2 binding MEDIA (bucket crewzy-media, tạo 22/11, vùng ENAM), keep_vars
 scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts/authtest.mjs: npm test (phiên, ID token, link MCP)
+scripts/r2test.mjs        Thử lưu media vào R2 (bucket giả): PUT, đọc lại, Range, link dùng 1 lần, file 30MB, file cũ KV vẫn mở, không R2 → KV
 scripts/gatewaytest.mjs   Thử cổng MCP như AI ngoài (KV + Composio giả): tools/list, chặn APP_ONLY_TOOLS, quy trình không nhắc công cụ ẩn, đọc phiếu theo id
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
@@ -129,7 +132,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   link nối AI qua /mcp/* initialize OK. 3 khoá bí mật COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET do Giang tự đặt trên dashboard.
   Gói Workers Free giới hạn 10ms CPU mỗi lượt: chat chủ yếu chờ mạng nên thường đủ; lỗi "exceeded CPU" thì lên Workers Paid (5 USD/tháng).
 - KV (thay Netlify Blobs): `user:<google sub>`, `uid:<uid>`, `brand:<uid>`, `usage:<ngày VN>:<uid|all>` (tự xoá sau 2 ngày),
-  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `media:<id>` (ảnh/video từ MCP ngoài, 90 ngày), `imgcount:<ngày>:<uid>`, `mcpsrv:<uid>` (máy chủ MCP khách nối),
+  `img:<id>` (ảnh AI, 90 ngày, metadata ct/uid/model), `media:<id>` (ảnh/video trước 22/11, 90 ngày; file mới lưu R2 media/<id>), `imgcount:<ngày>:<uid>`, `mcpsrv:<uid>` (máy chủ MCP khách nối),
   `mcpoauth:<state>` (đang chờ đăng nhập, 15 phút).
   KV nhất quán sau tối đa ~60 giây giữa các vùng; đủ cho tài khoản/Brain/đếm lượt.
 - Mã khách gửi lên Composio có dạng `vpai-<uid>` (giữ tiền tố cũ); chỉ cho phép toolkit trong `TOOLKITS` (src/lib/common.js ← catalog).
@@ -391,6 +394,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   da_duyet nên quy trình sau không đọc được Sổ tay phong cách/báo cáo tuần → thêm tham số id; (4) phiếu ghi "AI của bạn" → lấy tên từ aiseen.
   Bài học: claude.ai giữ danh sách công cụ cũ của connector (bấm làm mới vẫn không thấy công cụ mới như CREWZY_DOC_WEB) → thêm công cụ mới thì
   báo khách ngắt/nối lại connector. Cổng không giữ kết nối nên khai tools.listChanged cũng vô ích (không gửi được thông báo).
+- 22/11/2026: Giang hỏi làm video gửi qua Crewzy có tốn API không → không tốn khoá AI của Crewzy; chỗ tốn là lưu file (KV miễn phí 1GB,
+  ≤24MB/file, link HyperFrames hết hạn 7 ngày nên file to không giữ được). Chuyển media sang R2 bucket crewzy-media (miễn phí 10GB, không phí
+  băng thông, $0.015/GB-tháng sau đó; tài khoản đã bật R2 sẵn nhờ dung-video-ai nên không phải gắn thẻ). Giới hạn 95MB vì Worker nhận thân ≤100MB.
+  Đã thử trên workerd (wrangler dev): file 30MB lên/xuống giống hệt từng byte, Range 206 đúng. Chưa có luật tự xoá trong bucket (file giữ mãi,
+  rẻ); muốn xoá sau 90 ngày thì thêm Object lifecycle rule trên dashboard R2 → crewzy-media → Settings.
 
 ## 6. Việc tiếp theo
 

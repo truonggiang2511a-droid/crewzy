@@ -16,6 +16,10 @@
   "kv_namespaces": [
     { "binding": "KV", "id": "cefc3dfec3b248929a490ff8cd5cc216" }
   ],
+  // R2: ảnh/video/âm thanh tải lên, MCP ngoài, video credit (src/lib/media.js). Miễn phí 10GB, không tính băng thông.
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "crewzy-media" }
+  ],
   // Khoá bí mật đặt trong dashboard (Worker → Settings → Variables and Secrets), KHÔNG ghi ở đây:
   // COMPOSIO_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET, GOOGLE_CLIENT_ID. keep_vars giữ biến đặt trên dashboard khi deploy.
   "keep_vars": true,

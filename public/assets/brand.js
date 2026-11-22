@@ -87,7 +87,7 @@
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > 24 * 1024 * 1024) { refMsg.textContent = 'File lớn hơn 24MB. Nén nhỏ lại hoặc dán link Google Drive.'; return; }
+    if (file.size > 95 * 1024 * 1024) { refMsg.textContent = 'File lớn hơn 95MB. Nén nhỏ lại hoặc dán link Google Drive.'; return; }
     refMsg.textContent = 'Đang tải ' + file.name + '…';
     fetch('/api/upload?uid=' + encodeURIComponent(uid), { method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream' }, body: file })
       .then(handle401)

@@ -135,7 +135,7 @@ CREWZY_TOOL_DEFS.push({
   type: 'function',
   function: {
     name: 'CREWZY_TAI_LEN',
-    description: 'Xin link tải 1 file (video, ảnh, âm thanh ≤ 24MB) từ máy của bạn lên Crewzy, dùng khi bạn là AI chạy trên máy (Claude Code, Codex) và vừa dựng/render file bằng Remotion, HyperFrames, ffmpeg… Trả put_url + lệnh curl; tải xong dùng link_sau_khi_tai để đăng bài hoặc nộp CREWZY_NOP_KET_QUA. Mỗi file xin 1 link.',
+    description: 'Xin link tải 1 file (video, ảnh, âm thanh ≤ 95MB) từ máy của bạn lên Crewzy, dùng khi bạn là AI chạy trên máy (Claude Code, Codex) và vừa dựng/render file bằng Remotion, HyperFrames, ffmpeg… Trả put_url + lệnh curl; tải xong dùng link_sau_khi_tai để đăng bài hoặc nộp CREWZY_NOP_KET_QUA. Mỗi file xin 1 link.',
     parameters: { type: 'object', properties: { loai_file: { type: 'string', enum: ['video/mp4', 'video/webm', 'video/quicktime', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/wav', 'audio/mp4'], description: 'Loại file, ví dụ video/mp4.' } }, required: ['loai_file'] },
   },
 });
