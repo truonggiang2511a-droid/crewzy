@@ -188,6 +188,9 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Từ 22/11 (chiều): link nối AI /mcp/* CÓ công cụ MCP ngoài: tools/list gọi loadExternalTools (thêm m<id4>_<tool>), tools/call chạy
   callExternalTool (chỉ mở đúng máy chủ đó, làm mới token OAuth, ảnh/video → media_crewzy link /api/media), initialize ghi danh sách máy chủ.
   Đã thử thật: DeepWiki qua link nối AI — tools/list ~1,1 giây có 3 công cụ m3ab2_*, tools/call read_wiki_structure ~0,9 giây trả đúng.
+  Công tắc (22/11): bản ghi máy chủ có off (tắt cả máy chủ) + disabled [tên công cụ]; POST /api/mcp-servers action toggle {id, on} |
+  {id, tool, on} | {id, tools:[…], on}. loadExternalTools bỏ máy chủ off và công cụ tắt (lọc TRƯỚC khi cắt 40 công cụ), callExternalTool
+  từ chối công cụ tắt; nối lại/đăng nhập lại giữ công tắc (upsert). Lưu tối đa 80 tên + mô tả ngắn (toolMeta) để vẽ công tắc.
 - Video bằng credit Crewzy (22/11, Giang: "credit Crewzy phải làm được ảnh và video, không chỉ chat"): CREWZY_TAO_VIDEO (chỉ Trợ lý trong app)
   gọi model bên thứ ba qua env.AI.run(..., {gateway:{id: AI_GATEWAY_ID||'default'}}): lightricks/ltx-2-3-fast (0,03 USD/giây 720p, dọc 720x1280,
   có âm thanh, image_uri cho ảnh chuyển động) → dự phòng xai/grok-imagine-video (0,05 USD/giây 480p). Model bên thứ ba BẮT BUỘC AI Gateway +
@@ -327,7 +330,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 
 ## 6. Việc tiếp theo
 
-- (Đã đưa MCP ngoài vào link nối AI 22/11.) Còn: cho chọn bật/tắt từng công cụ MCP ngoài; ghi số lượt gọi MCP ngoài vào credit.
+- (Đã đưa MCP ngoài vào link nối AI và có công tắc 22/11.) Còn: ghi số lượt gọi MCP ngoài vào credit.
 
 - Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.
 - Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.

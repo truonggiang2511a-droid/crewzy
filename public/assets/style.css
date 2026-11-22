@@ -169,3 +169,14 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .prompt-card { padding: 14px; border: 1px solid #E8E8E8; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; background: #fff; }
 .prompt-card .tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
 .prompt-card .txt { margin: 0; font-size: 13px; line-height: 1.55; color: #3A3A3A; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Công tắc bật/tắt (button role="switch" aria-checked) — dùng ở tab MCP khác */
+.switch { position: relative; flex: none; width: 44px; height: 26px; border: 0; border-radius: 99px; background: #CFCFCF; cursor: pointer; padding: 0; transition: background .15s; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.switch[aria-checked="true"] { background: var(--ok); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+.switch:disabled { opacity: .5; cursor: default; }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
+.tool-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line, #E8E8E8); }
+.tool-row:first-child { border-top: 0; }

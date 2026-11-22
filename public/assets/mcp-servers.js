@@ -53,26 +53,59 @@
     }
   }
 
+  // Một máy chủ: công tắc cả máy chủ + danh sách công cụ, mỗi công cụ một công tắc (dùng chung cho Trợ lý AI và link nối AI).
+  var openTools = {};
+  function sw(attrs, on, label, disabled) {
+    return '<button type="button" class="switch" role="switch" aria-checked="' + on + '" aria-label="' + esc(label) + '" ' + attrs + (disabled ? ' disabled' : '') + '></button>';
+  }
+  function serverCard(s) {
+    var names = s.toolNames || [];
+    var off = (s.disabled || []);
+    var onCount = names.length - off.length;
+    var rows = names.map(function (n) {
+      var on = off.indexOf(n) === -1;
+      var d = (s.toolDesc || {})[n] || '';
+      return '<div class="tool-row"><div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:600;word-break:break-word' + (on && !s.off ? '' : ';color:var(--muted)') + '">' + esc(n) + '</p>' +
+        (d ? '<p class="muted" style="margin:2px 0 0;font-size:12px;line-height:1.4">' + esc(d) + '</p>' : '') + '</div>' +
+        sw('data-mcp-tool="' + esc(n) + '" data-mcp-sid="' + esc(s.id) + '"', on, (on ? 'Tắt ' : 'Bật ') + n, s.off) + '</div>';
+    }).join('');
+    var over = !s.off && onCount > (s.maxActive || 40) ? '<p style="margin:0;font-size:12px;color:var(--warn)">Đang bật ' + onCount + ' công cụ; AI chỉ nhận ' + s.maxActive + ' công cụ đầu. Tắt bớt công cụ ít dùng.</p>' : '';
+    var tools = names.length ? '<details data-mcp-tools="' + esc(s.id) + '"' + (openTools[s.id] ? ' open' : '') + ' style="font-size:13px"><summary style="cursor:pointer;min-height:32px;display:flex;align-items:center;gap:6px">' +
+      '<span style="font-weight:600">Công cụ</span><span class="muted">' + (s.off ? 'máy chủ đang tắt' : onCount + '/' + names.length + ' đang bật') + '</span></summary>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' +
+      '<button type="button" class="btn btn-ghost" data-mcp-all="on" data-mcp-sid="' + esc(s.id) + '" style="min-height:30px;font-size:12px"' + (s.off ? ' disabled' : '') + '>Bật hết</button>' +
+      '<button type="button" class="btn btn-ghost" data-mcp-all="off" data-mcp-sid="' + esc(s.id) + '" style="min-height:30px;font-size:12px"' + (s.off ? ' disabled' : '') + '>Tắt hết</button>' +
+      '<span class="muted" style="font-size:12px;align-self:center">Tắt công cụ không cần (nhất là xoá, gửi, thanh toán) để AI không gọi tới.</span></div>' +
+      over + '<div>' + rows + '</div></details>' : '';
+    return '<div style="padding:12px;border:1px solid var(--line, #E8E8E8);border-radius:8px;display:flex;flex-direction:column;gap:6px' + (s.off ? ';background:#FAFAFA' : '') + '">' +
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">' +
+      '<p style="margin:0;font-weight:600;flex:1;min-width:140px' + (s.off ? ';color:var(--muted)' : '') + '">' + esc(s.name) + '</p>' +
+      (s.error ? '<span class="pill pill-warn">Lỗi</span>' : s.off ? '<span class="pill">Đang tắt</span>' : '<span class="pill pill-ok">' + Math.min(onCount, s.maxActive || 40) + ' công cụ đang dùng</span>') +
+      '<span class="pill">' + esc(AUTH_LABEL[s.auth] || s.auth) + '</span>' +
+      sw('data-mcp-server="' + esc(s.id) + '"', !s.off, (s.off ? 'Bật máy chủ ' : 'Tắt máy chủ ') + s.name) + '</div>' +
+      '<p class="muted" style="margin:0;font-size:12px;word-break:break-all">' + esc(s.url) + '</p>' +
+      (s.error ? '<p style="margin:0;font-size:13px;color:#8A2A12">' + esc(s.error) + '</p>' : '') +
+      tools +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button type="button" class="btn btn-ghost" data-mcp-test="' + esc(s.id) + '">Kiểm tra lại</button>' +
+      (s.error && s.auth === 'oauth' ? '<button type="button" class="btn btn-primary" data-mcp-reconnect="' + esc(s.id) + '">Đăng nhập lại</button>' : '') +
+      '<button type="button" class="btn btn-ghost" data-mcp-remove="' + esc(s.id) + '">Gỡ</button></div></div>';
+  }
+  function toggle(body, btn) {
+    if (btn) btn.disabled = true;
+    api('POST', Object.assign({ action: 'toggle' }, body)).then(function (res) {
+      if (!res.ok) throw new Error(res.body.error || 'Chưa đổi được, thử lại.');
+      var list = (listEl._servers || []).map(function (x) { return x.id === res.body.server.id ? res.body.server : x; });
+      render(list);
+    }).catch(function (err) { say(err.message); if (btn) btn.disabled = false; });
+  }
+
   function render(servers) {
     if (!servers.length) {
       listEl.innerHTML = '<p class="muted" style="margin:0;font-size:14px">Chưa nối máy chủ MCP nào. Điền tên và link ở trên, hoặc bấm một mục Điền nhanh.</p>';
       return;
     }
-    listEl.innerHTML = servers.map(function (s) {
-      var names = (s.toolNames || []).slice(0, 12).map(esc).join(', ') + ((s.toolNames || []).length > 12 ? '…' : '');
-      return '<div style="padding:12px;border:1px solid var(--line, #E8E8E8);border-radius:8px;display:flex;flex-direction:column;gap:6px">' +
-        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">' +
-        '<p style="margin:0;font-weight:600;flex:1;min-width:140px">' + esc(s.name) + '</p>' +
-        (s.error ? '<span class="pill pill-warn">Lỗi</span>' : '<span class="pill pill-ok">' + s.tools + ' công cụ</span>') +
-        '<span class="pill">' + esc(AUTH_LABEL[s.auth] || s.auth) + '</span></div>' +
-        '<p class="muted" style="margin:0;font-size:12px;word-break:break-all">' + esc(s.url) + '</p>' +
-        (s.error ? '<p style="margin:0;font-size:13px;color:#8A2A12">' + esc(s.error) + '</p>' : '') +
-        (names ? '<p class="muted" style="margin:0;font-size:12px;line-height:1.5">Công cụ: ' + names + '</p>' : '') +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-        '<button type="button" class="btn btn-ghost" data-mcp-test="' + esc(s.id) + '">Kiểm tra lại</button>' +
-        (s.error && s.auth === 'oauth' ? '<button type="button" class="btn btn-primary" data-mcp-reconnect="' + esc(s.id) + '">Đăng nhập lại</button>' : '') +
-        '<button type="button" class="btn btn-ghost" data-mcp-remove="' + esc(s.id) + '">Gỡ</button></div></div>';
-    }).join('');
+    listEl.innerHTML = servers.map(serverCard).join('');
     listEl._servers = servers;
   }
 
@@ -116,6 +149,16 @@
       say('');
       return;
     }
+    var srv = t.closest('[data-mcp-server]');
+    if (srv) { toggle({ id: srv.getAttribute('data-mcp-server'), on: srv.getAttribute('aria-checked') !== 'true' }, srv); return; }
+    var tl = t.closest('[data-mcp-tool]');
+    if (tl) { toggle({ id: tl.getAttribute('data-mcp-sid'), tool: tl.getAttribute('data-mcp-tool'), on: tl.getAttribute('aria-checked') !== 'true' }, tl); return; }
+    var al = t.closest('[data-mcp-all]');
+    if (al) {
+      var sv = (listEl._servers || []).filter(function (x) { return x.id === al.getAttribute('data-mcp-sid'); })[0];
+      if (sv) toggle({ id: sv.id, tools: sv.toolNames, on: al.getAttribute('data-mcp-all') === 'on' }, al);
+      return;
+    }
     var cp = t.closest('[data-mcp-copy]');
     if (cp) {
       var link = cp.getAttribute('data-mcp-copy');
@@ -147,6 +190,12 @@
     say(q.get('msg') || (q.get('mcp') === 'ok' ? 'Đã nối.' : 'Chưa nối được.'), q.get('mcp') === 'ok');
     history.replaceState(null, '', 'ket-noi.html?tab=mcp');
   }
+
+  // Nhớ khung Công cụ đang mở để vẽ lại sau mỗi lần bật/tắt không bị đóng.
+  listEl.addEventListener('toggle', function (e) {
+    var d = e.target.closest && e.target.closest('[data-mcp-tools]');
+    if (d) openTools[d.getAttribute('data-mcp-tools')] = d.open;
+  }, true);
 
   // Bấm thẻ MCP ở lưới Kết nối → ?tab=mcp&ten=&url= : điền sẵn ô, khách chỉ bấm Kết nối.
   function prefill(params) {

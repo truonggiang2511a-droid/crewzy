@@ -5,7 +5,7 @@
 // GET  /api/mcp-callback?code&state     → app kia trả về sau khi khách đồng ý → lưu token → về ket-noi.html?tab=mcp
 import { resolveUid, kvGetJson, kvPutJson, sealText, openText } from '../lib/common.js';
 import { checkMcpUrl, McpConnection, McpAuthError, discoverOAuth, registerClient, randomToken, pkceChallenge, authorizeUrl, authorizeAccepted, tokenRequest } from '../lib/mcpClient.js';
-import { listServers, saveServers, publicServer, newServerId, cleanName, openServer, MAX_SERVERS } from '../lib/mcpServers.js';
+import { listServers, saveServers, publicServer, newServerId, cleanName, openServer, MAX_SERVERS, toolMeta } from '../lib/mcpServers.js';
 
 const PENDING_TTL = 900;
 const callbackUrl = (req) => new URL('/api/mcp-callback', req.url).toString();
@@ -32,7 +32,7 @@ async function probe(url, token) {
 function serverRecord({ id, name, url, auth, tools, info }) {
   return {
     id, name, url, auth, tools: tools.length,
-    toolNames: tools.slice(0, 30).map((t) => t.name),
+    ...toolMeta(tools),
     serverName: (info && info.serverInfo && info.serverInfo.name) || '',
     addedAt: new Date().toISOString(),
   };
@@ -41,7 +41,13 @@ function serverRecord({ id, name, url, auth, tools, info }) {
 async function upsert(env, uid, rec) {
   const list = await listServers(env, uid);
   const i = list.findIndex((s) => s.id === rec.id || s.url === rec.url);
-  if (i >= 0) { rec.id = list[i].id; list[i] = rec; } else list.unshift(rec);
+  if (i >= 0) {
+    // Nối lại/đăng nhập lại: giữ công tắc khách đã chỉnh.
+    rec.id = list[i].id;
+    if (list[i].off) rec.off = true;
+    if (list[i].disabled && list[i].disabled.length) rec.disabled = list[i].disabled;
+    list[i] = rec;
+  } else list.unshift(rec);
   await saveServers(env, uid, list);
   return rec;
 }
@@ -129,13 +135,33 @@ export default async (req, env) => {
     return Response.json({ ok: true });
   }
 
+  // Công tắc: {id, on} bật/tắt cả máy chủ · {id, tool, on} một công cụ · {id, tools: [...], on} nhiều công cụ (Bật hết/Tắt hết).
+  if (action === 'toggle') {
+    const list = await listServers(env, uid);
+    const s = list.find((x) => x.id === body.id);
+    if (!s) return Response.json({ error: 'Không tìm thấy máy chủ này.' }, { status: 404 });
+    const on = body.on !== false;
+    const names = s.toolNames || [];
+    const picked = Array.isArray(body.tools) ? body.tools : typeof body.tool === 'string' ? [body.tool] : null;
+    if (!picked) s.off = !on;
+    else {
+      const valid = picked.filter((n) => typeof n === 'string' && names.includes(n));
+      if (!valid.length) return Response.json({ error: 'Công cụ không có trong máy chủ này. Bấm Kiểm tra lại.' }, { status: 400 });
+      const set = new Set(s.disabled || []);
+      for (const n of valid) { if (on) set.delete(n); else set.add(n); }
+      s.disabled = [...set].filter((n) => names.includes(n));
+    }
+    await saveServers(env, uid, list);
+    return Response.json({ server: publicServer(s) });
+  }
+
   if (action === 'test') {
     const list = await listServers(env, uid);
     const s = list.find((x) => x.id === body.id);
     if (!s) return Response.json({ error: 'Không tìm thấy máy chủ này.' }, { status: 404 });
     try {
       const { tools } = await openServer(env, s);
-      s.tools = tools.length; s.toolNames = tools.slice(0, 30).map((t) => t.name); s.error = '';
+      Object.assign(s, { tools: tools.length, ...toolMeta(tools), error: '' });
       await saveServers(env, uid, list);
       return Response.json({ server: publicServer(s) });
     } catch (e) {

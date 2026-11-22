@@ -1,5 +1,6 @@
 // Máy chủ MCP của app khác mà khách tự nối vào Crewzy (trang Kết nối → MCP khác).
-// KV `mcpsrv:<uid>` → [{id, name, url, auth: 'none'|'token'|'oauth', token (mã hoá), oauth: {...}, tools, toolNames, addedAt}]
+// KV `mcpsrv:<uid>` → [{id, name, url, auth: 'none'|'token'|'oauth', token (mã hoá), oauth: {...}, tools, toolNames, toolDesc, addedAt,
+//   off (tắt cả máy chủ), disabled: [tên công cụ khách tắt]}] — công tắc dùng chung cho Trợ lý AI và link nối AI.
 // Token và refresh token luôn mã hoá bằng sealText trước khi lưu.
 import { kvGetJson, kvPutJson, sealText, openText } from './common.js';
 import { McpConnection, McpAuthError, tokenRequest, mcpResultToTool } from './mcpClient.js';
@@ -13,9 +14,20 @@ const key = (uid) => 'mcpsrv:' + uid;
 export const listServers = async (env, uid) => (await kvGetJson(env, key(uid))) || [];
 export const saveServers = (env, uid, list) => kvPutJson(env, key(uid), list.slice(0, MAX_SERVERS));
 
+export const MAX_STORED_TOOLS = 80;
 export function publicServer(s) {
-  return { id: s.id, name: s.name, url: s.url, auth: s.auth, tools: s.tools || 0, toolNames: (s.toolNames || []).slice(0, 30), addedAt: s.addedAt, error: s.error || '' };
+  const names = (s.toolNames || []).slice(0, MAX_STORED_TOOLS);
+  const disabled = (s.disabled || []).filter((n) => names.includes(n));
+  return { id: s.id, name: s.name, url: s.url, auth: s.auth, tools: s.tools || 0, toolNames: names, toolDesc: s.toolDesc || {},
+    off: !!s.off, disabled, active: s.off ? 0 : Math.min(names.length - disabled.length, MAX_TOOLS_PER_SERVER), maxActive: MAX_TOOLS_PER_SERVER,
+    addedAt: s.addedAt, error: s.error || '' };
 }
+// Lưu tên + mô tả ngắn công cụ để trang Kết nối vẽ công tắc.
+export function toolMeta(tools) {
+  const list = tools.slice(0, MAX_STORED_TOOLS);
+  return { toolNames: list.map((t) => t.name), toolDesc: Object.fromEntries(list.map((t) => [t.name, String(t.title || t.description || '').replace(/\s+/g, ' ').slice(0, 120)])) };
+}
+const isOn = (s, toolName) => !s.off && !(s.disabled || []).includes(toolName);
 
 export function newServerId() {
   const b = crypto.getRandomValues(new Uint8Array(4));
@@ -73,7 +85,8 @@ const safeName = (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '_');
 
 // Nạp công cụ của mọi máy chủ MCP khách đã nối, cho Trợ lý AI. Trả về định nghĩa dạng OpenAI + hàm chạy.
 export async function loadExternalTools(env, uid) {
-  const servers = await listServers(env, uid);
+  const all = await listServers(env, uid);
+  const servers = all.filter((s) => !s.off);
   const out = { defs: [], names: [], failed: [], run: null };
   if (!servers.length) return out;
   const map = new Map();
@@ -88,7 +101,7 @@ export async function loadExternalTools(env, uid) {
     }
     if (r.value.changed) dirty = true;
     out.names.push(s.name);
-    for (const t of r.value.tools.slice(0, MAX_TOOLS_PER_SERVER)) {
+    for (const t of r.value.tools.filter((x) => isOn(s, x.name)).slice(0, MAX_TOOLS_PER_SERVER)) {
       if (out.defs.length >= MAX_EXTERNAL_TOOLS) break;
       const name = ('m' + s.id.slice(1, 5) + '_' + safeName(t.name)).slice(0, 64);
       if (map.has(name)) continue;
@@ -99,7 +112,7 @@ export async function loadExternalTools(env, uid) {
       out.defs.push({ type: 'function', function: { name, description: `[${s.name}] ${(t.description || t.title || t.name)}`.slice(0, 600), parameters: schema } });
     }
   });
-  if (dirty) { try { await saveServers(env, uid, servers); } catch (e) { console.error('save mcp tokens failed', e && e.message); } }
+  if (dirty) { try { await saveServers(env, uid, all); } catch (e) { console.error('save mcp tokens failed', e && e.message); } }
   out.run = async (name, args) => {
     const hit = map.get(name);
     if (!hit) return null;
@@ -116,12 +129,14 @@ export async function callExternalTool(env, uid, name, args) {
   const servers = await listServers(env, uid);
   const s = servers.find((x) => name.startsWith('m' + x.id.slice(1, 5) + '_'));
   if (!s) return { error: 'Không tìm thấy máy chủ MCP của công cụ này (có thể khách đã gỡ). Gọi tools/list lại.' };
+  if (s.off) return { error: `Khách đã tắt máy chủ ${s.name} trong Crewzy (Kết nối → MCP khác). Không dùng máy chủ này.` };
   let opened;
   try { opened = await withTimeout(openServer(env, s), CONNECT_TIMEOUT_MS); }
   catch (e) { return { error: `${s.name}: chưa mở được (${String((e && e.message) || e).slice(0, 160)}). Khách vào Crewzy → Kết nối → MCP khác bấm Kiểm tra/Nối lại.` }; }
   if (opened.changed) { try { await saveServers(env, uid, servers); } catch (e) { console.error('save mcp tokens failed', e && e.message); } }
   const t = opened.tools.find((x) => ('m' + s.id.slice(1, 5) + '_' + safeName(x.name)).slice(0, 64) === name);
   if (!t) return { error: `${s.name} không còn công cụ này. Gọi tools/list lại.` };
+  if (!isOn(s, t.name)) return { error: `Khách đã tắt công cụ ${t.name} của ${s.name} trong Crewzy. Không dùng công cụ này, báo khách nếu cần bật lại.` };
   try { return { raw: await opened.conn.callTool(t.name, args || {}), tool: t.name, server: s.name }; }
   catch (e) { return { error: `${s.name}: ${String((e && e.message) || e).slice(0, 200)}` }; }
 }
