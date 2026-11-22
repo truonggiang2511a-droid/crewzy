@@ -472,7 +472,8 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Dùng thử: 7 ngày + 300 credit, 1 lần/tài khoản (ledger reason 'dung_thu', đã mua gói thì không), nguyên tử bằng INSERT … WHERE NOT EXISTS +
   UPDATE … WHERE changes()>0; plan 'dung_thu' (ten_goi "Dùng thử"), hết hạn gate báo "Đã hết thời gian dùng thử". Nút ở bước 4 bat-dau (đổi tên
   "Dùng thử / Gói"); POST /api/onboarding {trial:true}. TRIAL_JSON / TRIAL=off. Chi phí tối đa cho Giang ≈ 15.000đ/khách dùng thử.
-  CHƯA thử thật: Instant với ví thật (chờ Giang nạp) và Opus với khoá thật.
+  ĐÃ thử thật trên trang (tài khoản Giang, admin nên không trừ credit): Opus 5.5 + Instant SERPAPI_SEARCH khi CHƯA nối SerpApi → trả 3 kết quả Google
+  đúng (~0,025 USD/lần tìm, dùng 2 USD tặng của ví). Chưa xác nhận instantCharge có về để trừ credit khách (xem log/KV instusd:* khi có khách thật).
 
 ## 6. Việc tiếp theo
 
