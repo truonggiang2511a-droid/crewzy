@@ -9,7 +9,7 @@ crewzy.ai còn trống, crewzy.com đã có người đăng ký). Tên hiển th
 Khách mua credit hoặc gói tháng, tiền đó trả Composio, AI và hạ tầng.
 
 **Hiện trạng (22/11/2026): chạy trên Cloudflare Workers (chuyển từ Netlify). Kết nối thật 176 app qua Composio + danh bạ 36 máy chủ MCP, 23 quy trình (có video trọn gói), Trợ lý AI, link nối AI (MCP),
-Brain thương hiệu, Quy trình, đăng nhập Google (chờ GOOGLE_CLIENT_ID).** Văn phòng chạy bằng số liệu thật (/api/office) từ 22/11.
+Brain thương hiệu, Quy trình, đăng nhập Google + gói/credit (BẬT trên bản thật từ 22/11 tối, GOOGLE_CLIENT_ID đã đặt).** Văn phòng chạy bằng số liệu thật (/api/office) từ 22/11.
 
 Chủ dự án: Giang (giao tiếp tiếng Việt). Giao diện, thông báo, tooltip hiển thị cho khách: tiếng Việt.
 Tên biến/hàm: tiếng Anh. Không tuyên bố "đã chạy được/đã build xong" nếu chưa thực sự chạy lệnh và thấy kết quả.
@@ -457,7 +457,7 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
 
 - Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.
 - Khoá OpenRouter/khoá API hiện chỉ lưu trên trình duyệt: muốn tự chạy khi khách vắng mặt phải lưu phía máy chủ (mã hoá) theo tài khoản.
-- Giang bật gói (theo thứ tự): ADMIN_EMAILS → SEPAY_WEBHOOK_KEY, SEPAY_BANK, SEPAY_ACCOUNT, SEPAY_ACCOUNT_NAME (+ trên my.sepay.vn tạo webhook
+- (ĐÃ làm 22/11 tối, cả GOOGLE_CLIENT_ID.) Giang bật gói (theo thứ tự): ADMIN_EMAILS → SEPAY_WEBHOOK_KEY, SEPAY_BANK, SEPAY_ACCOUNT, SEPAY_ACCOUNT_NAME (+ trên my.sepay.vn tạo webhook
   https://crewzy.truonggiang2511a.workers.dev/api/sepay/webhook, xác thực API Key) → GOOGLE_CLIENT_ID. Sau đó thử 1 đơn 2.000đ bằng PLANS_JSON tạm.
 - Sau khi kết nối: cho AI đọc thử 1 dòng Google Sheet / gửi thử 1 email (session.execute) để chứng minh chạy thật.
 - Bỏ trường `detail` trong lỗi trả về của hàm (cả sự kiện error của /api/chat) khi xong giai đoạn thử.
