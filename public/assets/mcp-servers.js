@@ -2,9 +2,9 @@
 // Gọi /api/mcp-servers; máy chủ cần đăng nhập thì chuyển sang trang đăng nhập của app đó, xong quay về ?tab=mcp&mcp=ok|err.
 (function () {
   // Máy chủ MCP công khai hay dùng (đã thử nối qua Crewzy ngày 22/11/2026; xem CLAUDE.md).
+  // Canva KHÔNG có ở đây: MCP của Canva chỉ nhận Claude/ChatGPT/localhost → khách dùng Canva ở tab Ứng dụng (Composio).
   var PICKS = [
     { name: 'Notion', url: 'https://mcp.notion.com/mcp', logo: 'notion', note: 'Đăng nhập Notion' },
-    { name: 'Canva', url: 'https://mcp.canva.com/mcp', logo: 'canva', note: 'Đăng nhập Canva' },
     { name: 'Linear', url: 'https://mcp.linear.app/mcp', logo: 'linear', note: 'Đăng nhập Linear' },
     { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', logo: 'github', note: 'Không cần đăng nhập' },
     { name: 'Context7', url: 'https://mcp.context7.com/mcp', logo: 'context7', note: 'Không cần đăng nhập' }
@@ -40,7 +40,9 @@
     return '<button type="button" class="btn btn-ghost" data-mcp-pick="' + i + '" style="gap:8px">' +
       '<img src="https://logos.composio.dev/api/' + p.logo + '" alt="" style="width:20px;height:20px;border-radius:4px">' + esc(p.name) +
       '<span class="muted" style="font-size:12px;font-weight:400">' + esc(p.note) + '</span></button>';
-  }).join('');
+  }).join('') +
+    '<a class="btn btn-ghost" href="ket-noi.html?app=canva" style="gap:8px"><img src="https://logos.composio.dev/api/canva" alt="" style="width:20px;height:20px;border-radius:4px">Canva' +
+    '<span class="muted" style="font-size:12px;font-weight:400">Nối ở tab Ứng dụng</span></a>';
 
   function render(servers) {
     if (!servers.length) {

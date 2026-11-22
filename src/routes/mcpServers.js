@@ -170,7 +170,11 @@ export default async (req, env) => {
         return Response.json({ authUrl });
       } catch (e2) {
         console.error('mcp oauth start failed', url, errText(e2));
-        return Response.json({ error: 'Máy chủ này cần đăng nhập nhưng chưa nối tự động được: ' + errText(e2) }, { status: 502 });
+        const canva = /(^|\.)canva\.com$/.test(new URL(url).hostname);
+        const hint = canva
+          ? 'MCP của Canva hiện chỉ cho Claude và ChatGPT đăng nhập, chưa nhận app khác. Hãy nối Canva ở tab Ứng dụng (dùng được ngay với Trợ lý AI), hoặc thêm Canva thẳng trong Claude/ChatGPT.'
+          : 'Máy chủ này cần đăng nhập nhưng chưa nối tự động được: ' + errText(e2);
+        return Response.json({ error: hint }, { status: 502 });
       }
     }
     console.error('mcp add failed', url, errText(e));

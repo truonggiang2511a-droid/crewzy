@@ -139,6 +139,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Đã thử thật trên Cloudflare: DeepWiki (không đăng nhập, 3 công cụ) nối được, chat chế độ app gọi DeepWiki: ask_wiki_question
   trả lời đúng trong ~14 giây; Notion, Canva, Linear tự đăng ký app OAuth và ra link đăng nhập đúng (chưa bấm đồng ý vì cần tài khoản
   thật); Context7 không đăng nhập, 2 công cụ. Link đăng nhập trả về https://<site>/api/mcp-callback, nên tên miền mới vẫn chạy.
+  Đăng ký app OAuth: nếu máy chủ báo client_id_metadata_document_supported thì dùng client_id = https://<site>/api/oauth-client.json
+  (CIMD, tài liệu do Worker trả), không thì tự đăng ký (DCR). Link đăng nhập được kiểm tra ở máy chủ trước (authorizeAccepted)
+  để khách không bị kẹt ở trang lỗi. Đã thử 22/11: Linear hiện trang đồng ý "Crewzy is requesting access", Notion chuyển sang đăng nhập Notion.
+  CANVA MCP (mcp.canva.com) chỉ nhận redirect của Claude, ChatGPT và localhost — DCR lẫn CIMD đều báo "Invalid redirect URI"
+  → bỏ khỏi Điền nhanh, nút Canva dẫn sang ket-noi.html?app=canva (Composio). Muốn dùng MCP Canva phải xin Canva duyệt.
   Công cụ MCP ngoài CHƯA có trong link nối AI (/mcp/*) — Claude/ChatGPT tự thêm connector đó được.
 - Workers AI (tra 22/11/2026): miễn phí 10.000 neurons/ngày (reset 7 giờ sáng VN), vượt thì 0,011 USD/1.000 neurons (chỉ gói Workers Paid,
   gói Free hết là báo lỗi). flux-2-klein-4b: 26,05 neurons mỗi ô 512×512 đầu ra → ảnh 4:5 (6 ô) ≈ 156 neurons ≈ 60 ảnh/ngày miễn phí,
