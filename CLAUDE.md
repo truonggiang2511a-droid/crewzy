@@ -82,7 +82,8 @@ src/lib/jobs.js           PHIẾU VIỆC (cầu nối hai chiều với AI của
                           (+ xong, tu_choi); công cụ CREWZY_VIEC_CAN_LAM, CREWZY_NOP_KET_QUA (tự lưu ảnh/video về /api/media); MCP_PROMPTS
 src/routes/jobs.js        GET/POST /api/jobs (tao | duyet | tu_choi | lam_lai | xong | da_dang | sua | xoa) · GET /api/skill.md (SKILL.md cho Claude Code/Codex)
 src/lib/workflows.js      THƯ VIỆN QUY TRÌNH CHUẨN (nguồn duy nhất): DEPARTMENTS (8 phòng, có Nghiên cứu đối thủ), WORKFLOWS (18 quy trình: bước,
-                          app/nen_co/mcp, lịch gợi ý, loại kết quả), missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm quy trình CHỈ ở đây
+                          lịch gợi ý, loại kết quả), CHANNELS (12 kênh/nền tảng), nhóm công cụ G + TOOLSETS (mỗi quy trình: kenh + cong_cu = các vai trò,
+                          mỗi vai trò nhiều app thay thế, bat_buoc/san_co), groupStatus/missingFor, workflowPrompt, WORKFLOW_RULES. Sửa/thêm CHỈ ở đây
 src/lib/schedules.js      Hẹn giờ: KV sched:<uid> (≤10 lịch), schedidx; cron */15 (wrangler triggers) → tạo phiếu việc; che_do 'crewzy' thì
                           runAgent chế độ app tự làm (≤3 lượt mỗi lần cron, tính vào trần lượt của app). scripts/schedtest.mjs
 src/routes/workflows.js   GET /api/workflows · GET/POST /api/schedules (tao | bat | tat | xoa)
@@ -132,6 +133,12 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Kết quả công cụ cắt còn 12.000 ký tự. Lời dặn hệ thống bắt AI hỏi "đồng ý" trước khi đăng, gửi, xoá, chi tiền.
   Đã thử (22/11): kiểm tra kết nối ~6 giây, tìm công cụ đăng Fanpage, khoá sai báo "Khoá API không đúng"; điện thoại 390px và máy tính 1440px không lỗi console.
   COMPOSIO_MANAGE_CONNECTIONS tự tạo yêu cầu kết nối "đang chờ" (INITIATED) cho mọi công cụ chưa nối; status/connect chỉ đếm ACTIVE nên không sai số.
+- Mở rộng danh mục 22/11 (thử từng slug qua /api/connect tạm cho phép ?thu=1, đã gỡ): thêm 45 app ready → 64 app: pinterest, reddit, discord, slack,
+  microsoft_teams, webflow, outlook, one_drive, dropbox, googleslides, zoom, googlemeet, calendly, pipedrive, salesforce, zoho, stripe, typeform,
+  mailchimp, brevo, klaviyo, kit, mailerlite, sendgrid, zendesk, intercom, freshdesk, gorgias, crisp, airtable, trello, asana, clickup, monday, figma,
+  google_search_console, google_maps, vidiq_mcp (vidIQ qua Composio bằng khoá API!), apify, firecrawl, semrush, ahrefs, serpapi, perplexityai, tavily.
+  Thêm thể loại research, email, care, work. KHÔNG nối nhanh được: twitter, shopify, googleforms (cần app riêng); wordpress, google_forms,
+  sendinblue, convertkit, activecampaign, zoho_crm, surveymonkey, tidio, google_slides, googlesearchconsole (slug sai hoặc lỗi 400).
 - Danh mục app (22/11/2026, đã thử /api/connect): nối nhanh được facebook, instagram, youtube, linkedin, metaads, googleads,
   google_analytics, telegram, whatsapp, gmail, googlecalendar, googlesheets, googledrive, googledocs, notion, hubspot, canva, heygen, elevenlabs.
   Cần auth config riêng (để 'soon'): tiktok, threads, google_business_profile, tiktok_ads. Composio KHÔNG có: Zalo, Shopee, Lazada,

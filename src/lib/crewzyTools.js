@@ -143,7 +143,7 @@ async function workflowTool(env, uid, args, connected) {
   if (!id) {
     return { data: { quy_trinh: WORKFLOWS.map((w) => {
       const miss = missingFor(w, connected, urls);
-      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, thieu_app: miss.app, thieu_mcp: miss.mcp };
+      return { id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, lich_goi_y: w.lich, kenh: w.kenh, thieu_nhom: miss.nhom, san_sang: !miss.nhom.length };
     }), ghi_chu: 'Gọi lại với id để lấy các bước chi tiết.' } };
   }
   const w = workflowById(id);
@@ -151,13 +151,14 @@ async function workflowTool(env, uid, args, connected) {
   const miss = missingFor(w, connected, urls);
   return { data: {
     id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: w.mo_ta, can_hoi_khach: w.hoi || undefined,
-    app_bat_buoc: w.app, app_nen_co: w.nen_co, mcp_can_noi: w.mcp, loai_ket_qua: w.loai,
-    thieu: miss, san_sang: !miss.app.length,
+    kenh: w.kenh, loai_ket_qua: w.loai,
+    cong_cu: miss.groups, thieu_nhom: miss.nhom, san_sang: !miss.nhom.length,
     cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${b}`),
     quy_tac: WORKFLOW_RULES,
-    huong_dan_noi: miss.app.length || miss.mcp.length
-      ? 'Còn thiếu kết nối. App: Crewzy → Kết nối → Ứng dụng. MCP ngoài (apify: https://mcp.apify.com, firecrawl: https://mcp.firecrawl.dev/mcp, openart: https://mcp.openart.ai/mcp): Kết nối → MCP khác. vidIQ chỉ dùng được nếu AI của khách đã tự thêm connector vidIQ.'
+    huong_dan_noi: miss.nhom.length
+      ? 'Còn thiếu: ' + miss.nhom.join(', ') + '. Khách nối MỘT app bất kỳ trong goi_y của nhóm đó ở Crewzy → Kết nối → Ứng dụng (app dùng khoá API như vidIQ, Apify, Firecrawl, Semrush: Composio mở trang để dán khoá). MCP ngoài (apify: https://mcp.apify.com, firecrawl: https://mcp.firecrawl.dev/mcp, openart: https://mcp.openart.ai/mcp): Kết nối → MCP khác.'
       : undefined,
+    ghi_chu_cong_cu: 'Công cụ của app tìm bằng COMPOSIO_SEARCH_TOOLS (vd "post to pinterest", "add contact pipedrive", "apify run actor") rồi chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL; công cụ MCP ngoài có tiền tố m…_.',
   } };
 }
 

@@ -1,17 +1,13 @@
 // Tạo link đăng nhập Composio cho một công cụ (mỗi lần bấm thêm 1 tài khoản, tối đa 5 tài khoản/công cụ).
 // GET /api/connect?toolkit=<slug>[&uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-// Danh sách app ứng viên đang thử kết nối nhanh (xoá sau khi chốt catalog).
-const PROBE_SLUGS = ['twitter','pinterest','reddit','discord','slack','wordpress','webflow','mailchimp','brevo','sendinblue','klaviyo','kit','convertkit','activecampaign','sendgrid','pipedrive','salesforce','zoho','zoho_crm','calendly','typeform','googleforms','google_forms','surveymonkey','zendesk','intercom','freshdesk','shopify','stripe','airtable','trello','asana','clickup','monday','dropbox','one_drive','outlook','microsoft_teams','zoom','googleslides','google_slides','google_search_console','googlesearchconsole','figma','apify','firecrawl','serpapi','perplexityai','tavily','semrush','ahrefs','tiktok','threads','youtube','linkedin','vidiq_mcp','googlemeet','google_maps','mailerlite','hubspot','whatsapp','gorgias','tidio','crisp','notion','discordbot','facebook','instagram','googleads'];
 import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 
 export default async (req, env) => {
   const url = new URL(req.url);
   const toolkit = url.searchParams.get('toolkit') || '';
 
-  // Thử app ứng viên (tạm thời, chỉ tạo phiên riêng 1 công cụ nên không ảnh hưởng phiên của khách): ?toolkit=<slug>&thu=1
-  const probe = url.searchParams.get('thu') === '1' && PROBE_SLUGS.includes(toolkit);
-  if (!TOOLKITS.includes(toolkit) && !probe) {
+  if (!TOOLKITS.includes(toolkit)) {
     return Response.json({ error: 'Công cụ này chưa được mở kết nối thật.' }, { status: 400 });
   }
   const who = await resolveUid(req, env, url.searchParams.get('uid'));

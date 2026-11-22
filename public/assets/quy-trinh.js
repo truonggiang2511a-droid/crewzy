@@ -10,6 +10,8 @@
   var mcpUrls = [];
   var names = {};
   var dep = new URLSearchParams(location.search).get('phong') || 'all';
+  var channel = new URLSearchParams(location.search).get('kenh') || 'all';
+  var catalogStatus = {};
   var sched = { schedules: [], days: {}, modes: {} };
   var MCP_INFO = {
     apify: { name: 'Apify', letter: 'A', bg: '#246DFF', note: 'soi Reels/TikTok, quảng cáo Facebook' },
@@ -40,6 +42,43 @@
   }
   function mcpOn(m) { var host = data.mcpHosts[m] || m; return mcpUrls.some(function (u) { return u.indexOf(host) >= 0; }); }
 
+  function renderChannels() {
+    var keys = ['all'].concat(Object.keys(data.channels || {}));
+    $('[data-channels]').innerHTML = keys.map(function (k) {
+      var on = channel === k;
+      return '<button type="button" data-channel="' + k + '" aria-pressed="' + on + '" style="min-height:32px;padding:0 12px;border-radius:99px;border:1px solid ' + (on ? 'var(--accent)' : '#D6D6D6') + ';background:' + (on ? 'var(--accent)' : '#fff') + ';color:' + (on ? '#fff' : 'inherit') + ';font:inherit;font-size:13px;cursor:pointer">' + esc(k === 'all' ? 'Tất cả' : data.channels[k]) + '</button>';
+    }).join('');
+  }
+
+  // Một nhóm công cụ: các app thay thế nhau, nối 1 app là đủ. Hiện app đã nối trước, app gợi ý sau.
+  function groupRow(g) {
+    var connectedApps = g.apps.filter(function (s) { return accounts[s] > 0; });
+    var mcpConnected = (g.mcp || []).filter(mcpOn);
+    var ok = connectedApps.length || mcpConnected.length || g.san_co;
+    var order = connectedApps.concat(g.apps.filter(function (s) { return connectedApps.indexOf(s) < 0 && catalogStatus[s] === 'ready'; }));
+    var icons = order.slice(0, 10).map(function (s) { return appIcon(s, accounts[s] > 0, false); }).join('');
+    var more = order.length > 10 ? '<span class="muted" style="font-size:12px">+' + (order.length - 10) + '</span>' : '';
+    var soon = g.apps.filter(function (s) { return catalogStatus[s] && catalogStatus[s] !== 'ready'; }).map(function (s) { return names[s] || s; });
+    var chips = (g.mcp || []).map(function (m) { return mcpChip(m, mcpOn(m)); }).join('');
+    return '<div style="display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:' + (ok ? '#F6FBF7' : g.bat_buoc ? '#FFF6F4' : '#F7F7F8') + '">' +
+      '<p style="margin:0;font-size:12px;font-weight:600;display:flex;gap:6px;align-items:center">' + esc(g.vai) +
+      (g.bat_buoc ? '<span style="font-weight:500;color:' + (ok ? 'var(--ok)' : '#B3261E') + '">' + (ok ? '· đã có' : '· cần nối 1 app') + '</span>' : '<span class="muted" style="font-weight:500">· không bắt buộc' + (ok ? ', đã có' : '') + '</span>') + '</p>' +
+      (g.san_co ? '<p class="muted" style="margin:0;font-size:12px">' + esc(g.san_co) + '</p>' : '') +
+      '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">' + icons + more + chips + '</div>' +
+      (soon.length ? '<p class="muted" style="margin:0;font-size:11px">Sắp có: ' + esc(soon.join(', ')) + '</p>' : '') + '</div>';
+  }
+  function groupsReady(w) {
+    return (w.cong_cu || []).filter(function (g) { return g.bat_buoc; }).every(function (g) {
+      return g.san_co || g.apps.some(function (s) { return accounts[s] > 0; }) || (g.mcp || []).some(mcpOn);
+    });
+  }
+  function firstMissing(w) {
+    var g = (w.cong_cu || []).filter(function (x) { return x.bat_buoc && !(x.san_co || x.apps.some(function (s) { return accounts[s] > 0; }) || (x.mcp || []).some(mcpOn)); })[0];
+    if (!g) return null;
+    var app = g.apps.filter(function (s) { return catalogStatus[s] === 'ready'; })[0];
+    return { group: g, app: app };
+  }
+
   function renderDeps() {
     var deps = [{ id: 'all', name: 'Tất cả' }].concat(data.departments);
     $('[data-deps]').innerHTML = deps.map(function (d) {
@@ -50,28 +89,36 @@
 
   function render() {
     renderDeps();
+    renderChannels();
     var depName = {}; data.departments.forEach(function (d) { depName[d.id] = d.name; });
-    var list = data.workflows.filter(function (w) { return dep === 'all' || w.phong === dep; });
+    var list = data.workflows.filter(function (w) { return (dep === 'all' || w.phong === dep) && (channel === 'all' || (w.kenh || []).indexOf(channel) >= 0); });
+    if (!list.length) { listEl.innerHTML = '<p class="muted" style="margin:0">Chưa có quy trình cho lựa chọn này.</p>'; return; }
     listEl.innerHTML = list.map(function (w) {
-      var missApp = w.app.filter(function (s) { return !(accounts[s] > 0); });
-      var missMcp = w.mcp.filter(function (m) { return m !== 'openart' && !mcpOn(m); });
-      var ready = !missApp.length && !missMcp.length;
-      var icons = w.app.map(function (s) { return appIcon(s, accounts[s] > 0, true); }).concat(w.nen_co.map(function (s) { return appIcon(s, accounts[s] > 0, false); })).join('');
-      var chips = w.mcp.map(function (m) { return mcpChip(m, mcpOn(m)); }).join('');
-      var fix = missApp.length ? '<a class="btn btn-primary" href="ket-noi.html?app=' + missApp[0] + '">Kết nối ' + esc(names[missApp[0]] || missApp[0]) + '</a>'
-        : missMcp.length ? '<a class="btn btn-primary" href="ket-noi.html?tab=mcp">Nối ' + esc((MCP_INFO[missMcp[0]] || {}).name || missMcp[0]) + '</a>' : '';
+      var ready = groupsReady(w);
+      var miss = firstMissing(w);
+      var kenh = (w.kenh || []).map(function (k) { return '<span class="pill" style="font-size:11px">' + esc((data.channels || {})[k] || k) + '</span>'; }).join('');
+      var groups = (w.cong_cu || []).map(groupRow).join('');
+      var fix = miss ? (miss.app ? '<a class="btn btn-primary" href="ket-noi.html?app=' + miss.app + '">Nối 1 app: ' + esc(miss.group.vai) + '</a>' : '<a class="btn btn-primary" href="ket-noi.html?tab=mcp">Nối ' + esc(miss.group.vai.toLowerCase()) + '</a>') : '';
       return '<article class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">' +
         '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><p class="muted" style="margin:0;font-size:12px;font-weight:600">' + esc(depName[w.phong]) + '</p><h2 style="margin:2px 0 0;font-size:16px;font-weight:600">' + esc(w.ten) + '</h2></div>' +
         (ready ? '<span class="pill pill-ok">Sẵn sàng</span>' : '<span class="pill pill-warn">Thiếu kết nối</span>') + '</div>' +
         '<p class="muted" style="margin:0;font-size:13px;line-height:1.55">' + esc(w.mo_ta) + '</p>' +
         '<p style="margin:0;font-size:12px;color:#4A4A4A">Gợi ý lịch: ' + esc(w.lich) + '</p>' +
-        ((icons || chips) ? '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' + icons + chips + '</div>' : '') +
+        (kenh ? '<div style="display:flex;gap:4px;flex-wrap:wrap">' + kenh + '</div>' : '') +
+        (groups ? '<details' + (ready ? '' : ' open') + '><summary style="cursor:pointer;font-size:13px;font-weight:600">Công cụ chạy quy trình (' + (w.cong_cu || []).length + ' vai trò, chọn app bạn dùng)</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">' + groups + '</div></details>' : '') +
         '<details><summary style="cursor:pointer;font-size:13px;font-weight:600">Các bước (' + w.buoc.length + ')</summary><ol style="margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.6">' + w.buoc.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol></details>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">' + (fix ||
           '<a class="btn btn-primary" href="chat.html?q=' + encodeURIComponent('Chạy quy trình "' + w.ten + '" (mã ' + w.id + '): gọi CREWZY_QUY_TRINH với id "' + w.id + '" để lấy các bước, làm đúng thứ tự, nộp kết quả kèm quy_trinh.' + (w.hoi ? ' Hỏi tôi: ' + w.hoi + ' nếu cần.' : '')) + '">Chạy ngay</a>') +
         '<button type="button" class="btn btn-ghost" data-assign="' + w.id + '">Giao cho AI của tôi</button>' +
         '<button type="button" class="btn btn-ghost" data-sched="' + w.id + '">Hẹn giờ</button></div></article>';
     }).join('');
+  }
+
+  function syncUrl() {
+    var q = [];
+    if (dep !== 'all') q.push('phong=' + dep);
+    if (channel !== 'all') q.push('kenh=' + channel);
+    history.replaceState(null, '', 'quy-trinh.html' + (q.length ? '?' + q.join('&') : ''));
   }
 
   function renderSched() {
@@ -119,7 +166,9 @@
   document.addEventListener('click', function (e) {
     var t = e.target;
     var d = t.closest('[data-dep]');
-    if (d) { dep = d.getAttribute('data-dep'); history.replaceState(null, '', dep === 'all' ? 'quy-trinh.html' : 'quy-trinh.html?phong=' + dep); render(); return; }
+    if (d) { dep = d.getAttribute('data-dep'); syncUrl(); render(); return; }
+    var c = t.closest('[data-channel]');
+    if (c) { channel = c.getAttribute('data-channel'); syncUrl(); render(); return; }
     var a = t.closest('[data-assign]');
     if (a) {
       a.disabled = true;
@@ -149,7 +198,7 @@
     loadSched()
   ]).then(function (r) {
     data = r[0];
-    (r[1].apps || []).forEach(function (a) { names[a.slug] = a.name; });
+    (r[1].apps || []).forEach(function (a) { names[a.slug] = a.name; catalogStatus[a.slug] = a.status; });
     accounts = (r[2] && r[2].accounts) || {};
     mcpUrls = ((r[3] && r[3].servers) || []).map(function (s) { return s.url; });
     var b = (r[4] && r[4].brand) || {};
