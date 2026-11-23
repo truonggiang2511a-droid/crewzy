@@ -197,6 +197,24 @@ export async function jobsForAi(env, uid, all, who, id) {
   };
 }
 
+// Duyệt hàng loạt (CREWZY_DUYET_HANG_LOAT, src/lib/publish.js): items [{id, gio_dang}] → da_duyet; gio_dang rỗng = đăng ngay (bỏ giờ hẹn cũ để cron không đăng lại).
+export async function approveBatch(env, uid, items, who) {
+  const jobs = await listJobs(env, uid);
+  const done = [];
+  let timed = false;
+  for (const it of items) {
+    const j = jobs.find((x) => x.id === it.id);
+    if (!j || !['cho_duyet', 'da_duyet'].includes(j.trang_thai)) continue;
+    j.trang_thai = 'da_duyet'; j.cap_nhat = now();
+    if (it.gio_dang) { j.gio_dang = it.gio_dang; delete j.xep_dang; timed = true; } else delete j.gio_dang;
+    j.lich_su = [...(j.lich_su || []), { luc: now(), viec: (clip(who, 40) || 'Khách') + ' duyệt' + (it.gio_dang ? ' · hẹn đăng ' + it.gio_dang : ' · đăng ngay') }].slice(-20);
+    done.push({ id: j.id, tieu_de: j.tieu_de, kenh: (j.ket_qua && j.ket_qua.kenh) || [], gio_dang: j.gio_dang || '' });
+  }
+  if (done.length) await saveJobs(env, uid, jobs);
+  if (timed) await markPostIndex(env, uid);
+  return done;
+}
+
 // Giờ hẹn đăng → ISO UTC. "19:00" = hôm nay giờ VN (đã qua thì ngày mai); ISO không múi giờ coi như giờ VN.
 export function parseGioDang(v, nowMs = Date.now()) {
   const s = String(v || '').trim();

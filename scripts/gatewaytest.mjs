@@ -61,6 +61,15 @@ assert.equal(JSON.parse(store.get('aiseen:' + UID)).ten, 'Claude');
 
 // 2. tools/list: có đủ công cụ Crewzy cho AI ngoài, không lộ công cụ chỉ dành cho Trợ lý trong app.
 const names = (await rpc('tools/list', {})).tools.map((t) => t.name);
+// 23/11: bảng duyệt nội dung trong chat (MCP Apps).
+{ const tl = (await rpc('tools/list', {})).tools; const xem = tl.find((t) => t.name === 'CREWZY_XEM_NOI_DUNG');
+  assert.equal(xem._meta.ui.resourceUri, 'ui://crewzy/duyet.html');
+  assert.ok(tl.find((t) => t.name === 'CREWZY_DUYET_HANG_LOAT')._meta.ui.visibility.includes('app'));
+  const rr = await rpc('resources/read', { uri: 'ui://crewzy/duyet.html' });
+  assert.equal(rr.contents[0].mimeType, 'text/html;profile=mcp-app'); assert.ok(rr.contents[0].text.includes('ui/initialize'));
+  assert.ok(rr.contents[0]._meta.ui.csp.resourceDomains.length);
+  assert.equal((await rpc('resources/list', {})).resources[0].uri, 'ui://crewzy/duyet.html');
+  const xr = await call('CREWZY_XEM_NOI_DUNG', {}); assert.ok(xr.data && 'so_bai' in xr.data); }
 for (const want of ['COMPOSIO_SEARCH_TOOLS', 'CREWZY_BRAIN', 'CREWZY_TAO_ANH', 'CREWZY_QUY_TRINH', 'CREWZY_DOC_WEB', 'CREWZY_TAI_LEN', 'CREWZY_VIEC_CAN_LAM', 'CREWZY_NOP_KET_QUA']) {
   assert.ok(names.includes(want), 'thiếu ' + want);
 }

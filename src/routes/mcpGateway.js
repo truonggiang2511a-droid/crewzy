@@ -12,6 +12,7 @@ import { APP_NAME, getApiKey, verifyUpstreamToken, userIdFor } from '../lib/comm
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool, imageShortcut } from '../lib/crewzyTools.js';
+import { UI_URI, publishUiHtml } from '../lib/publish.js';
 import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS, MCP_MEDIA_FREE } from '../lib/workflows.js';
@@ -25,7 +26,9 @@ const plain = (status, text) => new Response(text, { status, headers: { 'content
 
 // Công cụ Crewzy đưa ra link MCP. CREWZY_TAO_VIDEO, CREWZY_CHO chỉ dùng trong Trợ lý AI của app (APP_ONLY_TOOLS):
 // không liệt kê VÀ không cho gọi thẳng qua MCP (gọi đúng tên vẫn bị chặn, tránh tốn tiền làm video / treo Worker).
-const MCP_TOOLS = CREWZY_TOOL_DEFS.filter((t) => !APP_ONLY_TOOLS.includes(t.function.name)).map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters }));
+// MCP Apps (Claude, ChatGPT): CREWZY_XEM_NOI_DUNG vẽ bảng duyệt ngay trong chat (ui://crewzy/duyet.html); bảng gọi được CREWZY_DUYET_HANG_LOAT.
+const UI_META = { CREWZY_XEM_NOI_DUNG: { ui: { resourceUri: UI_URI, visibility: ['model', 'app'] } }, CREWZY_DUYET_HANG_LOAT: { ui: { visibility: ['model', 'app'] } } };
+const MCP_TOOLS = CREWZY_TOOL_DEFS.filter((t) => !APP_ONLY_TOOLS.includes(t.function.name)).map((t) => ({ name: t.function.name, description: t.function.description, inputSchema: t.function.parameters, ...(UI_META[t.function.name] ? { _meta: UI_META[t.function.name] } : {}) }));
 const MCP_TOOL_NAMES = new Set(MCP_TOOLS.map((t) => t.name));
 
 // Tên AI của khách ghi lúc initialize (aiseen:<uid>) — để phiếu việc ghi "Claude nhận việc" thay vì "AI của bạn".
@@ -129,6 +132,17 @@ export default async (request, env, ctx) => {
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { description: p.description, messages: [{ role: 'user', content: { type: 'text', text: p.text } }] } }, sid);
   }
 
+  // Tài nguyên giao diện (MCP Apps): bảng duyệt nội dung. Crewzy tự trả lời, không gửi Composio.
+  if (rpc && (rpc.method === 'resources/list' || rpc.method === 'resources/read' || rpc.method === 'resources/templates/list')) {
+    const sid = { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } };
+    const res0 = { uri: UI_URI, name: 'Bảng duyệt nội dung Crewzy', mimeType: 'text/html;profile=mcp-app' };
+    if (rpc.method === 'resources/templates/list') return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { resourceTemplates: [] } }, sid);
+    if (rpc.method === 'resources/list') return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { resources: [res0] } }, sid);
+    if ((rpc.params && rpc.params.uri) !== UI_URI) return Response.json({ jsonrpc: '2.0', id: rpc.id, error: { code: -32002, message: 'Không có tài nguyên này' } }, sid);
+    const origin = env.PUBLIC_ORIGIN || reqUrl.origin;
+    return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { contents: [{ ...res0, text: publishUiHtml(), _meta: { ui: { csp: { resourceDomains: [origin], connectDomains: [] }, prefersBorder: false } } }] } }, sid);
+  }
+
   // Tính năng theo gói: ảnh Đẹp chỉ từ gói Tăng trưởng (hạ xuống Nhanh trước khi trừ credit).
   if (rpc && rpc.method === 'tools/call' && rpc.params && uid && rpc.params.name === 'CREWZY_TAO_ANH') {
     const feat = await getFeatures(env, uid).catch(() => null);
@@ -179,6 +193,7 @@ export default async (request, env, ctx) => {
       agent: rpc.params.name === 'CREWZY_VIEC_CAN_LAM' ? await seenAi(env, uid) : 'AI của bạn' });
     const text = out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data);
     const result = { content: [{ type: 'text', text }], isError: !!out.error };
+    if (!out.error && rpc.params.name === 'CREWZY_XEM_NOI_DUNG') result.structuredContent = out.data; // dữ liệu cho bảng duyệt
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
   }
 
@@ -233,7 +248,7 @@ export default async (request, env, ctx) => {
     patched = rewriteRpc(text, ct, rpc.id, (result) => {
       result.instructions = [result.instructions, ins.text].filter(Boolean).join('\n\n');
       result.serverInfo = { ...(result.serverInfo || {}), name: APP_NAME + ' (Composio)' };
-      result.capabilities = { ...(result.capabilities || {}), prompts: { listChanged: false } };
+      result.capabilities = { ...(result.capabilities || {}), prompts: { listChanged: false }, resources: { ...((result.capabilities || {}).resources || {}) } };
     });
   }
   out.delete('content-length');
