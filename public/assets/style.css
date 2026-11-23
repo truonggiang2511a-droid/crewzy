@@ -624,3 +624,13 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 @media (max-width: 760px) { .jb-acts .btn { flex: 1 1 46%; } .jb-acts .btn-primary { flex-basis: 100%; } }
 .mz-grid { align-items: start; }
 .jb-chips .btn.chip.btn-ghost.on, .jb-chips .btn.chip.btn-ghost.on:hover { background: #0F0F0F; color: #fff; border-color: #0F0F0F; opacity: 1; }
+
+/* Hộp thoại chọn app trước khi chạy nhiệm vụ */
+.mz-dlg { position: fixed; inset: 0; z-index: 80; background: rgba(15,15,15,.45); display: flex; align-items: flex-end; justify-content: center; padding: 0; }
+.mz-dlg-box { background: #fff; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding: 18px; display: grid; gap: 12px; }
+.mz-dlg-box h3 { margin: 0; font-size: 18px; }
+.mz-q { border: 1px solid #E5E5E5; border-radius: 10px; padding: 10px 12px; margin: 0; display: grid; gap: 4px; }
+.mz-q legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.mz-opt { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 14px; cursor: pointer; }
+.mz-opt input { width: 18px; height: 18px; }
+@media (min-width: 761px) { .mz-dlg { align-items: center; } .mz-dlg-box { border-radius: 12px; } }

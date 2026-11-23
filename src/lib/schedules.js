@@ -4,6 +4,7 @@
 //   tới giờ → tạo phiếu việc (cho_lam) cho AI của khách nhận; che_do 'crewzy' thì Trợ lý Crewzy tự chạy bằng credit của app.
 import { kvGetJson, kvPutJson } from './common.js';
 import { workflowById, workflowPrompt } from './workflows.js';
+import { missionById, prefText } from './missions.js';
 import { createJob } from './jobs.js';
 
 export const MAX_SCHEDULES = 10;
@@ -111,6 +112,7 @@ export async function runDueSchedules(env, { origin, runAuto, now = new Date() }
       const notes = [];
       if (s.tu_dong) notes.push('TỰ TRẢ LỜI ĐÃ BẬT: chủ cho phép trả lời ngay câu thường theo bước của quy trình; câu nhạy cảm vẫn nộp chờ duyệt.');
       if (s.lap === 'moi_gio') notes.push('Lịch chạy mỗi giờ: chỉ xử lý phần mới kể từ lần trước; không có gì mới thì nộp trang_thai xong với ghi_chu "Không có gì mới".');
+      if (s.nv && missionById(s.nv)) { const pt = prefText(missionById(s.nv), ((await kvGetJson(env, 'apref:' + uid).catch(() => null)) || {})[s.nv]); if (pt) notes.push(pt); }
       if (s.ghi_chu) notes.push('Ghi chú của chủ: ' + s.ghi_chu);
       const extra = notes.join('\n');
       const hh = String(Math.floor(t.minutes / 60)).padStart(2, '0');

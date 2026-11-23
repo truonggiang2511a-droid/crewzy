@@ -17,6 +17,38 @@
 
   // Nối xong quay về đúng nhiệm vụ này (ket-noi.html đọc tro_ve).
   function back(href, m) { return href.indexOf('ket-noi.html') === 0 ? href + (href.indexOf('?') > 0 ? '&' : '?') + 'tro_ve=' + encodeURIComponent((location.pathname.split('/').pop() || 'index.html') + '#nv-' + m.id) : href; }
+  // ----- Hộp thoại chọn app trước khi chạy (trắc nghiệm) -----
+  var dlg = null; // { id, mode: 'chay'|'tu_chay', sel: { s0:[], s1:[], bao_cao:[] } }
+  function optsOf(sl) { var o = sl.da_noi.map(function (a) { return { v: a.slug, n: a.name }; }); if (sl.san_co) o.push({ v: 'crewzy', n: 'Công cụ có sẵn của Crewzy' }); return o; }
+  function openDlg(m, mode) {
+    var sel = {}, saved = m.chon || {};
+    m.slots.forEach(function (sl, i) { var o = optsOf(sl), s = (saved['s' + i] || []).filter(function (v) { return o.some(function (x) { return x.v === v; }); }); sel['s' + i] = s.length ? s : (sl.nhieu ? o.filter(function (x) { return x.v !== 'crewzy'; }).map(function (x) { return x.v; }).concat(o.length && !o.some(function (x) { return x.v !== 'crewzy'; }) ? ['crewzy'] : []) : o.slice(0, 1).map(function (x) { return x.v; })); });
+    sel.bao_cao = (saved.bao_cao && saved.bao_cao.length) ? saved.bao_cao : ['crewzy'];
+    dlg = { id: m.id, mode: mode, sel: sel }; render();
+  }
+  function dlgHtml(m) {
+    var q = m.slots.map(function (sl, i) {
+      var o = optsOf(sl), key = 's' + i;
+      if (!o.length) return '<fieldset class="mz-q"><legend>' + esc(sl.vai) + '</legend><p class="muted">Chưa nối app nào. <a href="' + esc(back('ket-noi.html?cat=' + (sl.cat || m.cat), m)) + '">+ Nối app</a></p></fieldset>';
+      var type = sl.nhieu ? 'checkbox' : 'radio';
+      return '<fieldset class="mz-q"><legend>' + esc(sl.vai) + (sl.nhieu ? ' <small>(chọn nhiều)</small>' : '') + '</legend>' + o.map(function (x) {
+        var on = (dlg.sel[key] || []).indexOf(x.v) >= 0;
+        return '<label class="mz-opt"><input type="' + type + '" name="' + key + '" data-q="' + key + '" value="' + esc(x.v) + '"' + (on ? ' checked' : '') + '> ' + esc(x.n) + '</label>';
+      }).join('') + '<a class="mz-more" href="' + esc(back('ket-noi.html?cat=' + (sl.cat || m.cat), m)) + '">+ Thêm app của bạn</a></fieldset>';
+    }).join('');
+    var rep = (data.bao_cao_ung_vien || []).map(function (x) { return { v: x.slug, n: x.name }; }); rep.unshift({ v: 'crewzy', n: 'Chỉ trong Crewzy (Việc chờ duyệt, Kết quả)' });
+    var r = '<fieldset class="mz-q"><legend>Báo cáo kết quả gửi về đâu? <small>(chọn nhiều)</small></legend>' + rep.map(function (x) {
+      return '<label class="mz-opt"><input type="checkbox" data-q="bao_cao" value="' + esc(x.v) + '"' + ((dlg.sel.bao_cao || []).indexOf(x.v) >= 0 ? ' checked' : '') + '> ' + esc(x.n) + '</label>';
+    }).join('') + '<a class="mz-more" href="' + esc(back('ket-noi.html?cat=office', m)) + '">+ Nối Google Sheets, Gmail, Telegram…</a></fieldset>';
+    return '<div class="mz-dlg" role="dialog" aria-modal="true"><div class="mz-dlg-box"><h3>' + esc(m.ten) + '</h3><p class="muted">Chọn app AI sẽ dùng và nơi nhận báo cáo, rồi bấm bắt đầu. Lựa chọn được nhớ cho các lần sau.</p>' + q + r +
+      '<div class="mz-act"><button type="button" class="btn btn-primary" data-dlg-go>' + (dlg.mode === 'tu_chay' ? '⏰ Lưu và bật tự chạy' : '▶ Bắt đầu chạy') + '</button><button type="button" class="btn btn-ghost" data-dlg-x>Huỷ</button></div></div></div>';
+  }
+  function prefLine(m, sel) {
+    var nm = function (v) { return v === 'crewzy' ? 'công cụ có sẵn của Crewzy' : (function () { var f = null; m.slots.forEach(function (sl) { sl.da_noi.concat(sl.goi_y).forEach(function (a) { if (a.slug === v) f = a.name; }); }); (data.bao_cao_ung_vien || []).forEach(function (a) { if (a.slug === v) f = a.name; }); return f || v; })(); };
+    var l = []; m.slots.forEach(function (sl, i) { var s = sel['s' + i] || []; if (s.length) l.push('- ' + sl.vai + ': dùng ' + s.map(nm).join(', ')); });
+    if ((sel.bao_cao || []).length) l.push('- Báo cáo kết quả gửi về: ' + sel.bao_cao.map(function (s) { return s === 'crewzy' ? 'chỉ trong Crewzy (Việc chờ duyệt, Kết quả)' : nm(s); }).join(', '));
+    return l.length ? '\n\nLỰA CHỌN CỦA KHÁCH (khách đã chọn trong Crewzy, làm ĐÚNG như vậy, không tự đổi app, không hỏi lại):\n' + l.join('\n') : '';
+  }
   function slotHtml(sl, m) {
     var chips = sl.da_noi.map(function (a) { return '<a class="mz-app on" href="' + esc(a.href) + '" title="' + esc(a.name) + ' đã nối">' + logo(a) + '<span>' + esc(a.name) + '</span><i>✓</i></a>'; });
     chips = chips.concat(sl.goi_y.map(function (a) { return '<a class="mz-app" href="' + esc(back(a.href, m)) + '" title="Nối ' + esc(a.name) + '">' + logo(a) + '<span>' + esc(a.name) + '</span><i>+</i></a>'; }));
@@ -51,7 +83,7 @@
         '<span class="mz-chev" aria-hidden="true">' + (isOpen ? '▴ Thu gọn' : '▾ Chi tiết') + '</span>' +
       '</button>' + detail +
       '<div class="mz-act">' +
-        '<a class="btn btn-primary" href="chat.html?q=' + encodeURIComponent(runPrompt(m)) + '">▶ Chạy ngay</a>' +
+        '<button type="button" class="btn btn-primary" data-run="' + esc(m.id) + '">▶ Chạy ngay</button>' +
         (!m.dang_chay && !m.san_sang ? '<button type="button" class="btn btn-ghost" data-open="' + esc(m.id) + '">+ Nối app</button>' :
         '<button type="button" class="btn btn-ghost" data-nv="' + esc(m.id) + '" data-on="' + (m.dang_chay ? '1' : '') + '"' + (b ? ' disabled' : '') + '>' +
           (b ? 'Đang lưu…' : m.dang_chay ? '⏸ Tắt tự chạy' : '⏰ Tự chạy') + '</button>') +
@@ -68,8 +100,10 @@
       (running ? '<button type="button" class="btn btn-ghost" data-nv-off' + (busy ? ' disabled' : '') + '>Tắt hết</button>' : '') + '</div></div>';
     var warn = !data.brand_ok ? '<p class="mz-warn">Điền <a href="thuong-hieu.html">Brain thương hiệu</a> (tên, sản phẩm, khách hàng, giọng văn) trước khi bật tự chạy, để AI làm đúng thương hiệu.</p>' : '';
     if (data.lich_goi === 0) warn += '<p class="mz-warn">Gói hiện tại chưa có tự chạy theo giờ — vẫn bấm Chạy ngay được. <a href="goi.html">Nâng gói</a> để AI tự làm mỗi ngày.</p>';
-    box.innerHTML = head + warn + (msg ? '<p class="mz-msg">' + msg + '</p>' : '') + '<div class="mz-grid">' + list.map(card).join('') + '</div>';
+    box.innerHTML = head + warn + (msg ? '<p class="mz-msg">' + msg + '</p>' : '') + '<div class="mz-grid">' + list.map(card).join('') + '</div>' + (dlg && missionById(dlg.id) ? dlgHtml(missionById(dlg.id)) : '');
   }
+
+  function missionById(id) { return ((data && data.nhiem_vu) || []).filter(function (m) { return m.id === id; })[0]; }
 
   function load() {
     var q = uidQ();
@@ -94,11 +128,32 @@
       }).catch(function () { busy = ''; render('⚠ Lỗi mạng, thử lại.'); });
   }
 
+  box.addEventListener('change', function (e) {
+    var q = e.target.closest('[data-q]');
+    if (!q || !dlg) return;
+    var k = q.getAttribute('data-q'), v = q.value, cur = dlg.sel[k] || [];
+    if (q.type === 'radio') dlg.sel[k] = [v];
+    else dlg.sel[k] = q.checked ? cur.concat([v]) : cur.filter(function (x) { return x !== v; });
+  });
   box.addEventListener('click', function (e) {
+    var run = e.target.closest('[data-run]');
+    if (run) { var mm = missionById(run.getAttribute('data-run')); if (mm) openDlg(mm, 'chay'); return; }
+    if (e.target.closest('[data-dlg-x]')) { dlg = null; return render(); }
+    if (e.target.closest('[data-dlg-go]') && dlg) {
+      var m0 = missionById(dlg.id), d0 = dlg, u = window.vpaiUid ? window.vpaiUid() : '';
+      fetch('/api/autopilot', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chon', nv: d0.id, chon: d0.sel, uid: u || undefined }) })
+        .then(function (r) { return r.json(); }).then(function (j) {
+          if (j.nhiem_vu) data.nhiem_vu = j.nhiem_vu;
+          dlg = null;
+          if (d0.mode === 'chay') { location.href = 'chat.html?q=' + encodeURIComponent(runPrompt(m0) + prefLine(m0, d0.sel)); return; }
+          post({ action: 'bat', nv: d0.id }, d0.id);
+        }).catch(function () { render('⚠ Lỗi mạng, thử lại.'); });
+      return;
+    }
     var o = e.target.closest('[data-open]');
     if (o) { open = open === o.getAttribute('data-open') ? '' : o.getAttribute('data-open'); return render(); }
     var t = e.target.closest('[data-nv]');
-    if (t) return post({ action: t.getAttribute('data-on') ? 'tat' : 'bat', nv: t.getAttribute('data-nv') }, t.getAttribute('data-nv'));
+    if (t) { if (!t.getAttribute('data-on')) { var m1 = missionById(t.getAttribute('data-nv')); if (m1) return openDlg(m1, 'tu_chay'); } return post({ action: t.getAttribute('data-on') ? 'tat' : 'bat', nv: t.getAttribute('data-nv') }, t.getAttribute('data-nv')); }
     if (e.target.closest('[data-nv-all]')) return post({ action: 'bat', nv: 'all' }, 'all');
     if (e.target.closest('[data-nv-off]')) return post({ action: 'tat' }, 'all');
   });

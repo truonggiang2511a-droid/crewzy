@@ -71,6 +71,23 @@ export const MISSIONS = [
 ];
 // Ưu tiên khi gói giới hạn số lịch: ra khách trước, rồi nội dung, quảng cáo, báo cáo, nghiên cứu.
 export const PRIORITY = ['cham_soc_khach', 'cham_soc_mxh', 'san_xuat', 'quang_cao', 'bao_cao_ceo', 'nghien_cuu'];
+// Nơi báo cáo khách có thể chọn (chỉ hiện app đã nối) + lựa chọn app của khách cho từng ô (chon = {s0: ['higgsfield'], s1: [...], bao_cao: [...]}).
+export const REPORT_APPS = ['googlesheets', 'notion', 'airtable', 'gmail', 'telegram', 'slack', 'microsoft_teams', 'discord'];
+export function cleanChon(m, chon) {
+  const out = {};
+  const ok = (arr, allow) => [...new Set([].concat(arr || []).map(String))].filter((x) => x === 'crewzy' || allow.includes(x)).slice(0, 12);
+  m.slots.forEach((sl, i) => { const v = ok(chon && chon['s' + i], sl.apps.map((a) => a.replace(/^mcp:/, ''))); if (v.length) out['s' + i] = v; });
+  const b = ok(chon && chon.bao_cao, REPORT_APPS); if (b.length) out.bao_cao = b;
+  return out;
+}
+const nameOfSlug = (s) => s === 'crewzy' ? 'công cụ có sẵn của Crewzy' : nameOf(appBySlug(s) ? s : 'mcp:' + s);
+export function prefText(m, chon) {
+  if (!chon) return '';
+  const l = [];
+  m.slots.forEach((sl, i) => { if (chon['s' + i] && chon['s' + i].length) l.push(`- ${sl.vai}: dùng ${chon['s' + i].map(nameOfSlug).join(', ')}`); });
+  if (chon.bao_cao && chon.bao_cao.length) l.push(`- Báo cáo kết quả gửi về: ${chon.bao_cao.map((s) => s === 'crewzy' ? 'chỉ trong Crewzy (Việc chờ duyệt, Kết quả)' : nameOf(appBySlug(s) ? s : 'mcp:' + s)).join(', ')}`);
+  return l.length ? 'LỰA CHỌN CỦA KHÁCH (khách đã chọn trong Crewzy, làm ĐÚNG như vậy, không tự đổi app):\n' + l.join('\n') : '';
+}
 export const missionOf = (workflowId) => MISSIONS.find((m) => m.lich.some((l) => l.id === workflowId));
 export const missionById = (id) => MISSIONS.find((m) => m.id === id);
 
