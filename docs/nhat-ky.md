@@ -175,3 +175,8 @@ Chuyển từ CLAUDE.md mục 5 ngày 23/11/2026. GHI MỤC MỚI VÀO CUỐI FI
   twitter, threads, tiktok, snapchat, twitch, kick, vimeo, wordpress_com, buffer, discordbot. KHÔNG có: bluesky, mastodon, tumblr, medium, zalo, lemon8.
 
 - 23/11/2026: Giang hỏi phiên dài có tốn token không → rút gọn CLAUDE.md 93KB → 36KB: ghi chú kỹ thuật sang docs/ghi-chu-ky-thuat.md, nhật ký sang file này. Từ nay nhắc Giang mở phiên mới khi phiên dài.
+
+## 23/11/2026 — Veo/Flow + báo cáo Google Sheet sau khi đăng
+- Giang: thêm app làm ảnh/video (Higgsfield, HeyGen, Veo, Google Flow) cho nhánh Sản xuất & Phân phối; sau khi đăng hết nền tảng AI ghi Google Sheet (bài, nền tảng, giờ, thành công/thất bại + lý do, link từng nền tảng), chưa có bảng thì tự lập, rồi email link cho chủ.
+- Đã làm: Higgsfield/HeyGen đã có sẵn → thêm `gemini` (đổi tên "Gemini (Veo)", Veo dùng khoá Gemini) vào slot san_xuat, lá cây `noi_dung`, APP_RULES promptPro; Google Flow KHÔNG có API/MCP → chỉ là link mở web trong "Tự sửa" (jobs.js, loại 2). workflows.js: `dang_bai_da_duyet` thêm 3 bước (ghi Sheet "Crewzy – Báo cáo bài đã đăng", tự tạo nếu chưa có, email email_ceo qua bao_ceo), nhóm công cụ tuỳ chọn `bang_dang_bai`, `gui_link_bang`; mission san_xuat thêm slot 3 (googlesheets).
+- npm test OK. CHƯA thử thật: AI tạo Sheet + ghi dòng + gửi Gmail trên tài khoản thật; video Veo qua Composio gemini (kiểm tên công cụ video của toolkit).
