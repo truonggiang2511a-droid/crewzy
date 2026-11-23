@@ -9,19 +9,37 @@ export const TOOLKITS = READY_SLUGS;
 // App 'ready' CHƯA thử /api/connect trên trang thật (auth API_KEY nên gần như chắc chạy). Lưới an toàn: tạo phiên lỗi "auth config"
 // thì tạo lại không có các app này để chat/link nối AI của mọi người không hỏng. Thử ra link (admin: /api/connect?toolkit=<slug>) rồi xoá khỏi đây.
 export const UNVERIFIED = ['vapi', 'retellai', 'bland_ai', 'upload_post', 'higgsfield'];
+// Lưới an toàn nhiều tầng (23/11 sửa lỗi "AI gặp lỗi" sau khi thêm Higgsfield): bản cũ ở tầng cuối bỏ app UNVERIFIED khỏi toolkits
+// nhưng VẪN giữ tools:{higgsfield:…} → Composio từ chối vì bộ lọc trỏ tới app không có trong phiên → chat chết với mọi khách.
+// Giờ: mỗi tầng bỏ app UNVERIFIED khỏi CẢ toolkits lẫn tools, không phụ thuộc chữ trong thông báo lỗi; tầng cuối là cấu hình tối thiểu.
+const dropKeys = (obj, keys) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out = Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k)));
+  return Object.keys(out).length ? out : undefined;
+};
+const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 export async function createSession(composio, userId, opts) {
-  try { return await composio.create(userId, opts); }
-  catch (e) {
-    // Lưới an toàn: cấu hình mới (tools/instant) bị Composio từ chối → bỏ chúng đi để chat không chết.
-    if (opts.tools || opts.instant) {
-      console.error('composio.create retry without tools/instant', e && e.message);
-      const { tools, instant, ...rest } = opts;
-      try { return await composio.create(userId, rest); } catch (e2) { e = e2; }
+  const safeToolkits = opts.toolkits ? opts.toolkits.filter((t) => !UNVERIFIED.includes(t)) : undefined;
+  const { tools, instant, ...base } = opts;
+  const attempts = [
+    opts,
+    // Bỏ app chưa kiểm chứng (cả bộ lọc tools của chúng), giữ Instant cho các app khác.
+    clean({ ...opts, toolkits: safeToolkits, tools: dropKeys(tools, UNVERIFIED) }),
+    // Tối thiểu: không tools, không instant, không app chưa kiểm chứng.
+    clean({ ...base, toolkits: safeToolkits }),
+  ];
+  let lastErr;
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const s = await composio.create(userId, attempts[i]);
+      if (i > 0) console.error('composio.create ok at fallback', i);
+      return s;
+    } catch (e) {
+      lastErr = e;
+      console.error('composio.create failed', i, e && e.message);
     }
-    if (!/auth.?config|managed/i.test(String(e && e.message)) || !opts.toolkits) throw e;
-    console.error('composio.create retry without unverified', e && e.message);
-    return composio.create(userId, { ...opts, toolkits: opts.toolkits.filter((t) => !UNVERIFIED.includes(t)) });
   }
+  throw lastErr;
 }
 export const MAX_ACCOUNTS_PER_TOOLKIT = 5;
 export const UID_PATTERN = /^[a-z0-9-]{8,64}$/;

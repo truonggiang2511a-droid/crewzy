@@ -138,7 +138,8 @@
       s.querySelector('.cz-ai-body').appendChild(stepsEl(item.list, false));
       return s;
     }
-    var err = aiWrap('<div class="cz-err">' + esc(item.text) + '</div>');
+    // Mã lỗi kỹ thuật (đã che khoá ở máy chủ) gập lại: khách chụp màn hình gửi là biết nguyên nhân, không cần mở log Cloudflare.
+    var err = aiWrap('<div class="cz-err">' + esc(item.text) + (item.detail ? '<details style="margin-top:6px;font-size:12px;opacity:.8"><summary>Mã lỗi kỹ thuật</summary><code style="white-space:pre-wrap;word-break:break-word">' + esc(item.detail) + '</code></details>' : '') + '</div>');
     return err;
   }
   function stepsEl(list, running) {
@@ -531,7 +532,7 @@
         closeSteps();
         if (ev.type === 'text') { add({ kind: 'assistant', text: ev.text }); spoken.push(ev.text); }
         else if (ev.type === 'image' || ev.type === 'video' || ev.type === 'audio') add({ kind: ev.type, text: ev.url });
-        else if (ev.type === 'error') add({ kind: 'error', text: ev.message });
+        else if (ev.type === 'error') add({ kind: 'error', text: ev.message, detail: ev.detail || '' });
       }
       function pump() {
         return reader.read().then(function (r) {
