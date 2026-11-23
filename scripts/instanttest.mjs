@@ -1,7 +1,7 @@
 // Thử Composio Instant (src/lib/instant.js): đọc tiền từng lần gọi, trừ credit có lãi, trần chi tiêu ngày, quy trình coi nhóm Instant là đủ.
 // Chạy: node scripts/instanttest.mjs (đã gộp vào npm test)
 import assert from 'node:assert/strict';
-import { instantUsd, instantConfig, recordInstant, INSTANT_APPS } from '../src/lib/instant.js';
+import { instantUsd, instantConfig, recordInstant, INSTANT_APPS, sessionToolLimits } from '../src/lib/instant.js';
 import { instantCredits } from '../src/lib/billing.js';
 import { WORKFLOWS, readiness } from '../src/lib/workflows.js';
 
@@ -23,8 +23,9 @@ assert.equal(instantCredits(env, 0), 0);
 // 3. Trần ngày: khách vượt 0,3 USD thì tắt Instant cho khách đó, khách khác vẫn dùng; toàn app vượt 1 USD thì tắt hết.
 const cfg = await instantConfig(env, 'khach-a');
 assert.equal(cfg.returnInstantCharge, true); assert.equal(cfg.returnPricesInSearch, true);
-assert.ok(cfg.tools.higgsfield.enable.includes('HIGGSFIELD_GENERATE_SOUL_V2_IMAGE'), 'Higgsfield Instant có ảnh');
-assert.ok(!cfg.tools.higgsfield.enable.some((t) => /SEEDANCE|VIDEO/.test(t)), 'Higgsfield Instant KHÔNG có video');
+const lim = sessionToolLimits().higgsfield.enable;
+assert.ok(lim.includes('HIGGSFIELD_GENERATE_SOUL_V2_IMAGE'), 'Higgsfield có ảnh');
+assert.ok(!lim.some((t) => /SEEDANCE|VIDEO/.test(t)), 'Higgsfield KHÔNG có video');
 await recordInstant(env, 'khach-a', 0.31);
 assert.equal(await instantConfig(env, 'khach-a'), false);
 assert.ok(await instantConfig(env, 'khach-b'));

@@ -12,6 +12,12 @@ export const UNVERIFIED = ['vapi', 'retellai', 'bland_ai', 'upload_post', 'higgs
 export async function createSession(composio, userId, opts) {
   try { return await composio.create(userId, opts); }
   catch (e) {
+    // Lưới an toàn: cấu hình mới (tools/instant) bị Composio từ chối → bỏ chúng đi để chat không chết.
+    if (opts.tools || opts.instant) {
+      console.error('composio.create retry without tools/instant', e && e.message);
+      const { tools, instant, ...rest } = opts;
+      try { return await composio.create(userId, rest); } catch (e2) { e = e2; }
+    }
     if (!/auth.?config|managed/i.test(String(e && e.message)) || !opts.toolkits) throw e;
     console.error('composio.create retry without unverified', e && e.message);
     return composio.create(userId, { ...opts, toolkits: opts.toolkits.filter((t) => !UNVERIFIED.includes(t)) });

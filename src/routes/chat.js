@@ -5,7 +5,7 @@
 // mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'can_bang' = Sonnet 5.5, 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
-import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE } from '../lib/instant.js';
+import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE, sessionToolLimits } from '../lib/instant.js';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Composio } from '@composio/core';
@@ -305,6 +305,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     const session = await createSession(composio, userIdFor(uid), {
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      tools: sessionToolLimits(),
       instant,
     });
     const [composioTools, built, ext] = await Promise.all([

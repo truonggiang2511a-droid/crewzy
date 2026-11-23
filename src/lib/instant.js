@@ -9,6 +9,8 @@
 // Toolkit có Instant (dashboard Composio → Toolkits → Instant, 22/11/2026) và đã có trong danh mục Crewzy.
 export const INSTANT_APPS = ['serpapi', 'firecrawl', 'tavily', 'elevenlabs', 'google_maps', 'apollo', 'semrush', 'ahrefs', 'higgsfield'];
 
+// Bộ lọc công cụ cấp PHIÊN (cú pháp tools:{toolkit:{enable:[…]}} đã có trong docs.composio.dev/docs/configuring-sessions): Higgsfield chỉ lộ công cụ ảnh.
+export const sessionToolLimits = () => Object.fromEntries(Object.entries(INSTANT_TOOL_LIMITS).map(([k, v]) => [k, { enable: v }]));
 // Higgsfield Instant (23/11/2026): chỉ cho ẢNH + xem trạng thái. Video (Seedance ~2 USD/lần, trừ trước, không huỷ được, lỗi vẫn mất tiền) KHÔNG bật Instant:
 // khách làm video Higgsfield bằng tài khoản của họ (MCP Higgsfield hoặc khoá API). Cú pháp instant.tools theo docs.composio.dev/docs/instant-tools.
 export const INSTANT_TOOL_LIMITS = { higgsfield: ['HIGGSFIELD_GENERATE_SOUL_STANDARD_IMAGE', 'HIGGSFIELD_GENERATE_SOUL_V2_IMAGE', 'HIGGSFIELD_GENERATE_IMAGE_WITH_REFERENCES', 'HIGGSFIELD_ESTIMATE_SOUL_V2_COST', 'HIGGSFIELD_LIST_SOUL_V2_STYLES', 'HIGGSFIELD_GET_REQUEST_STATUS'] };
@@ -26,7 +28,7 @@ export async function instantConfig(env, uid) {
   const day = vnDay(), lim = limits(env);
   const [a, u] = await Promise.all([spent(env, `instusd:${day}:all`), spent(env, `instusd:${day}:${uid}`)]);
   if (a >= lim.app || u >= lim.user) return false;
-  return { returnInstantCharge: true, returnPricesInSearch: true, tools: Object.fromEntries(Object.entries(INSTANT_TOOL_LIMITS).map(([k, v]) => [k, { enable: v }])) };
+  return { returnInstantCharge: true, returnPricesInSearch: true };
 }
 
 // Lấy số USD Composio tính cho một lần chạy. Ưu tiên trường instantCharge ở ngoài; không có thì cộng các instant_charge lồng bên trong
