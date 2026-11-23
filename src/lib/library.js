@@ -90,8 +90,8 @@ export const LIBRARY_TOOL_DEFS = [
 export async function libraryTool(env, uid, origin, name, args) {
   if (name === 'CREWZY_KHO') {
     const items = await listItems(env, uid, { kind: args && args.loai, q: args && args.tim, limit: 40 });
-    return { data: { so_luong: items.length, muc: items.map((i) => ({ loai: i.kind, link: i.url, ten: i.name || undefined, nguon: SOURCES[i.source] || i.source, ghi_chu: i.note || undefined })),
-      ghi_chu: items.length ? 'Dùng link ảnh thật này cho bài đăng hoặc làm ảnh mẫu (anh_mau) khi tạo ảnh/video.' : 'Kho trống. Gợi ý khách tải ảnh sản phẩm lên trang Kho, hoặc đọc website/fanpage của khách để lấy ảnh (CREWZY_DOC_WEB rồi CREWZY_LUU_KHO).' } };
+    return { data: { tai_len: origin + '/kho.html', so_luong: items.length, muc: items.map((i) => ({ loai: i.kind, link: i.url, ten: i.name || undefined, nguon: SOURCES[i.source] || i.source, ghi_chu: i.note || undefined })),
+      ghi_chu: items.length ? 'Dùng link ảnh thật này cho bài đăng hoặc làm ảnh mẫu (anh_mau) khi tạo ảnh/video.' : 'Kho trống. Gợi ý khách tải ảnh sản phẩm lên trang Kho (link tai_len), hoặc đọc website/fanpage của khách để lấy ảnh (CREWZY_DOC_WEB rồi CREWZY_LUU_KHO).' } };
   }
   if (name === 'CREWZY_LUU_KHO') {
     const links = (Array.isArray(args && args.links) ? args.links : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);

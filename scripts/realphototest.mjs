@@ -29,3 +29,36 @@ const m = memoText(['CREWZY_TAO_ANH: ĐÃ TẠO ảnh · https://x.dev/api/img/a
 assert.ok(m.includes('KHÔNG tạo lại') && m.includes('DỪNG') && m.includes('j123'));
 assert.equal(memoText([], false), '');
 console.log('realphototest OK');
+
+// Hẹn giờ đăng + lưu Brain (23/11)
+import { parseGioDang, submitResult, takeDuePosts, updateJobByOwner } from '../src/lib/jobs.js';
+import { runCrewzyTool } from '../src/lib/crewzyTools.js';
+const mem = new Map();
+const KV = { get: async (k, o) => { const v = mem.get(k); return v == null ? null : (o && o.type === 'json' ? JSON.parse(v) : v); }, put: async (k, v) => { mem.set(k, v); } };
+const env2 = { KV };
+const base = Date.parse('2026-11-23T08:00:00Z'); // 15:00 giờ VN
+assert.equal(parseGioDang('19:00', base), '2026-11-23T12:00:00.000Z', '19:00 hôm nay giờ VN');
+assert.equal(parseGioDang('07:00', base), '2026-11-24T00:00:00.000Z', 'đã qua → ngày mai');
+assert.equal(parseGioDang('2026-11-24T19:00:00+07:00', base), '2026-11-24T12:00:00.000Z');
+assert.equal(parseGioDang('2026-11-24 19:00', base), '2026-11-24T12:00:00.000Z', 'không múi giờ = giờ VN');
+assert.equal(parseGioDang('xyz', base), '');
+const r1 = await submitResult(env2, 'u9', 'https://x.dev', { tieu_de: 'Bài 1', noi_dung: 'abc', loai: 'bai_dang', gio_dang: '2026-11-23T15:00:00+07:00' });
+assert.ok(r1.data.gio_dang);
+assert.deepEqual(JSON.parse(mem.get('postidx')), ['u9']);
+let t = await takeDuePosts(env2, 'u9', base + 3600e3);
+assert.equal(t.due.length, 0, 'chưa duyệt thì chưa đăng'); assert.equal(t.con_hen, true);
+await updateJobByOwner(env2, 'u9', r1.data.id, { action: 'duyet' });
+t = await takeDuePosts(env2, 'u9', base - 3600e3);
+assert.equal(t.due.length, 0, 'chưa tới giờ');
+t = await takeDuePosts(env2, 'u9', base + 60e3);
+assert.equal(t.due.length, 1, 'tới giờ + đã duyệt → đăng');
+t = await takeDuePosts(env2, 'u9', base + 120e3);
+assert.equal(t.due.length, 0, 'mỗi phiếu xếp 1 lần'); assert.equal(t.con_hen, false);
+const b1 = await runCrewzyTool(env2, { uid: 'u9', origin: 'https://x.dev', name: 'CREWZY_LUU_BRAIN', args: { muc: { visual: 'Màu chính #0B5FFF, logo chữ CZ', voice: 'Thân thiện' } } });
+assert.equal(b1.data.da_luu.length, 2);
+await runCrewzyTool(env2, { uid: 'u9', origin: 'https://x.dev', name: 'CREWZY_LUU_BRAIN', args: { muc: { visual: 'Font Be Vietnam Pro' } } });
+const br = JSON.parse(mem.get('brand:u9'));
+assert.ok(br.visual.includes('#0B5FFF') && br.visual.includes('Be Vietnam Pro'), 'nối thêm');
+await runCrewzyTool(env2, { uid: 'u9', origin: 'https://x.dev', name: 'CREWZY_LUU_BRAIN', args: { muc: { voice: 'Chuyên nghiệp' }, che_do: 'thay' } });
+assert.equal(JSON.parse(mem.get('brand:u9')).voice, 'Chuyên nghiệp');
+console.log('hẹn giờ + Brain OK');

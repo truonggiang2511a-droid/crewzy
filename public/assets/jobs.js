@@ -87,7 +87,16 @@
     var review = j.trang_thai === 'cho_duyet';
     var postPrompt = 'Đăng phiếu việc ' + j.id + ' ("' + j.tieu_de + '") đã được duyệt lên đa kênh: gọi CREWZY_VIEC_CAN_LAM với id để lấy đúng bài và ảnh/video, đăng mỗi kênh đúng nội dung và khổ của kênh đó (bỏ kênh không nhận định dạng), rồi nộp lại trạng thái da_dang kèm link từng bài.';
     var acts = [];
-    if (review) {
+    // Bài có giờ hẹn: duyệt là xong, Crewzy tự đăng đúng giờ (cron 15 phút).
+    var hen = j.gio_dang ? new Date(j.gio_dang) : null;
+    var henTxt = hen ? hen.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + hen.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '';
+    if (review && hen) {
+      acts.push('<button type="button" class="btn btn-primary" data-act="duyet">✓ Duyệt · tự đăng lúc ' + esc(henTxt) + '</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="duyet-dang">Duyệt & đăng ngay</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="redo-mo">↻ Yêu cầu AI làm lại</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="sua-mo">✎ Sửa bài</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="tu_choi">Từ chối</button>');
+    } else if (review) {
       acts.push('<button type="button" class="btn btn-primary" data-act="duyet-dang">✓ Duyệt & đăng đa kênh</button>');
       acts.push('<button type="button" class="btn btn-ghost" data-act="duyet">Chỉ duyệt</button>');
       acts.push('<button type="button" class="btn btn-ghost" data-act="redo-mo">↻ Yêu cầu AI làm lại</button>');
@@ -109,6 +118,7 @@
       '<span class="muted" style="font-size:12px;margin-left:auto">' + (j.nguoi_lam ? esc(j.nguoi_lam) + ' · ' : '') + when(j.cap_nhat) + '</span></div>' +
       '<h2 style="margin:0;font-size:17px;font-weight:600">' + esc(j.tieu_de) + '</h2>' +
       (ready.length ? '<p class="jb-ready">' + ready.join(' · ') + '</p>' : '') +
+      (hen ? '<p style="margin:0;font-size:13px"><b>⏰ Hẹn đăng ' + esc(henTxt) + '</b>' + (j.xep_dang ? ' · Crewzy đang đăng' : j.trang_thai === 'da_duyet' ? ' · đã duyệt, chờ tới giờ' : ' · duyệt để tự đăng') + '</p>' : '') +
       (j.ghi_chu_khach ? '<p style="margin:0;font-size:13px;color:var(--warn)"><b>Bạn yêu cầu:</b> ' + esc(j.ghi_chu_khach) + '</p>' : '') +
       '<div class="jb-body' + (media ? ' has-media' : '') + '">' +
         (media ? '<div class="jb-media">' + media + '</div>' : '') +

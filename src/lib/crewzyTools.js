@@ -2,7 +2,7 @@
 // CREWZY_TAO_ANH: tạo ảnh thật bằng Workers AI, lưu KV, trả link công khai https://<site>/api/img/<id>.jpg
 //   (dùng được để đăng Facebook/Instagram, tải lên Canva/Drive). Canva API KHÔNG tạo ảnh từ chữ nên phải dùng công cụ này.
 // CREWZY_BRAIN: đọc Brain thương hiệu + danh sách app đã kết nối (cho AI bên ngoài như Claude/ChatGPT/Gemini/Grok).
-import { getBrand, brandText, brandPack } from './brand.js';
+import { getBrand, putBrand, cleanBrand, brandText, brandPack, BRAND_FIELDS } from './brand.js';
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl, putMedia } from './media.js';
@@ -52,6 +52,32 @@ export const CREWZY_TOOL_DEFS = [
     },
   },
 ];
+
+// CREWZY_LUU_BRAIN (23/11): khách gõ thông tin thương hiệu trong chat (màu, giọng văn, giá…) → lưu thẳng vào Brain (khách tự đưa nên không cần phiếu duyệt).
+// Mục đang trống thì ghi; mục đã có thì nối thêm (che_do "thay" mới ghi đè). Chạy được cả qua link MCP.
+const BRAIN_KEYS = Object.keys(BRAND_FIELDS);
+CREWZY_TOOL_DEFS.push({
+  type: 'function',
+  function: {
+    name: 'CREWZY_LUU_BRAIN',
+    description: 'Lưu thông tin thương hiệu KHÁCH VỪA ĐƯA trong cuộc trò chuyện vào Brain thương hiệu của Crewzy (tên, sản phẩm, khách hàng, giọng văn, giá/ưu đãi, link, màu/logo/font, phong cách video, giọng đọc…). Chỉ ghi điều khách nói, không tự bịa. Mục đã có thì nối thêm, che_do "thay" để ghi đè khi khách sửa.',
+    parameters: { type: 'object', properties: {
+      muc: { type: 'object', description: 'Các mục cần lưu: ' + BRAIN_KEYS.map((k) => `${k} (${BRAND_FIELDS[k]})`).join('; '), properties: Object.fromEntries(BRAIN_KEYS.map((k) => [k, { type: 'string' }])) },
+      che_do: { type: 'string', enum: ['them', 'thay'], description: 'them (mặc định): mục đã có thì nối thêm; thay: ghi đè.' },
+    }, required: ['muc'] },
+  },
+});
+async function saveBrainFields(env, uid, args) {
+  const add = cleanBrand((args && args.muc) || {});
+  delete add.refs;
+  const keys = Object.keys(add);
+  if (!keys.length) return { error: 'Chưa có mục nào hợp lệ để lưu. Dùng các khoá: ' + BRAIN_KEYS.join(', ') };
+  const cur = (await getBrand(env, uid)) || {};
+  const next = { ...cur };
+  for (const k of keys) next[k] = args.che_do === 'thay' || !cur[k] ? add[k] : (cur[k].includes(add[k]) ? cur[k] : (cur[k] + '\n' + add[k]).slice(0, 3000));
+  await putBrand(env, uid, next);
+  return { data: { da_luu: keys.map((k) => BRAND_FIELDS[k]), ghi_chu: 'Đã lưu vào Brain thương hiệu. Gọi CREWZY_BRAIN để đọc lại rồi làm tiếp.' } };
+}
 
 // Chỉ dùng trong Trợ lý AI của Crewzy (không đưa ra link MCP): chờ việc tạo video/ảnh của app khác xong.
 CREWZY_TOOL_DEFS.push({
@@ -390,6 +416,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
+    if (name === 'CREWZY_LUU_BRAIN') return await saveBrainFields(env, uid, args);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface, !!instant);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent, args && args.id);

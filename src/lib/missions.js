@@ -16,7 +16,7 @@ export const MISSIONS = [
       { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets', 'gmail', 'notion', 'airtable'], cat: 'office', nhieu: true, san_co: 'Báo cáo xem trong Kết quả' },
     ],
     lich: [
-      { id: 'noi_dung_moi_sang', gio: '06:30', ngay: 'hang_ngay', buoc: 'Làm ảnh/video + bài cho mọi kênh (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
+      { id: 'san_xuat_5x5', gio: '06:30', ngay: 'hang_ngay', buoc: '5 ảnh + 5 video ngắn từ ảnh thật, bài riêng từng kênh, hẹn 10 giờ đăng cả ngày (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
       { id: 'dang_bai_da_duyet', gio: '10:00', ngay: 'hang_ngay', buoc: 'Đăng bài đã duyệt lên mọi kênh, ghi báo cáo Google Sheet, email link', tu: 'noi_dung', toi: 'phan_phoi' },
       { id: 'lich_noi_dung_tuan', gio: '07:30', ngay: 't2', buoc: 'Thứ Hai: lên lịch nội dung 7 ngày', tu: 'chien_luoc', toi: 'noi_dung' },
     ] },

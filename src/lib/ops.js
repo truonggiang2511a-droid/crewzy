@@ -4,7 +4,7 @@
 // - runDigest (18:00 số liệu ngày, 22:00 tổng kết ngày): lead, chốt, doanh thu theo nguồn, việc AI đã làm, credit đã tiêu, việc tồn, lịch ngày mai
 //   → phiếu báo cáo (loai bao_cao, xong) + Gmail cho chủ. Cờ KV digest:<ngày>:<giờ>:<uid> chống gửi trùng.
 import { kvGetJson, kvPutJson } from './common.js';
-import { listJobs, submitResult } from './jobs.js';
+import { listJobs, submitResult, takeDuePosts } from './jobs.js';
 import { listLeads, leadStats, markLead } from './leads.js';
 import { listSchedules, DAYS } from './schedules.js';
 import { buildResults, KIND_LABELS } from './activity.js';
@@ -67,6 +67,30 @@ export async function runBacklog(env, { origin, now = new Date() }) {
   let n = 0;
   for (const u of users) { try { await backlogFor(env, u.uid, { now, crewzy: u.crewzy, origin }); n++; } catch (e) { console.error('backlog failed', u.uid, e && e.message); } }
   return { users: n };
+}
+
+// ĐĂNG THEO GIỜ HẸN (23/11): phiếu bài đăng có gio_dang, khách đã duyệt, tới giờ → xếp Trợ lý Crewzy (Haiku) đăng đúng nội dung/kênh trong phiếu.
+// Chạy mọi lượt cron (15 phút), chỉ đọc khách trong chỉ mục postidx. Mỗi phiếu xếp 1 lần (xep_dang). Không phụ thuộc khách có bật Run hay không.
+export async function runDuePosts(env, { now = new Date() } = {}) {
+  const idx = (await kvGetJson(env, 'postidx')) || [];
+  const keep = [];
+  let queued = 0;
+  for (const uid of idx) {
+    try {
+      const { due, con_hen } = await takeDuePosts(env, uid, now.getTime());
+      if (due.length) {
+        const ids = due.map((j) => j.id);
+        await enqueue(env, uid, { tieu_de: 'Đăng bài hẹn giờ' }, `ĐĂNG THEO GIỜ HẸN: tới giờ đăng các phiếu khách ĐÃ DUYỆT: ${ids.join(', ')}.\n`
+          + 'Với từng phiếu: đọc đủ nội dung bằng CREWZY_VIEC_CAN_LAM id=<mã>, đăng ĐÚNG nội dung và ảnh/video trong phiếu lên đúng các kênh ghi trong phiếu (công cụ của app đã nối; '
+          + 'bài có "BÌNH LUẬN ĐẦU TIÊN" thì bình luận ngay dưới bài). Đăng xong gọi CREWZY_NOP_KET_QUA id=<mã>, trang_thai da_dang, lien_ket = link bài từng kênh. '
+          + 'Kênh nào lỗi thì ghi vào ghi_chu, không đăng lại kênh đã thành công. Không sửa nội dung, không tạo ảnh/video mới, không hỏi lại.');
+        queued += due.length;
+      }
+      if (con_hen) keep.push(uid);
+    } catch (e) { console.error('due posts failed', uid, e && e.message); keep.push(uid); }
+  }
+  if (keep.length !== idx.length) await kvPutJson(env, 'postidx', keep);
+  return { users: idx.length, queued };
 }
 
 // Nội dung tổng kết ngày (dùng cho 18:00 và 22:00).

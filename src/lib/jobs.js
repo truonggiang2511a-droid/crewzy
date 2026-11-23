@@ -110,6 +110,7 @@ export const JOB_TOOL_DEFS = [
           ghi_chu: { type: 'string', description: 'Ghi chú cho khách (điều cần kiểm tra, số liệu còn thiếu…).' },
           prompt_da_dung: { type: 'string', description: 'Prompt đã gửi app làm ảnh/video (theo CREWZY_PROMPT_PRO), để khách xem và yêu cầu làm lại đúng ý.' },
           app_da_dung: { type: 'string', description: 'App đã làm ảnh/video: Higgsfield, HeyGen, Canva, Ảnh AI Crewzy…' },
+          gio_dang: { type: 'string', description: 'Giờ hẹn đăng (bài đăng): ISO có múi giờ, vd "2026-11-24T19:00:00+07:00", hoặc "19:00" (hôm nay giờ Việt Nam, đã qua thì ngày mai). Khách duyệt xong Crewzy tự đăng đúng giờ.' },
         },
         required: ['tieu_de', 'noi_dung'],
       },
@@ -156,6 +157,8 @@ export async function jobsForAi(env, uid, all, who, id) {
         id: j.id, tieu_de: j.tieu_de, loai: j.loai, quy_trinh: j.quy_trinh || undefined, trang_thai: j.trang_thai, mo_ta_trang_thai: STATUSES[j.trang_thai],
         yeu_cau: j.yeu_cau, ghi_chu_cua_khach: j.ghi_chu_khach || undefined,
         ket_qua_da_nop: j.trang_thai === 'da_duyet' && j.ket_qua ? j.ket_qua : undefined,
+        gio_dang: j.gio_dang || undefined,
+        ...(j.trang_thai === 'da_duyet' && j.gio_dang && !j.xep_dang && Date.parse(j.gio_dang) > Date.now() ? { luu_y: 'Chưa tới giờ hẹn: KHÔNG đăng, Crewzy tự đăng đúng giờ.' } : {}),
       })),
       huong_dan: want.length
         ? 'Việc cho_lam: làm rồi nộp bằng CREWZY_NOP_KET_QUA (kèm id). Việc da_duyet: đăng/gửi đúng nội dung đã duyệt rồi nộp lại với trang_thai da_dang và link bài.'
@@ -163,6 +166,41 @@ export async function jobsForAi(env, uid, all, who, id) {
         : 'Hiện không có việc nào cần làm.',
     },
   };
+}
+
+// Giờ hẹn đăng → ISO UTC. "19:00" = hôm nay giờ VN (đã qua thì ngày mai); ISO không múi giờ coi như giờ VN.
+export function parseGioDang(v, nowMs = Date.now()) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  const hm = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (hm) {
+    const vnNow = new Date(nowMs + 7 * 3600e3);
+    let t = Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate(), +hm[1], +hm[2]) - 7 * 3600e3;
+    if (t < nowMs - 60e3) t += 24 * 3600e3;
+    return new Date(t).toISOString();
+  }
+  const t = Date.parse(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s) ? s : s.replace(' ', 'T') + '+07:00');
+  return Number.isFinite(t) && t > nowMs - 7 * 86400e3 && t < nowMs + 60 * 86400e3 ? new Date(t).toISOString() : '';
+}
+// Chỉ mục khách có bài hẹn giờ (cron đọc, khỏi quét mọi khách).
+export async function markPostIndex(env, uid) {
+  const idx = (await kvGetJson(env, 'postidx')) || [];
+  if (!idx.includes(uid)) { idx.push(uid); await kvPutJson(env, 'postidx', idx.slice(-2000)); }
+}
+// Cron: phiếu ĐÃ DUYỆT tới giờ đăng → trả về để xếp Trợ lý đăng (đánh dấu xep_dang, mỗi phiếu 1 lần). con_hen = còn phiếu hẹn giờ chưa tới/chưa duyệt.
+export async function takeDuePosts(env, uid, nowMs = Date.now()) {
+  const jobs = await listJobs(env, uid);
+  const due = [];
+  for (const j of jobs) {
+    if (j.trang_thai === 'da_duyet' && j.gio_dang && !j.xep_dang && Date.parse(j.gio_dang) <= nowMs) {
+      j.xep_dang = new Date(nowMs).toISOString();
+      j.lich_su = [...(j.lich_su || []), { luc: j.xep_dang, viec: 'Tới giờ hẹn → Crewzy đang đăng' }].slice(-20);
+      due.push(j);
+    }
+  }
+  if (due.length) await saveJobs(env, uid, jobs);
+  const con_hen = jobs.some((j) => j.gio_dang && !j.xep_dang && ['cho_duyet', 'da_duyet', 'cho_lam', 'dang_lam'].includes(j.trang_thai));
+  return { due, con_hen };
 }
 
 export async function submitResult(env, uid, origin, args) {
@@ -197,12 +235,14 @@ export async function submitResult(env, uid, origin, args) {
     app_da_dung: a.app_da_dung ? clip(a.app_da_dung, 80) : prev.app_da_dung || '',
   };
   job.trang_thai = status;
+  const gio = parseGioDang(a.gio_dang);
+  if (gio) { job.gio_dang = gio; delete job.xep_dang; await markPostIndex(env, uid); }
   job.nguoi_lam = clip(a.nguoi_lam, 40) || job.nguoi_lam || 'AI';
   job.cap_nhat = now();
   job.lich_su = [...(job.lich_su || []), { luc: now(), viec: `${job.nguoi_lam} nộp kết quả → ${STATUSES[status]}` }].slice(-20);
   await saveJobs(env, uid, jobs);
   return {
-    data: { id: job.id, trang_thai: status, xem_tai: `${origin}/cho-duyet.html?id=${job.id}`, media: job.ket_qua.media },
+    data: { id: job.id, trang_thai: status, xem_tai: `${origin}/cho-duyet.html?id=${job.id}`, media: job.ket_qua.media, ...(job.gio_dang ? { gio_dang: job.gio_dang } : {}) },
     images: job.ket_qua.media.filter((m) => m.loai === 'image' || m.loai === 'video'),
   };
 }

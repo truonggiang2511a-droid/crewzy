@@ -192,6 +192,14 @@ scripts/page.py           Khung trang HTML mới (head + menu + main) · scripts
 scripts/r2test.mjs        Thử lưu media vào R2 (bucket giả): PUT, đọc lại, Range, link dùng 1 lần, file 30MB, file cũ KV vẫn mở, không R2 → KV
 scripts/billingtest.mjs   Thử gói/credit/SePay/4 bước bằng node:sqlite giả D1 (webhook chống trùng, thiếu tiền, trừ nguyên tử, admin, cộng dồn hạn)
 scripts/gatewaytest.mjs   Thử cổng MCP như AI ngoài (KV + Composio giả): tools/list, chặn APP_ONLY_TOOLS, quy trình không nhắc công cụ ẩn, đọc phiếu theo id
+src/lib/jobs.js (23/11)   gio_dang (parseGioDang: "19:00"/ISO, giờ VN) + chỉ mục KV postidx → ops.runDuePosts mỗi cron: phiếu ĐÃ DUYỆT tới giờ → evq Trợ lý (Haiku) đăng đúng phiếu
+                          (xep_dang, mỗi phiếu 1 lần). Việc chờ duyệt: nút "Duyệt · tự đăng lúc …". AI ngoài thấy luu_y "chưa tới giờ hẹn: KHÔNG đăng"
+Quy trình san_xuat_5x5    Nhiệm vụ Sản xuất 06:30: 5 ảnh nhiều khổ + 5 video 9:16 từ ảnh THẬT, bài từng kênh, 10 khung giờ; BƯỚC 0 thiếu Brain/≥5 ảnh Kho → DỪNG hỏi,
+                          lưu bằng CREWZY_LUU_BRAIN (crewzyTools: khách gõ trong chat → ghi thẳng Brain, nối thêm/thay) / CREWZY_LUU_KHO (CREWZY_KHO trả tai_len = /kho.html).
+                          Thẻ nhiệm vụ có "✦ Chạy bằng AI của tôi" (missions.js aiPrompt → claude.ai/new?q= hoặc chép lệnh)
+Chat (23/11)              imageShortcut: Kho có ảnh thật → CREWZY_TAO_ANH trả ảnh thật (không vẽ ảnh giả, không trừ credit), khach_yeu_cau_ai mới cho vẽ;
+                          nút Dừng (AbortController ↔ ReadableStream.cancel → stop.stopped); sự kiện memo (memoLine) cất vào lịch sử để "tiếp tục" không làm lại;
+                          safeTopSchema gộp oneOf/anyOf/allOf tầng ngoài của mọi công cụ (Claude từ chối cả lượt nếu có). Test: scripts/realphototest.mjs
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 

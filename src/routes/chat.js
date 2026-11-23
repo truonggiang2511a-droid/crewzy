@@ -141,6 +141,7 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_ANH') return input && input.chat_luong === 'dep' ? 'Đang tạo ảnh Đẹp (khoảng 20 giây)' : 'Đang tạo ảnh';
   if (name === 'CREWZY_TAO_VIDEO') return input && input.chat_luong === 'dep' ? 'Đang làm video Đẹp (2–4 phút)' : 'Đang làm video (1–3 phút)';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
+  if (name === 'CREWZY_LUU_BRAIN') return 'Lưu vào Brain thương hiệu';
   if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
   if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';
   if (name === 'CREWZY_BAO_LEAD') return 'Báo khách tiềm năng cho chủ';

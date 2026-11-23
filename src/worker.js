@@ -5,7 +5,7 @@ import office from './routes/office.js';
 import autopilot from './routes/autopilot.js';
 import leads from './routes/leads.js';
 import { handleWebhook, runEventQueue } from './lib/events.js';
-import { runBacklog, runDigest } from './lib/ops.js';
+import { runBacklog, runDigest, runDuePosts } from './lib/ops.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -84,13 +84,15 @@ export default {
       await markWorking(env, uid, job.id, 'Trợ lý Crewzy (hẹn giờ)').catch(() => {});
       const texts = [];
       // Tự trả lời bình luận chạy mỗi giờ → Haiku cho rẻ; lịch làm nội dung/báo cáo → Opus (mặc định).
-      const brain = /TỰ TRẢ LỜI ĐÃ BẬT/.test(prompt) ? 'tiet_kiem' : 'can_bang'; // lịch nội dung/báo cáo chạy Sonnet (khớp số lượng trong mô tả gói)
+      const brain = /TỰ TRẢ LỜI ĐÃ BẬT|ĐĂNG THEO GIỜ HẸN/.test(prompt) ? 'tiet_kiem' : 'can_bang'; // lịch nội dung/báo cáo chạy Sonnet (khớp số lượng trong mô tả gói)
       await runAgent({ env, uid, origin, mode: 'app', brain, messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
     ctx.waitUntil(runWeeklyReports(env, { origin, submitResult, listJobs, plans: plans(env) }).then((r) => console.log('weekly', JSON.stringify(r))).catch((e) => console.error('weekly failed', e && e.stack)));
     ctx.waitUntil(runBacklog(env, { origin }).then((r) => console.log('backlog', JSON.stringify(r))).catch((e) => console.error('backlog failed', e && e.stack)));
     ctx.waitUntil(runDigest(env, { origin }).then((r) => console.log('digest', JSON.stringify(r))).catch((e) => console.error('digest failed', e && e.stack)));
+    // Đăng bài hẹn giờ: xếp hàng TRƯỚC khi chạy hàng đợi để bài tới giờ được đăng ngay lượt này.
+    await runDuePosts(env).then((r) => console.log('due posts', JSON.stringify(r))).catch((e) => console.error('due posts failed', e && e.stack));
     ctx.waitUntil(runEventQueue(env, { origin, runAuto }).then((r) => console.log('events', JSON.stringify(r))).catch((e) => console.error('events failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
