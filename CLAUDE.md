@@ -242,6 +242,8 @@ render/                   MÁY DỰNG VIDEO (23/11): Worker RIÊNG "crewzy-rende
                           Dockerfile Node 22 + FFmpeg + font Noto + HyperFrames (Apache 2.0) + chrome-headless-shell; server.mjs POST /render {html, assets} · /mix {video, voice, music, srt}
                           (nhạc lặp + nhỏ dưới giọng, phụ đề tiếng Việt; /mix ĐÃ thử bằng ffmpeg cục bộ, /render CHƯA thử). src/lib/render.js CREWZY_DUNG_VIDEO (chat + MCP) gọi
                           RENDER_URL + RENDER_SECRET → lưu R2 (putMedia) + Kho; hạn mức 'dung' = dung_thang hoặc max(20, video_thang×5)/tháng, trần app RENDER_APP_DAILY=300. Test: rendertest
+                          CHỈ TRỢ LÝ CREWZY (23/11 Giang): CREWZY_DUNG_VIDEO + CREWZY_THIET_KE_ANH (POST /image: dựng rồi lấy 1 khung JPG, trừ hạn mức ảnh) nằm trong APP_ONLY_TOOLS;
+                          khách nối MCP thì AI của khách dựng bằng SKILL/công cụ của khách (MCP_MEDIA_FREE ưu tiên skill), duyệt + đăng trong chat của khách, Crewzy đăng + chăm sóc khách
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 

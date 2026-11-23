@@ -1,6 +1,6 @@
 // Máy dựng video (23/11): node scripts/rendertest.mjs — máy dựng giả (fetch giả), KV + R2 giả.
 import assert from 'node:assert/strict';
-import { renderVideo, renderOn, RENDER_TOOL_DEFS } from '../src/lib/render.js';
+import { renderVideo, renderOn, designImage, RENDER_TOOL_DEFS } from '../src/lib/render.js';
 import { mediaQuota } from '../src/lib/quota.js';
 import { CREWZY_TOOL_DEFS } from '../src/lib/crewzyTools.js';
 import { gatewayBase, appAnthropic } from '../src/lib/ai.js';
@@ -29,7 +29,14 @@ assert.equal(r2.size, 2);
 assert.equal(await mediaQuota({ KV }, 'u9', { video_thang: 0 }, 'CREWZY_DUNG_VIDEO'), null);
 for (let i = 1; i < 20; i++) await mediaQuota({ KV }, 'u9', { video_thang: 0 }, 'CREWZY_DUNG_VIDEO');
 assert.ok((await mediaQuota({ KV }, 'u9', { video_thang: 0 }, 'CREWZY_DUNG_VIDEO')).includes('lượt dựng video'));
-assert.ok(CREWZY_TOOL_DEFS.some((t) => t.function.name === 'CREWZY_DUNG_VIDEO') && RENDER_TOOL_DEFS.length === 1);
+assert.ok(['CREWZY_DUNG_VIDEO', 'CREWZY_THIET_KE_ANH'].every((n) => CREWZY_TOOL_DEFS.some((t) => t.function.name === n)) && RENDER_TOOL_DEFS.length === 2);
+// Ảnh thiết kế: gọi /image, lưu R2, trừ hạn mức ảnh.
+calls.length = 0;
+r = await designImage(env, 'u1', 'https://x.dev', { html: '<html><div></div></html>', luc: 1 });
+assert.ok(r.data && r.data.url.startsWith('https://x.dev/api/media/'), r.error);
+assert.equal(calls[0].url.split('/').pop(), 'image'); assert.equal(calls[0].body.at, 1);
+assert.ok((await designImage(env0, 'u1', 'https://x.dev', { html: '<html></html>' })).error.includes('chưa bật'));
+assert.ok((await designImage(env, 'u1', 'https://x.dev', {})).error.includes('html'));
 // AI Gateway
 assert.equal(gatewayBase({ AI_GATEWAY_URL: 'https://gateway.ai.cloudflare.com/v1/acc/crewzy/' }), 'https://gateway.ai.cloudflare.com/v1/acc/crewzy');
 assert.equal(gatewayBase({ AI_GATEWAY_URL: 'https://evil.example/v1/a/b' }), '');

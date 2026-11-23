@@ -36,7 +36,7 @@ export async function postQuota(env, uid, feat, name, args) {
 
 export async function mediaQuota(env, uid, feat, name) {
   if (!feat || !env.KV) return null;
-  const kind = name === 'CREWZY_TAO_ANH' ? 'anh' : name === 'CREWZY_TAO_VIDEO' ? 'video' : name === 'CREWZY_DUNG_VIDEO' ? 'dung' : null;
+  const kind = name === 'CREWZY_TAO_ANH' || name === 'CREWZY_THIET_KE_ANH' ? 'anh' : name === 'CREWZY_TAO_VIDEO' ? 'video' : name === 'CREWZY_DUNG_VIDEO' ? 'dung' : null;
   if (!kind) return null;
   // Dựng bằng máy của Crewzy (rẻ, không gọi mô hình AI video): mặc định gấp 5 lần số video AI của gói, tối thiểu 20/tháng.
   const limit = kind === 'anh' ? feat.anh_thang : kind === 'video' ? feat.video_thang : (feat.dung_thang != null ? feat.dung_thang : Math.max(20, (feat.video_thang || 0) * 5));

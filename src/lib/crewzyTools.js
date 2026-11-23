@@ -16,7 +16,7 @@ import { LEAD_TOOL_DEFS, leadTool, careLead, ceoChannels } from './leads.js';
 import { PROMPT_TOOL_DEFS, promptPro } from './promptPro.js';
 import { MEM_TOOL_DEFS, memTool, listMem, memText } from './memory.js';
 import { PUBLISH_TOOL_DEFS, publishTool } from './publish.js';
-import { RENDER_TOOL_DEFS, renderVideo } from './render.js';
+import { RENDER_TOOL_DEFS, renderVideo, designImage } from './render.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -425,6 +425,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_LUU_BRAIN') return await saveBrainFields(env, uid, args);
     if (name === 'CREWZY_GHI_NHO') return await memTool(env, uid, args, agent);
     if (name === 'CREWZY_DUNG_VIDEO') return await renderVideo(env, uid, origin, args || {});
+    if (name === 'CREWZY_THIET_KE_ANH') return await designImage(env, uid, origin, args || {});
     if (name === 'CREWZY_XEM_NOI_DUNG' || name === 'CREWZY_DUYET_HANG_LOAT') return await publishTool(env, uid, origin, name, args, agent);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface, !!instant);

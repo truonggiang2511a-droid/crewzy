@@ -1,6 +1,8 @@
 // MÁY DỰNG VIDEO CỦA CREWZY (23/11): Worker riêng "crewzy-render" (render/: Cloudflare Containers, HyperFrames + FFmpeg) — Worker chính gọi qua
 // RENDER_URL + RENDER_SECRET. Chưa đặt 2 biến này (chưa bật gói Workers Paid) → công cụ báo chưa bật, mọi thứ khác chạy như cũ.
+// CHỈ Trợ lý Crewzy dùng (APP_ONLY_TOOLS, 23/11 Giang); AI của khách qua link MCP tự làm bằng skill của khách.
 // CREWZY_DUNG_VIDEO: (1) html HyperFrames → MP4 (chữ động, icon động, biểu đồ động, ảnh thật chuyển động) · (2) ghép giọng + nhạc + phụ đề vào video.
+// CREWZY_THIET_KE_ANH: html (khung ảnh) → JPG thiết kế từ ảnh thật (tiêu đề, giá, logo, màu thương hiệu) cho bài đăng/quảng cáo.
 import { putMedia } from './media.js';
 import { addItem } from './library.js';
 
@@ -16,6 +18,15 @@ export const RENDER_TOOL_DEFS = [{ type: 'function', function: { name: 'CREWZY_D
     am_luong_nhac: { type: 'number', description: '0.05–1. Mặc định 0.18 khi có giọng, 0.6 khi chỉ nhạc.' },
     ten: { type: 'string', description: 'Tên video lưu trong Kho.' },
   } } } }];
+
+RENDER_TOOL_DEFS.push({ type: 'function', function: { name: 'CREWZY_THIET_KE_ANH',
+  description: 'Thiết kế ẢNH QUẢNG CÁO ĐẸP bằng máy dựng của Crewzy: html = 1 khung HyperFrames tĩnh (hoặc có chuyển động, lấy khung tại giây `luc`) dùng ẢNH THẬT trong Kho làm nền/chủ thể + tiêu đề ngắn, giá/ưu đãi, nút kêu gọi, logo, màu và font trong Brain. Khổ theo nơi đăng: 1080×1350 bảng tin, 1080×1080 vuông, 1080×1920 story, 1000×1500 Pinterest. Không bịa sản phẩm, giá, người. Trả link JPG lưu Kho.',
+  parameters: { type: 'object', properties: {
+    html: { type: 'string', description: 'Bản dựng HyperFrames (toàn bộ index.html) của khung ảnh.' },
+    tai_nguyen: { type: 'array', items: { type: 'object', properties: { ten: { type: 'string' }, url: { type: 'string' } }, required: ['ten', 'url'] }, description: 'Ảnh thật, logo, font… mà html dùng.' },
+    luc: { type: 'number', description: 'Lấy khung tại giây thứ mấy (mặc định 0,5).' },
+    ten: { type: 'string', description: 'Tên ảnh lưu trong Kho.' },
+  }, required: ['html'] } } });
 
 export const renderOn = (env) => !!(env.RENDER_URL && env.RENDER_SECRET);
 
@@ -51,5 +62,19 @@ export async function renderVideo(env, uid, origin, args = {}) {
     return { data: { url: link, ghi_chu: 'Video đã lưu vào Kho. Dùng link này để nộp phiếu (media) hoặc đăng Reels/TikTok/Shorts.' }, video: link };
   } catch (e) {
     return { error: 'Máy dựng báo lỗi: ' + (e && e.message) + '. Sửa bản dựng (html, tên file tài nguyên) rồi thử lại 1 lần.' };
+  }
+}
+
+export async function designImage(env, uid, origin, args = {}) {
+  if (!renderOn(env)) return { error: 'Máy dựng của Crewzy chưa bật. Dùng ảnh thật trong Kho hoặc CREWZY_TAO_ANH.' };
+  if (!/<html|<div/i.test(String(args.html || ''))) return { error: 'Thiếu html bản dựng khung ảnh.' };
+  const assets = (Array.isArray(args.tai_nguyen) ? args.tai_nguyen : []).filter((a) => a && /^https:\/\//.test(String(a.url || ''))).slice(0, 30).map((a) => ({ name: String(a.ten || '').slice(0, 80), url: a.url }));
+  try {
+    const res = await call(env, '/image', { html: String(args.html), assets, at: Number(args.luc) || 0.5 });
+    const link = await putMedia(env, uid, origin, res.body, 'image/jpeg', 'thiet-ke', null, Number(res.headers.get('content-length')) || 0);
+    await addItem(env, uid, { url: link, kind: 'image', source: 'ai_tao', name: String(args.ten || 'Ảnh thiết kế').slice(0, 80), note: 'Thiết kế bằng máy dựng Crewzy' }).catch(() => {});
+    return { data: { url: link, ghi_chu: 'Ảnh đã lưu vào Kho. Dùng link này để nộp phiếu (media) hoặc đăng.' }, image: link };
+  } catch (e) {
+    return { error: 'Máy dựng báo lỗi: ' + (e && e.message) + '. Sửa bản dựng rồi thử lại 1 lần.' };
   }
 }

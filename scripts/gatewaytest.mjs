@@ -61,6 +61,8 @@ assert.equal(JSON.parse(store.get('aiseen:' + UID)).ten, 'Claude');
 
 // 2. tools/list: có đủ công cụ Crewzy cho AI ngoài, không lộ công cụ chỉ dành cho Trợ lý trong app.
 const names = (await rpc('tools/list', {})).tools.map((t) => t.name);
+// 23/11: máy dựng của Crewzy chỉ cho Trợ lý Crewzy, AI của khách không thấy.
+{ const tl = (await rpc('tools/list', {})).tools.map((t) => t.name); assert.ok(!tl.includes('CREWZY_DUNG_VIDEO') && !tl.includes('CREWZY_THIET_KE_ANH'), 'máy dựng không lộ qua MCP'); }
 // 23/11: bảng duyệt nội dung trong chat (MCP Apps).
 { const tl = (await rpc('tools/list', {})).tools; const xem = tl.find((t) => t.name === 'CREWZY_XEM_NOI_DUNG');
   assert.equal(xem._meta.ui.resourceUri, 'ui://crewzy/duyet.html');

@@ -151,6 +151,8 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_LUU_BRAIN') return 'Lưu vào Brain thương hiệu';
   if (name === 'CREWZY_GHI_NHO') return 'Ghi nhớ điều vừa học về anh/chị';
   if (name === 'CREWZY_XEM_NOI_DUNG') return 'Xổ nội dung chờ duyệt';
+  if (name === 'CREWZY_DUNG_VIDEO') return 'Dựng video trên máy của Crewzy';
+  if (name === 'CREWZY_THIET_KE_ANH') return 'Thiết kế ảnh quảng cáo';
   if (name === 'CREWZY_DUYET_HANG_LOAT') return (input && input.cach === 'dang_ngay') ? 'Duyệt, đăng ngay' : 'Duyệt, hẹn giờ vàng đăng hàng loạt';
   if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
   if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';

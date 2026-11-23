@@ -1,5 +1,6 @@
 // Máy dựng trong container (Node 22, không thư viện ngoài). Chỉ Worker crewzy-render gọi tới (container không mở ra Internet).
 // POST /render {html, assets:[{name,url}]} → hyperframes render → MP4
+// POST /image {html, assets, at} → dựng rồi lấy 1 khung → JPG (ảnh quảng cáo thiết kế)
 // POST /mix {video, voice?, music?, srt?, music_volume?} → ffmpeg: nhạc nền (nhỏ lại khi có giọng), giọng đọc, phụ đề tiếng Việt → MP4
 import { createServer } from 'node:http';
 import { mkdtemp, writeFile, rm, stat } from 'node:fs/promises';
@@ -30,7 +31,7 @@ const safe = (n) => basename(String(n || '')).replace(/[^A-Za-z0-9._-]/g, '_').s
 async function body(req) { const c = []; let n = 0; for await (const x of req) { n += x.length; if (n > 2e6) throw new Error('Yêu cầu quá lớn'); c.push(x); } return JSON.parse(Buffer.concat(c).toString('utf8') || '{}'); }
 async function sendFile(res, file) {
   const s = await stat(file);
-  res.writeHead(200, { 'content-type': 'video/mp4', 'content-length': s.size });
+  res.writeHead(200, { 'content-type': file.endsWith('.jpg') ? 'image/jpeg' : 'video/mp4', 'content-length': s.size });
   await new Promise((ok, no) => createReadStream(file).on('error', no).on('end', ok).pipe(res));
 }
 
@@ -62,14 +63,27 @@ export async function render(dir, j) {
   if (!/<html|<div/i.test(String(j.html || ''))) throw new Error('Thiếu html bản dựng HyperFrames');
   await writeFile(join(dir, 'index.html'), String(j.html).slice(0, 400000));
   for (const a of (j.assets || []).slice(0, 30)) await download(a.url, join(dir, safe(a.name)));
-  await run('hyperframes', ['render', '-o', 'out.mp4'], dir, 280000);
+  try { await run('hyperframes', ['render', '-o', 'out.mp4'], dir, 280000); }
+  catch (e) {
+    // Dựng lỗi: chạy kiểm tra bản dựng để trả lý do cụ thể cho AI sửa.
+    let lint = '';
+    try { await run('hyperframes', ['lint'], dir, 60000); } catch (le) { lint = String(le.message || '').slice(-800); }
+    throw new Error(String(e.message || e).slice(-500) + (lint ? ' | Kiểm tra bản dựng: ' + lint : ''));
+  }
   return join(dir, 'out.mp4');
+}
+
+export async function image(dir, j) {
+  const mp4 = await render(dir, j);
+  const at = Math.max(0, Math.min(60, Number(j.at) || 0.5));
+  await run('ffmpeg', ['-y', '-ss', String(at), '-i', mp4, '-frames:v', '1', '-q:v', '2', 'out.jpg'], dir, 60000);
+  return join(dir, 'out.jpg');
 }
 
 if (process.argv[1] && process.argv[1].endsWith('server.mjs')) {
   createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') { res.writeHead(200); return res.end('ok'); }
-    const fn = req.method === 'POST' && req.url === '/render' ? render : req.method === 'POST' && req.url === '/mix' ? mix : null;
+    const fn = req.method !== 'POST' ? null : req.url === '/render' ? render : req.url === '/image' ? image : req.url === '/mix' ? mix : null;
     if (!fn) { res.writeHead(404); return res.end('not found'); }
     const dir = await mkdtemp(join(tmpdir(), 'cz-'));
     try { await sendFile(res, await fn(dir, await body(req))); }
