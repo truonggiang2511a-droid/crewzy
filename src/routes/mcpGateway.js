@@ -154,7 +154,7 @@ export default async (request, env, ctx) => {
   }
 
   // Hạn mức gói (23/11): bài đăng mỗi nền tảng/ngày, ảnh AI Crewzy/ngày — AI của khách đăng qua COMPOSIO_MULTI_EXECUTE_TOOL hoặc gọi thẳng.
-  if (rpc && rpc.method === 'tools/call' && rpc.params && uid && /^(COMPOSIO_MULTI_EXECUTE_TOOL|CREWZY_TAO_ANH)$|_(POST|PUBLISH|UPLOAD|SHARE)/i.test(rpc.params.name || '')) {
+  if (rpc && rpc.method === 'tools/call' && rpc.params && uid && /^(COMPOSIO_MULTI_EXECUTE_TOOL|CREWZY_TAO_ANH|CREWZY_DUNG_VIDEO)$|_(POST|PUBLISH|UPLOAD|SHARE)/i.test(rpc.params.name || '')) {
     const featQ = await getFeatures(env, uid).catch(() => null);
     const over = (await mediaQuota(env, uid, featQ, rpc.params.name).catch(() => null)) || (await postQuota(env, uid, featQ, rpc.params.name, rpc.params.arguments || {}).catch(() => null));
     if (over) return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: 'Lỗi: ' + over }], isError: true } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });

@@ -1,0 +1,15 @@
+// Worker riêng cho máy dựng video (tách khỏi Worker chính để không ảnh hưởng crewzy khi chưa bật gói Workers Paid).
+// Tạo trên dashboard: Workers & Pages → Create → Import repository (cùng repo) → Root directory: render → Deploy command: npx wrangler deploy.
+// Khoá bí mật đặt trên dashboard: RENDER_SECRET (trùng với Worker chính).
+{
+  "name": "crewzy-render",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-16",
+  "keep_vars": true,
+  "containers": [
+    { "class_name": "Renderer", "image": "./Dockerfile", "instance_type": "standard-4", "max_instances": 3 }
+  ],
+  "durable_objects": { "bindings": [{ "class_name": "Renderer", "name": "RENDERER" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Renderer"] }],
+  "observability": { "enabled": true }
+}

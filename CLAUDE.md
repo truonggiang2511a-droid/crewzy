@@ -236,6 +236,12 @@ src/lib/publish.js        DUYỆT NỘI DUNG TRONG CHAT (23/11): CREWZY_XEM_NOI_
                           bảng duyệt MCP Apps ui://crewzy/duyet.html (mcpGateway: _meta.ui.resourceUri, resources/list|read, structuredContent; iframe ui/initialize →
                           tool-result → tools/call, ui/message để nhờ AI đăng ngay/sửa bài). PLATFORM_FORMATS.vi_tri = vị trí + khổ + công cụ Composio đã kiểm (FB ảnh/nhiều ảnh/
                           Reels/video/Story ảnh; IG feed/carousel 2–10 ảnh 4:5–1.91:1/Reels/Story; YouTube Shorts/dài). Luật MỘT LẦN ĐỦ VỊ TRÍ + DUYỆT TRONG CHAT. Test: publishtest
+src/lib/ai.js             AI GATEWAY (23/11, gom về Cloudflare): appAnthropic(env) — có AI_GATEWAY_URL (https://gateway.ai.cloudflare.com/v1/<acc>/<gw>, AI_GATEWAY_TOKEN nếu bật xác thực)
+                          thì Trợ lý Crewzy/cron/đọc website gọi Claude qua AI Gateway (log, chi phí, giới hạn chi tiêu; Unified Billing tuỳ chọn trên dashboard). Không đặt = gọi thẳng Anthropic
+render/                   MÁY DỰNG VIDEO (23/11): Worker RIÊNG "crewzy-render" (Workers Builds root dir render/, cần gói Workers Paid) = Cloudflare Containers standard-4 ×3,
+                          Dockerfile Node 22 + FFmpeg + font Noto + HyperFrames (Apache 2.0) + chrome-headless-shell; server.mjs POST /render {html, assets} · /mix {video, voice, music, srt}
+                          (nhạc lặp + nhỏ dưới giọng, phụ đề tiếng Việt; /mix ĐÃ thử bằng ffmpeg cục bộ, /render CHƯA thử). src/lib/render.js CREWZY_DUNG_VIDEO (chat + MCP) gọi
+                          RENDER_URL + RENDER_SECRET → lưu R2 (putMedia) + Kho; hạn mức 'dung' = dung_thang hoặc max(20, video_thang×5)/tháng, trần app RENDER_APP_DAILY=300. Test: rendertest
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 

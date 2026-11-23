@@ -5,6 +5,7 @@
 // mode 'app'  : Bộ não Crewzy bằng khoá ANTHROPIC_API_KEY của Giang — mặc định Claude Opus 5.5 (brain 'can_bang' = Sonnet 5.5, 'tiet_kiem' = Haiku), trừ credit theo token khi bật gói.
 // mode khác   : khoá API riêng của khách, gửi kèm mỗi lần, máy chủ không lưu.
 // openrouter  : khoá nhận được khi khách bấm Đăng nhập OpenRouter (OAuth PKCE), tiền tính vào tài khoản OpenRouter của khách.
+import { appAnthropic } from '../lib/ai.js';
 import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE, sessionToolLimits } from '../lib/instant.js';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -466,7 +467,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
       const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
       await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system, stop });
     } else {
-      const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
+      const client = mode === 'app' ? appAnthropic(env) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
       const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat', model) : null;
       await runClaude({ client, model, tools, exec, label, messages: withAttachments(messages, 'claude'), emit, deadline, system, onUsage, stop });
     }

@@ -36,14 +36,15 @@ export async function postQuota(env, uid, feat, name, args) {
 
 export async function mediaQuota(env, uid, feat, name) {
   if (!feat || !env.KV) return null;
-  const kind = name === 'CREWZY_TAO_ANH' ? 'anh' : name === 'CREWZY_TAO_VIDEO' ? 'video' : null;
+  const kind = name === 'CREWZY_TAO_ANH' ? 'anh' : name === 'CREWZY_TAO_VIDEO' ? 'video' : name === 'CREWZY_DUNG_VIDEO' ? 'dung' : null;
   if (!kind) return null;
-  const limit = kind === 'anh' ? feat.anh_thang : feat.video_thang;
+  // Dựng bằng máy của Crewzy (rẻ, không gọi mô hình AI video): mặc định gấp 5 lần số video AI của gói, tối thiểu 20/tháng.
+  const limit = kind === 'anh' ? feat.anh_thang : kind === 'video' ? feat.video_thang : (feat.dung_thang != null ? feat.dung_thang : Math.max(20, (feat.video_thang || 0) * 5));
   if (limit == null) return null;
   const key = `czmedia:${vnDay().slice(0, 7)}:${uid}:${kind}`;
   const n = Number((await env.KV.get(key)) || 0);
   if (n >= limit) return limit
-    ? `Tháng này đã dùng hết ${limit} ${kind === 'anh' ? 'ảnh' : 'video'} AI của Crewzy theo gói. Dùng ảnh/video thật trong Kho, hoặc AI của khách tự làm rồi tải lên bằng CREWZY_TAI_LEN; tháng sau làm tiếp hoặc nâng gói.`
+    ? `Tháng này đã dùng hết ${limit} ${kind === 'anh' ? 'ảnh' : kind === 'dung' ? 'lượt dựng video' : 'video'} AI của Crewzy theo gói. Dùng ảnh/video thật trong Kho, hoặc AI của khách tự làm rồi tải lên bằng CREWZY_TAI_LEN; tháng sau làm tiếp hoặc nâng gói.`
     : `Gói hiện tại không có ${kind === 'anh' ? 'ảnh' : 'video'} AI của Crewzy: dùng ảnh/video thật trong Kho, hoặc AI của khách (Claude, ChatGPT…) tự làm rồi tải lên bằng CREWZY_TAI_LEN.`;
   await env.KV.put(key, String(n + 1), TTL_MONTH);
   return null;

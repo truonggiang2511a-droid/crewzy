@@ -16,6 +16,7 @@ import { LEAD_TOOL_DEFS, leadTool, careLead, ceoChannels } from './leads.js';
 import { PROMPT_TOOL_DEFS, promptPro } from './promptPro.js';
 import { MEM_TOOL_DEFS, memTool, listMem, memText } from './memory.js';
 import { PUBLISH_TOOL_DEFS, publishTool } from './publish.js';
+import { RENDER_TOOL_DEFS, renderVideo } from './render.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -188,7 +189,7 @@ export async function createVideo(env, uid, origin, args) {
   };
 }
 
-CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS, ...PROMPT_TOOL_DEFS, ...MEM_TOOL_DEFS, ...PUBLISH_TOOL_DEFS);
+CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS, ...PROMPT_TOOL_DEFS, ...MEM_TOOL_DEFS, ...PUBLISH_TOOL_DEFS, ...RENDER_TOOL_DEFS);
 
 // Link tải file lên cho AI chạy trên máy khách (Claude Code, Codex): video/ảnh vừa dựng bằng Remotion, HyperFrames, ffmpeg…
 CREWZY_TOOL_DEFS.push({
@@ -423,6 +424,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
     if (name === 'CREWZY_LUU_BRAIN') return await saveBrainFields(env, uid, args);
     if (name === 'CREWZY_GHI_NHO') return await memTool(env, uid, args, agent);
+    if (name === 'CREWZY_DUNG_VIDEO') return await renderVideo(env, uid, origin, args || {});
     if (name === 'CREWZY_XEM_NOI_DUNG' || name === 'CREWZY_DUYET_HANG_LOAT') return await publishTool(env, uid, origin, name, args, agent);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface, !!instant);

@@ -7,6 +7,7 @@
 //   GET  /api/onboarding               → trạng thái 4 bước · POST /api/onboarding {ai: 'crewzy'} → chọn Trợ lý Crewzy làm bộ não · {trial: true} → dùng thử miễn phí (1 lần)
 //   POST /api/onboarding/brand-from-web {url} → đọc website, Claude điền sẵn Brain (khách xem lại rồi bấm Lưu)
 // Biến môi trường: SEPAY_WEBHOOK_KEY (bí mật), SEPAY_BANK (vd MBBank, VCB), SEPAY_ACCOUNT (số tài khoản), SEPAY_ACCOUNT_NAME, ADMIN_EMAILS.
+import { appAnthropic } from '../lib/ai.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveUid, safeDetail, sameText } from '../lib/common.js';
 import {
@@ -86,7 +87,7 @@ async function brandFromWeb(env, url) {
   const text = [d.tieu_de, d.mo_ta, ...(d.muc || []), d.chu].filter(Boolean).join('\n').slice(0, 9000);
   if (!env.ANTHROPIC_API_KEY) return { brand: { name: d.tieu_de || '', links: d.url } , ghi_chu: 'Chỉ lấy được tên từ tiêu đề trang. Điền các mục còn lại.' };
   const fields = ['name', 'industry', 'products', 'customers', 'voice', 'offers', 'faq', 'hashtags'];
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const client = appAnthropic(env);
   const res = await client.messages.create({
     model: 'claude-haiku-5-5', max_tokens: 1200,
     system: 'Bạn điền hồ sơ thương hiệu cho doanh nghiệp Việt Nam từ nội dung website. Chỉ dùng thông tin có trong nội dung, không bịa giá, số liệu, lời khách. Mục không có thông tin thì để chuỗi rỗng. Trả về DUY NHẤT một object JSON.',
