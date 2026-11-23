@@ -52,8 +52,8 @@
 
   // App để khách TỰ SỬA cho ưng ý (đã nối thì mở thẳng web app, chưa nối thì tới trang kết nối).
   var EDIT_APPS = {
-    image: [['canva', 'Canva', 'https://www.canva.com/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['figma', 'Figma', 'https://www.figma.com/']],
-    video: [['descript_mcp', 'Descript', 'https://web.descript.com/'], ['captions', 'Captions', 'https://desktop.captions.ai/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['canva', 'Canva', 'https://www.canva.com/'], ['capcut', 'CapCut (web)', 'https://www.capcut.com/editor', 2]],
+    image: [['canva', 'Canva', 'https://www.canva.com/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['gemini', 'Gemini', 'https://gemini.google.com/'], ['flow', 'Google Flow (Veo)', 'https://labs.google/flow', 2], ['figma', 'Figma', 'https://www.figma.com/']],
+    video: [['descript_mcp', 'Descript', 'https://web.descript.com/'], ['captions', 'Captions', 'https://desktop.captions.ai/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['flow', 'Google Flow (Veo)', 'https://labs.google/flow', 2], ['heygen', 'HeyGen', 'https://app.heygen.com/'], ['canva', 'Canva', 'https://www.canva.com/'], ['capcut', 'CapCut (web)', 'https://www.capcut.com/editor', 2]],
   };
   var connected = {};
   fetch('/api/status?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(function (d) { connected = (d && d.accounts) || {}; if (data.jobs.length) render(); }).catch(function () {});

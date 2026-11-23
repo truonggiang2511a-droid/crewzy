@@ -19,7 +19,7 @@ export const BRANCH_APPS = {
   thuong_hieu: [['googledrive', 'Logo, ảnh, tư liệu'], ['canva', 'Bộ nhận diện'], ['notion', 'Sổ tay thương hiệu']],
   doi_thu: [['apify', 'Soi Reels, TikTok đối thủ'], ['firecrawl', 'Đọc website, bảng giá'], ['semrush', 'Lưu lượng, từ khoá đối thủ'], ['vidiq_mcp', 'Kênh YouTube đối thủ'], ['metaads', 'Thư viện quảng cáo']],
   chien_luoc: [['perplexityai', 'Nghiên cứu thị trường'], ['tavily', 'Tin tức ngành'], ['serpapi', 'Từ khoá Google'], ['notion', 'Kế hoạch chiến lược'], ['googleslides', 'Trình bày kế hoạch']],
-  noi_dung: [['canva', 'Thiết kế ảnh'], ['heygen', 'Video người dẫn AI'], ['elevenlabs', 'Giọng đọc'], ['descript_mcp', 'Dựng, cắt video'], ['captions', 'Phụ đề'], ['luma_labs', 'Video từ ảnh']],
+  noi_dung: [['canva', 'Thiết kế ảnh'], ['heygen', 'Video người dẫn AI'], ['gemini', 'Veo, ảnh Gemini'], ['elevenlabs', 'Giọng đọc'], ['descript_mcp', 'Dựng, cắt video'], ['captions', 'Phụ đề'], ['luma_labs', 'Video từ ảnh']],
   phan_phoi: [['facebook', 'Fanpage'], ['instagram', 'Bài, Reels'], ['youtube', 'Video, Shorts'], ['tiktok', 'Video ngắn'], ['linkedin', 'Bài doanh nghiệp'], ['upload_post', 'TikTok, X, Threads, Bluesky'], ['pinterest', 'Ghim ảnh']],
   quang_cao: [['metaads', 'Quảng cáo Facebook, Instagram'], ['googleads', 'Quảng cáo Google, YouTube'], ['tiktok_ads', 'Quảng cáo TikTok'], ['google_analytics', 'Đo lường website'], ['google_search_console', 'Hiệu quả tìm kiếm'], ['ahrefs', 'Phân tích SEO'], ['mixpanel', 'Hành vi khách']],
   ban_hang: [['hubspot', 'CRM khách hàng'], ['pipedrive', 'Theo dõi deal'], ['apollo', 'Tìm khách doanh nghiệp'], ['calendly', 'Đặt lịch hẹn'], ['stripe', 'Thu tiền'], ['vapi', 'Gọi điện AI']],

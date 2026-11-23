@@ -146,6 +146,9 @@ export const WORKFLOWS = [
       'Gọi CREWZY_VIEC_CAN_LAM, lấy các phiếu trạng thái da_duyet có loai bai_dang.',
       'Với từng phiếu: đăng đúng nội dung và ảnh/video đã duyệt lên kênh ghi trong phiếu, đúng dinh_dang_kenh (Facebook: FACEBOOK_CREATE_POST/FACEBOOK_CREATE_PHOTO_POST/video; Instagram: tạo media rồi publish, Reels cho video; YouTube chỉ video, Shorts cho video dọc ≤ 60 giây). Kênh không nhận định dạng của bài thì bỏ qua và ghi chú. Mỗi lần đăng tối đa 3 bài, cách nhau vài phút nếu nhiều trang.',
       'Đăng xong gọi CREWZY_NOP_KET_QUA với id phiếu, trang_thai da_dang, lien_ket = link bài. Lỗi thì thử lại 1 lần, vẫn lỗi thì nộp ghi_chu nêu lỗi và giữ nguyên trạng thái.',
+      'BÁO CÁO GOOGLE SHEET (làm sau khi đã đăng HẾT các bài của lượt này, kể cả bài lỗi): ghi nhận kết quả từng bài × từng nền tảng đã thử đăng. Mỗi dòng gồm: Ngày, Giờ đăng (giờ Việt Nam), Nền tảng, Bài đăng (tiêu đề hoặc 80 chữ đầu), Trạng thái (Thành công / Thất bại), Lý do lỗi (BẮT BUỘC điền khi thất bại: ghi nguyên nhân thật AI đọc được từ app, ví dụ hết hạn kết nối, ảnh sai khổ, thiếu quyền; để trống khi thành công), Link bài đã đăng (đúng link của từng nền tảng), Mã phiếu.',
+      'Tìm bảng tính tên "Crewzy – Báo cáo bài đã đăng" trong Google Sheets đã nối. CHƯA CÓ thì TỰ TẠO bảng đó trước (1 tab "Bài đã đăng", dòng 1 là tiêu đề các cột trên, in đậm, cố định hàng đầu) RỒI MỚI ghi; không hỏi lại khách. Đã có thì chỉ thêm dòng mới cuối bảng, không xoá, không sửa dòng cũ. Khách chưa nối Google Sheets thì bỏ qua bước này và ghi ghi_chu trong phiếu: "Nối Google Sheets để có bảng báo cáo bài đã đăng".',
+      'Xong gửi email báo chủ: gọi CREWZY_QUY_TRINH lấy bao_ceo, gửi Gmail (hoặc Outlook nếu đã nối) tới email_ceo, tiêu đề "[Crewzy] Báo cáo bài đăng hôm nay (ngày/tháng)", nội dung ngắn: số bài thành công / thất bại, bài thất bại kèm lý do, và LINK Google Sheet. Tin nội bộ cho chủ, không cần hỏi duyệt. Nộp 1 phiếu CREWZY_NOP_KET_QUA (loai bao_cao, trang_thai xong, lien_ket = link Sheet) tóm tắt kết quả trong ngày.',
     ] },
 
   // ---------- Quảng cáo ----------
@@ -349,6 +352,8 @@ export function formatsFor(connected, mcpIds) {
 const G = {
   luu: { vai: 'Nơi lưu kết quả, lịch', apps: ['googlesheets', 'notion', 'airtable', 'googledocs', 'clickup', 'trello', 'asana', 'monday', 'coda', 'basecamp', 'wrike', 'excel', 'googledrive', 'one_drive', 'dropbox', 'box'], mcp: ['notion', 'monday', 'clickup'] },
   tai_lieu: { vai: 'Nơi lưu báo cáo, tài liệu', apps: ['googledocs', 'notion', 'googleslides', 'confluence', 'coda', 'onenote', 'googledrive', 'one_drive', 'dropbox', 'box', 'share_point'], mcp: ['notion'] },
+  bang_dang_bai: { vai: 'Bảng báo cáo bài đã đăng', apps: ['googlesheets'], san_co: 'Chưa nối thì Crewzy vẫn ghi tình trạng đăng trong Kết quả; nối Google Sheets để có bảng riêng (AI tự lập bảng)' },
+  gui_link_bang: { vai: 'Gửi link bảng cho chủ', apps: ['gmail', 'outlook'], san_co: 'Crewzy có sẵn báo trong ứng dụng' },
   kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'sprout_social', 'webflow', 'wix', 'framer', 'reddit', 'line', 'tiktok', 'threads', 'upload_post'], mcp: ['metricool', 'wix', 'webflow'] },
   fanpage: { vai: 'Kênh có bình luận', apps: ['facebook', 'instagram', 'youtube', 'linkedin', 'sprout_social', 'reddit', 'tiktok'], mcp: ['metricool'] },
   goi_dien: { vai: 'Gọi điện AI / SMS', apps: ['twilio', 'aircall', 'dialpad', 'clicksend', 'plivo', 'vapi', 'retellai', 'bland_ai'] },
@@ -392,7 +397,7 @@ const TOOLSETS = {
   video_tron_goi: { kenh: ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin', 'pinterest'], cong_cu: [opt('soi_video'), req('dung_video'), opt('giong_doc'), opt('anh_video'), req('kenh_dang'), opt('luu')] },
   edit_video_co_san: { kenh: ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin'], cong_cu: [req('dung_video'), opt('cat_clip'), opt('giong_doc'), opt('kenh_dang')] },
   anh_quang_cao_theo_mau: { kenh: ['facebook', 'instagram', 'linkedin', 'pinterest', 'ads'], cong_cu: [req('anh_video'), opt('quang_cao'), opt('kenh_dang')] },
-  dang_bai_da_duyet: { kenh: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'website'], cong_cu: [req('kenh_dang')] },
+  dang_bai_da_duyet: { kenh: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'website'], cong_cu: [req('kenh_dang'), opt('bang_dang_bai'), opt('gui_link_bang')] },
   theo_doi_quang_cao: { kenh: ['ads', 'facebook'], cong_cu: [req('quang_cao'), opt('nhan_noi_bo')] },
   mau_quang_cao_moi: { kenh: ['ads', 'facebook', 'instagram'], cong_cu: [opt('quang_cao'), opt('anh_video')] },
   lead_vao_crm: { kenh: ['crm', 'email', 'facebook'], cong_cu: [req('nguon_khach'), req('crm'), opt('email_mkt')] },

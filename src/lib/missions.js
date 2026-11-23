@@ -9,12 +9,13 @@ export const MISSIONS = [
   { id: 'san_xuat', ten: 'Sản xuất & phân phối nội dung', icon: 'noi_dung', mau: '#E879F9', cat: 'social',
     mo_ta: 'AI làm ảnh/video đẹp từ Brain thương hiệu, viết bài chuyển đổi (hashtag, lời kêu gọi), bạn duyệt 1 chạm rồi đăng mọi mạng xã hội.',
     slots: [
-      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'canva'], san_co: 'Crewzy có sẵn ảnh/video AI (credit)' },
+      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva'], san_co: 'Crewzy có sẵn ảnh/video AI (credit)' },
       { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], bat_buoc: true, nhieu: true },
+      { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets'], san_co: 'Báo cáo xem trong Kết quả' },
     ],
     lich: [
       { id: 'noi_dung_moi_sang', gio: '06:30', ngay: 'hang_ngay', buoc: 'Làm ảnh/video + bài cho mọi kênh (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
-      { id: 'dang_bai_da_duyet', gio: '10:00', ngay: 'hang_ngay', buoc: 'Đăng bài đã duyệt lên mọi kênh', tu: 'noi_dung', toi: 'phan_phoi' },
+      { id: 'dang_bai_da_duyet', gio: '10:00', ngay: 'hang_ngay', buoc: 'Đăng bài đã duyệt lên mọi kênh, ghi báo cáo Google Sheet, email link', tu: 'noi_dung', toi: 'phan_phoi' },
       { id: 'lich_noi_dung_tuan', gio: '07:30', ngay: 't2', buoc: 'Thứ Hai: lên lịch nội dung 7 ngày', tu: 'chien_luoc', toi: 'noi_dung' },
     ] },
   { id: 'cham_soc_mxh', ten: 'Chăm sóc đa nền tảng', icon: 'cham_soc', mau: '#2DD4BF', cat: 'chat',
