@@ -572,6 +572,11 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   "làm hết": (1) ops.js soát tồn 30 phút + (2) tổng kết 18:00/22:00 bằng code; (3) theo_doi_quang_cao 9:00 vào CHAIN (nhắc sale dời 9:30) với ngưỡng bất thường,
   báo chủ ngay, không tự chi tiền; (4) form Typeform/Google Sheets → lead (bỏ sheet "Khách tiềm năng"/"Báo cáo Crewzy" chống vòng lặp); (5) lead → HubSpot/Pipedrive ngay
   bằng code (notify.js). Test: officetest (form, ops). CHƯA thử với Composio thật (tools.execute GMAIL_SEND_EMAIL/HUBSPOT_CREATE_CONTACT, trigger Typeform/Sheets).
+- 23/11/2026: Giang hỏi bot trả lời tin nhắn + Zalo. Zalo: Composio không có → đường chính thức là Zalo OA (OA phải được Zalo duyệt, app developers.zalo.me,
+  webhook, tin tư vấn trong khung 48 giờ theo SDK — kiểm lại docs chính thức khi làm); KHÔNG làm Zalo cá nhân (thư viện không chính thức, dễ khoá số). Giang chọn làm
+  bot Messenger trước: quy trình tra_loi_tin_nhan (FACEBOOK_GET_PAGE_CONVERSATIONS/GET_CONVERSATION_MESSAGES/SEND_MESSAGE + INSTAGRAM_LIST_ALL_CONVERSATIONS/
+  SEND_TEXT_MESSAGE, quy tắc 24 giờ của Meta, xin số → CREWZY_BAO_LEAD), nhóm công cụ hop_tin, tu_dong, đứng đầu CHAIN Run (mỗi giờ 8–22, Haiku), lá Messenger/
+  Instagram ở nhánh CSKH. CHƯA thử thật: app Composio quản lý chung có quyền pages_messaging hay không phải thử bằng Fanpage Nhà Xinh.
 
 ## 6. Việc tiếp theo
 

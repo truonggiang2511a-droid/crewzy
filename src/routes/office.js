@@ -23,7 +23,7 @@ export const BRANCH_APPS = {
   phan_phoi: [['facebook', 'Fanpage'], ['instagram', 'Bài, Reels'], ['youtube', 'Video, Shorts'], ['tiktok', 'Video ngắn'], ['linkedin', 'Bài doanh nghiệp'], ['threads', 'Bài ngắn'], ['pinterest', 'Ghim ảnh']],
   quang_cao: [['metaads', 'Quảng cáo Facebook, Instagram'], ['googleads', 'Quảng cáo Google, YouTube'], ['tiktok_ads', 'Quảng cáo TikTok'], ['google_analytics', 'Đo lường website'], ['google_search_console', 'Hiệu quả tìm kiếm'], ['ahrefs', 'Phân tích SEO'], ['mixpanel', 'Hành vi khách']],
   ban_hang: [['hubspot', 'CRM khách hàng'], ['pipedrive', 'Theo dõi deal'], ['apollo', 'Tìm khách doanh nghiệp'], ['calendly', 'Đặt lịch hẹn'], ['stripe', 'Thu tiền']],
-  cham_soc: [['whatsapp', 'Nhắn tin khách'], ['telegram', 'Nhắn tin khách'], ['gmail', 'Email khách'], ['zendesk', 'Phiếu hỗ trợ'], ['intercom', 'Chat trên web']],
+  cham_soc: [['facebook', 'Bot trả lời Messenger'], ['instagram', 'Bot trả lời tin nhắn Instagram'], ['whatsapp', 'Nhắn tin khách'], ['telegram', 'Nhắn tin khách'], ['gmail', 'Email khách'], ['zendesk', 'Phiếu hỗ trợ'], ['intercom', 'Chat trên web']],
   bao_cao: [['googlesheets', 'Bảng số liệu'], ['googledocs', 'Báo cáo'], ['googleslides', 'Slide họp'], ['airtable', 'Cơ sở dữ liệu']],
   hang_ngay: [['gmail', 'Hộp thư'], ['googlecalendar', 'Lịch làm việc'], ['slack', 'Nhắn nội bộ'], ['trello', 'Việc cần làm'], ['googledrive', 'Tài liệu']],
 };

@@ -33,7 +33,7 @@
   // có việc thật ở 2 đầu → dây sáng + hạt chạy.
   var EDGES = [
     ['doi_thu', 'chien_luoc', 'doi_thu_reels'], ['chien_luoc', 'noi_dung', 'lich_noi_dung_tuan'], ['noi_dung', 'phan_phoi', 'dang_bai_da_duyet'],
-    ['phan_phoi', 'cham_soc', 'tra_loi_binh_luan'], ['cham_soc', 'ban_hang', 'tra_loi_binh_luan'], ['quang_cao', 'ban_hang', 'lead_vao_crm'],
+    ['phan_phoi', 'cham_soc', 'tra_loi_binh_luan|tra_loi_tin_nhan'], ['cham_soc', 'ban_hang', 'tra_loi_binh_luan'], ['quang_cao', 'ban_hang', 'lead_vao_crm'],
     ['ban_hang', 'hang_ngay', 'nhac_cham_soc_deal'], ['ban_hang', 'bao_cao', 'bao_cao_tuan'], ['bao_cao', 'hang_ngay', 'ban_tin_sang'], ['quang_cao', 'bao_cao', 'theo_doi_quang_cao'], ['bao_cao', 'chien_luoc', 'de_xuat_chien_luoc']
   ];
   var DAY_TXT = { hang_ngay: 'Mỗi ngày', t2_t6: 'Thứ Hai – Sáu', t2: 'Thứ Hai', cn: 'Chủ nhật', ngay_1: 'Ngày 1 hằng tháng', t3: 'Thứ Ba', t4: 'Thứ Tư', t5: 'Thứ Năm', t6: 'Thứ Sáu', t7: 'Thứ Bảy' };
@@ -226,7 +226,7 @@
     var auto = state.autopilot || { buoc: [] };
     EDGES.forEach(function (e) {
       var a = L.branch[e[0]] || L.roots[e[0]], b2 = L.branch[e[1]] || L.roots[e[1]]; if (!a || !b2) return;
-      var on = edgeActive(e), armed = auto.buoc.indexOf(e[2]) >= 0;
+      var on = edgeActive(e), armed = e[2].split('|').some(function (x) { return auto.buoc.indexOf(x) >= 0; });
       if (!on && !armed && isMobile()) return; // điện thoại: chỉ vẽ dây đang chạy hoặc đã bật tự động
       var off = L.R + 2;
       var mx = (a[0] + b2[0]) / 2, my = Math.min(a[1], b2[1]) - H * 0.07, ay = a[1] - off, by = b2[1] - off;

@@ -9,6 +9,7 @@ import { appBySlug } from './catalog.js';
 // Thứ tự = ưu tiên khi gói giới hạn số lịch (ra khách trước, rồi nội dung, rồi báo cáo).
 export const CHAIN = [
   { id: 'lead_vao_crm', gio: '08:30', ngay: 'hang_ngay', buoc: 'Khách mới → CRM, chào lại', tu: 'quang_cao', toi: 'ban_hang' },
+  { id: 'tra_loi_tin_nhan', gio: '08:00', den: '22:00', lap: 'moi_gio', ngay: 'hang_ngay', buoc: 'Bot trả lời tin nhắn Messenger, Instagram, xin số khách', tu: 'phan_phoi', toi: 'cham_soc' },
   { id: 'tra_loi_binh_luan', gio: '08:00', den: '22:00', lap: 'moi_gio', ngay: 'hang_ngay', buoc: 'Trả lời bình luận, gom khách hỏi giá', tu: 'phan_phoi', toi: 'cham_soc' },
   { id: 'nhac_cham_soc_deal', gio: '09:30', ngay: 't2_t6', buoc: 'Nhắc sale gọi khách chưa chăm', tu: 'ban_hang', toi: 'hang_ngay' },
   { id: 'ban_tin_sang', gio: '07:00', ngay: 'hang_ngay', buoc: 'Bản tin sáng cho CEO: số khách, việc cần gọi', tu: 'bao_cao', toi: 'hang_ngay' },
