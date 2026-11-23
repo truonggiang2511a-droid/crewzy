@@ -219,7 +219,8 @@ export const WORKFLOWS = [
     buoc: [
       'Đọc danh sách khách/deal từ CRM đã nối (HubSpot, Pipedrive, Salesforce, Zoho) hoặc bảng "Khách tiềm năng".',
       'Lọc khách chưa liên hệ quá 3 ngày (nóng) và 7 ngày (ấm), xếp theo giá trị.',
-      'Gợi ý bước tiếp theo và soạn tin nhắn ngắn cho từng khách.',
+      'Gợi ý bước tiếp theo và soạn tin nhắn ngắn cho từng khách (email nếu có email, tin Telegram/Zalo nếu có).',
+      'Đã nối app gọi điện AI (Vapi, Retell, Bland, Twilio, Aircall…) và khách có số điện thoại: soạn kịch bản gọi ngắn theo Brain (chào, nhắc nhu cầu, hẹn lịch), đưa vào phiếu để chủ duyệt; KHÔNG tự gọi khi chưa duyệt, không gọi trước 8:00 hay sau 21:00.',
       'Nộp bằng CREWZY_NOP_KET_QUA (loai cham_soc) để duyệt.',
     ] },
 
@@ -350,6 +351,7 @@ const G = {
   tai_lieu: { vai: 'Nơi lưu báo cáo, tài liệu', apps: ['googledocs', 'notion', 'googleslides', 'confluence', 'coda', 'onenote', 'googledrive', 'one_drive', 'dropbox', 'box', 'share_point'], mcp: ['notion'] },
   kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'sprout_social', 'webflow', 'wix', 'framer', 'reddit', 'line', 'tiktok', 'threads'], mcp: ['metricool', 'wix', 'webflow'] },
   fanpage: { vai: 'Kênh có bình luận', apps: ['facebook', 'instagram', 'youtube', 'linkedin', 'sprout_social', 'reddit', 'tiktok'], mcp: ['metricool'] },
+  goi_dien: { vai: 'Gọi điện AI / SMS', apps: ['twilio', 'aircall', 'dialpad', 'clicksend', 'plivo', 'vapi', 'retellai', 'bland_ai'] },
   nhan_noi_bo: { vai: 'Gửi báo cáo nội bộ', apps: ['telegram', 'slack', 'microsoft_teams', 'discord', 'gmail', 'outlook', 'whatsapp', 'line'] },
   crm: { vai: 'CRM / danh sách khách', apps: ['hubspot', 'pipedrive', 'salesforce', 'zoho', 'close', 'copper', 'freshsales', 'attio', 'nutshell', 'capsule_crm', 'agile_crm', 'folk', 'centralstationcrm', 'active_campaign', 'googlesheets', 'airtable', 'notion'] },
   nguon_khach: { vai: 'Nguồn khách mới', apps: ['gmail', 'outlook', 'facebook', 'instagram', 'typeform', 'jotform', 'tally', 'paperform', 'googlesheets', 'calendly', 'cal', 'savvycal', 'intercom', 'crisp', 'front', 'aircall', 'dialpad'] },
@@ -396,7 +398,7 @@ const TOOLSETS = {
   lead_vao_crm: { kenh: ['crm', 'email', 'facebook'], cong_cu: [req('nguon_khach'), req('crm'), opt('email_mkt')] },
   tim_khach_doanh_nghiep: { kenh: ['crm', 'email', 'linkedin'], cong_cu: [req('tim_khach_b2b'), opt('crm'), opt('chao_hang')] },
   bao_gia_sau_cuoc_goi: { kenh: ['crm', 'email'], cong_cu: [req('ghi_hop'), opt('crm'), opt('bao_gia')] },
-  nhac_cham_soc_deal: { kenh: ['crm'], cong_cu: [req('crm'), opt('email_mkt'), opt('nhan_noi_bo')] },
+  nhac_cham_soc_deal: { kenh: ['crm'], cong_cu: [req('crm'), opt('email_mkt'), opt('nhan_noi_bo'), opt('goi_dien')] },
   tra_loi_binh_luan: { kenh: ['facebook', 'instagram', 'youtube', 'linkedin', 'tiktok'], cong_cu: [req('fanpage')] },
   tra_loi_tin_nhan: { kenh: ['facebook', 'instagram'], cong_cu: [req('hop_tin'), opt('crm')] },
   tra_loi_email_khach: { kenh: ['email'], cong_cu: [req('hop_thu')] },

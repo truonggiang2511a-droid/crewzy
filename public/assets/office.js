@@ -576,10 +576,11 @@
       .then(function (r) { return r.json(); }).then(function (out) {
         if (out.error) { if (out.plan) drawPlan(out.plan, out.error); else fetch('/api/autopilot?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(function (pl) { drawPlan(pl, out.error); }); return; }
         if (out.plan) drawPlan(out.plan, out.loi && out.loi.length ? 'Một số bước chưa bật: ' + out.loi.join('; ') : ''); else autoDlg.close();
-        load();
+        load(); document.dispatchEvent(new CustomEvent('crewzy:autopilot-changed'));
       });
   }
   autoBox.addEventListener('click', function (e) { if (e.target.closest('[data-auto-open]')) openAuto(); });
+  document.addEventListener('crewzy:autopilot', function () { load(); }); // thẻ 6 nhiệm vụ vừa bật/tắt (assets/missions.js)
   autoDlg.addEventListener('click', function (e) {
     if (e.target === autoDlg || e.target.closest('[data-auto-close]')) autoDlg.close();
     else if (e.target.closest('[data-auto-on]')) autoPost('bat');

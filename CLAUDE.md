@@ -138,7 +138,11 @@ src/lib/activity.js       VIỆC AI ĐÃ LÀM: classify(tên công cụ) → dan
                           (uid, day, kind, n; migrations/0002_activity.sql, ĐÃ áp lên D1 thật 22/11). Chat ghi khi công cụ chạy không lỗi, cổng MCP ghi lúc gọi.
                           buildResults (giờ tiết kiệm theo DEFAULT_MINUTES, 50.000đ/giờ; RESULT_MINUTES_JSON, RESULT_HOUR_VND), runWeeklyReports (cron thứ Hai
                           ≥8 giờ VN, cờ KV weekly:<ngày>, phiếu 'Báo cáo tuần Crewzy' loai bao_cao, không gọi AI; WEEKLY_REPORT=off). Phiếu nguoi_lam 'Crewzy…' không tính.
-src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây vận hành): CHAIN 9 bước (lead → CRM, trả lời bình luận mỗi giờ, nhắc sale, bản tin sáng CEO,
+src/lib/missions.js       6 NHIỆM VỤ HẰNG NGÀY (nguồn duy nhất của dây chuyền Run): san_xuat, cham_soc_mxh, quang_cao, bao_cao_ceo, cham_soc_khach, nghien_cuu;
+                          mỗi nhiệm vụ 2–3 slot app (apps ứng viên, 'mcp:<id>', bat_buoc, nhieu, san_co) + lich (quy trình theo giờ, tu/toi cho dây trên cây).
+                          PRIORITY = thứ tự ưu tiên khi gói hết số lịch; slotStatus (đã nối/gợi ý/href). Thẻ: public/assets/missions.js vào [data-missions]
+                          ở Trung tâm điều hành + đầu trang Quy trình (▶ Chạy ngay → chat.html?q=, Tự chạy hằng ngày → POST /api/autopilot {action, nv}, Run tất cả)
+src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây vận hành): CHAIN = PRIORITY × missions.lich (12 bước, lịch gắn nv = mã nhiệm vụ; bật/tắt riêng từng nhiệm vụ), (lead → CRM, trả lời bình luận mỗi giờ, nhắc sale, bản tin sáng CEO,
                           lịch nội dung, đăng bài đã duyệt, báo cáo tuần vào Google Sheets, soi đối thủ, chiến lược tháng) = lịch nguon 'cay'; chỉ bật bước
                           readiness sẵn sàng, theo số lịch gói (ưu tiên ra khách trước); cần Brain ≥4/6 mục. GET/POST /api/autopilot (src/routes/autopilot.js).
                           Dây giữa phòng trên cây = EDGES trong office.js (khớp CHAIN tu→toi): bật tự động → dây đứt nét chảy chậm, có việc thật → sáng + hạt.
@@ -583,6 +587,14 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Làm: Higgsfield vào danh bạ MCP (Điền nhanh), nhóm anh_video/dung_video nhận mcp higgsfield, lá MCP ở nhánh Nội dung (BRANCH_MCP, sáng khi đã nối, bấm → tab MCP
   điền sẵn), quy trình noi_dung_moi_sang (6:30 mỗi ngày trong CHAIN: Brain + lịch tuần + Kho → Higgsfield hoặc ảnh/video credit Crewzy → bài riêng từng kênh →
   chờ duyệt → 10:00 dang_bai_da_duyet đăng). CHƯA đăng nhập Higgsfield thật (cần tài khoản), định dạng kết quả ảnh/video của Higgsfield chưa xem.
+
+- 23/11/2026: Giang: "tạo lại quy trình gồm 6 đầu việc chính hằng ngày, khách bấm Run hoặc hẹn giờ, mỗi quy trình nối 2–3 app, muốn thêm bấm +".
+  Làm: src/lib/missions.js (6 nhiệm vụ; Giang kể 5, nhiệm vụ 6 Nghiên cứu đối thủ & thị trường do Claude thêm vì nuôi ý tưởng cho nội dung/quảng cáo — đổi được),
+  CHAIN của autopilot lấy từ missions (cùng 12 quy trình như cũ, lịch có nv), /api/autopilot GET trả nhiem_vu, POST nhận nv (bật thêm không tắt nhiệm vụ khác,
+  tắt riêng; tắt hết mới tắt trigger). Thẻ nhiệm vụ ở Trung tâm điều hành + đầu trang Quy trình (thư viện 23 quy trình giữ bên dưới). Gọi điện AI: nhóm goi_dien
+  (Twilio, Aircall, Dialpad, ClickSend, Plivo + Vapi/Retell AI/Bland AI để 'soon' vì CHƯA thử /api/connect — thử ra link rồi đổi 'ready'); nhac_cham_soc_deal soạn
+  kịch bản gọi chờ duyệt, không tự gọi. Báo cáo CEO dạng PDF: nút "Tải PDF" ở Kết quả (window.print + @media print ẩn menu) — chưa có file PDF đính kèm email.
+  Test: officetest "missions OK". Playwright 1440/390 không tràn ngang.
 
 ## 6. Việc tiếp theo
 

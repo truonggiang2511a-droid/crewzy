@@ -42,6 +42,35 @@ const l2 = await listSchedules(env, 'u2');
 assert.ok(l2.some((s) => s.quy_trinh === 'tra_loi_binh_luan' && s.lap === 'moi_gio'), 'gói đủ tính năng: trả lời mỗi giờ');
 console.log('autopilot OK', full.bat.length, 'bước bật');
 
+// 6 nhiệm vụ: mỗi nhiệm vụ 2–3 ô app, app có trong catalog; bật/tắt riêng từng nhiệm vụ, nhiệm vụ khác giữ nguyên.
+import { MISSIONS, slotStatus, missionOf } from '../src/lib/missions.js';
+import { appBySlug as appOf } from '../src/lib/catalog.js';
+import { workflowById as wfOf } from '../src/lib/workflows.js';
+assert.equal(MISSIONS.length, 6);
+for (const m of MISSIONS) {
+  assert.ok(m.slots.length >= 2 && m.slots.length <= 3, m.id + ' phải có 2–3 ô app');
+  for (const sl of m.slots) for (const a of sl.apps) assert.ok(a.startsWith('mcp:') || appOf(a), m.id + ': app lạ ' + a);
+  for (const l of m.lich) { assert.ok(wfOf(l.id), m.id + ': quy trình lạ ' + l.id); assert.equal(missionOf(l.id).id, m.id); }
+}
+assert.equal(new Set(CHAIN.map((c) => c.id)).size, CHAIN.length, 'mỗi quy trình chỉ thuộc 1 nhiệm vụ');
+const ss = slotStatus(MISSIONS[0].slots[1], ['facebook', 'instagram'], []);
+assert.equal(ss.da_noi.length, 2); assert.ok(ss.ok);
+assert.ok(slotStatus(MISSIONS[0].slots[0], [], ['https://mcp.higgsfield.ai/mcp']).da_noi.some((a) => a.slug === 'higgsfield'));
+const f10 = { lich: 10, tro_ly: true, tu_tra_loi: true };
+const one = await enableAutopilot(env, 'u4', rctx, f10, ['cham_soc_mxh']);
+assert.ok(one.ok, JSON.stringify(one));
+let l4 = await listSchedules(env, 'u4');
+assert.ok(l4.length && l4.every((s) => s.nv === 'cham_soc_mxh'), 'chỉ bật nhiệm vụ đã chọn');
+await enableAutopilot(env, 'u4', rctx, f10, ['bao_cao_ceo']);
+l4 = await listSchedules(env, 'u4');
+assert.ok(l4.some((s) => s.nv === 'cham_soc_mxh') && l4.some((s) => s.nv === 'bao_cao_ceo'), 'bật thêm nhiệm vụ không tắt nhiệm vụ cũ');
+await disableAutopilot(env, 'u4', ['cham_soc_mxh']);
+l4 = await listSchedules(env, 'u4');
+assert.ok(l4.length && l4.every((s) => s.nv === 'bao_cao_ceo'), 'tắt riêng 1 nhiệm vụ');
+const p4 = await planAutopilot(env, 'u4', rctx, f10);
+assert.ok(p4.missions.find((m) => m.id === 'bao_cao_ceo').dang_chay && !p4.missions.find((m) => m.id === 'cham_soc_mxh').dang_chay);
+console.log('missions OK');
+
 // Lead: lưu, gộp trùng số trong 7 ngày, kênh báo CEO theo app đã nối, chốt đơn ra doanh thu theo nguồn.
 import { leadTool, listLeads, updateLead, leadStats } from '../src/lib/leads.js';
 store.set('uid:u3', 'sub3'); store.set('user:sub3', JSON.stringify({ uid: 'u3', email: 'ceo@nhaxinh.vn' }));

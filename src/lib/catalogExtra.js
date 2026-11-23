@@ -78,6 +78,10 @@ export const EXTRA_APPS = [
     ['Thêm người đăng ký', 'Xem chiến dịch'], 'Liệt kê danh sách Moosend', [SEND, OPTIN]),
 
   // ---------- Gọi điện & SMS ----------
+  // Gọi điện AI (Composio có toolkit, khoá API của khách). CHƯA thử /api/connect → để 'soon' tới khi thử ra link (CẢNH BÁO trong catalog.js).
+  { ...R('vapi', 'Vapi', 'phone', 'Trợ lý gọi điện AI: gọi lại khách để lại số, đặt lịch hẹn.', ['Tạo cuộc gọi AI tới số khách', 'Xem kết quả cuộc gọi'], 'Gọi thử cho khách vừa để lại số'), status: 'soon' },
+  { ...R('retellai', 'Retell AI', 'phone', 'Gọi điện AI giọng tự nhiên, gọi lại khách, xác nhận lịch hẹn.', ['Tạo cuộc gọi AI', 'Xem bản ghi cuộc gọi'], 'Gọi xác nhận lịch hẹn'), status: 'soon' },
+  { ...R('bland_ai', 'Bland AI', 'phone', 'Gọi điện AI hàng loạt theo kịch bản, chăm sóc khách.', ['Gọi theo kịch bản', 'Xem kết quả'], 'Gọi chăm sóc khách cũ'), status: 'soon' },
   R('twilio', 'Twilio', 'phone', 'Gửi SMS, gọi điện, WhatsApp qua API.',
     ['Gửi SMS', 'Xem lịch sử tin, cuộc gọi'], 'Xem 10 tin SMS gần nhất trên Twilio', [SEND, 'Không gửi tin quảng cáo cho người chưa đồng ý']),
   R('clicksend', 'ClickSend', 'phone', 'Gửi SMS hàng loạt, email, thư.',

@@ -1,4 +1,4 @@
-// GET /api/autopilot → kế hoạch Chạy tự động cả cây · POST {action:'bat'|'tat'} → bật/tắt chuỗi lịch (src/lib/autopilot.js).
+// GET /api/autopilot → kế hoạch + 6 nhiệm vụ (nhiem_vu) · POST {action:'bat'|'tat', nv?: <mã nhiệm vụ>|'all'} → bật/tắt chuỗi lịch (src/lib/autopilot.js).
 import { resolveUid } from '../lib/common.js';
 import { connectedApps } from '../lib/connected.js';
 import { listServers } from '../lib/mcpServers.js';
@@ -10,6 +10,19 @@ import { getFeatures } from '../lib/billing.js';
 import { planAutopilot, enableAutopilot, disableAutopilot } from '../lib/autopilot.js';
 import { syncTriggers, listTriggers, TRIGGERS, getFormCfg, parseFormInput } from '../lib/events.js';
 import { kvPutJson } from '../lib/common.js';
+import { MISSIONS, missionById, slotStatus } from '../lib/missions.js';
+
+// 6 nhiệm vụ cho giao diện: ô app (đã nối / gợi ý), giờ chạy, sẵn sàng, đang chạy, lý do chưa chạy.
+function missionView(plan, rctx) {
+  return MISSIONS.map((m) => {
+    const st = plan.steps.filter((x) => x.nv === m.id);
+    const sum = plan.missions.find((x) => x.id === m.id) || {};
+    const slots = m.slots.map((sl) => slotStatus(sl, rctx.connected, rctx.mcpUrls));
+    const ly_do = !sum.san_sang ? (st.find((x) => x.ly_do) || {}).ly_do || 'Chưa đủ app' : '';
+    return { id: m.id, ten: m.ten, mo_ta: m.mo_ta, mau: m.mau, icon: m.icon, cat: m.cat, slots, dang_chay: !!sum.dang_chay, san_sang: !!sum.san_sang, ly_do,
+      lich: st.map((x) => ({ id: x.id, ten: x.ten, gio: x.gio, den: x.den, lap: x.lap, ngay: x.ngay, buoc: x.buoc, san_sang: x.san_sang, dang_chay: x.dang_chay, ly_do: x.ly_do })) };
+  });
+}
 
 export default async (req, env) => {
   const url = new URL(req.url);
@@ -24,7 +37,9 @@ export default async (req, env) => {
   const rctx = { connected: Object.keys(accounts || {}), mcpUrls: servers.filter((s) => !s.off).map((s) => s.url), brand: brand || {}, done: doneFlows(jobs), instant: instantOn(env) && !!env.ANTHROPIC_API_KEY };
   const origin = env.PUBLIC_ORIGIN || url.origin;
   const suKien = async () => { const [t, f] = await Promise.all([listTriggers(env, uid), getFormCfg(env, uid)]); return Object.keys(TRIGGERS).map((k) => ({ app: k, ten: TRIGGERS[k].ten, da_noi: rctx.connected.includes(k), bat: !!t[k], form: !!TRIGGERS[k].form, gia_tri: k === 'typeform' ? f.typeform || '' : k === 'googlesheets' ? f.sheet || '' : undefined, ten_sheet: k === 'googlesheets' ? f.sheet_name || '' : undefined })); };
-  if (req.method === 'GET') return Response.json({ ...(await planAutopilot(env, uid, rctx, feat)), su_kien: await suKien() }, { headers: { 'cache-control': 'no-store' } });
+  if (req.method === 'GET') { const plan = await planAutopilot(env, uid, rctx, feat); return Response.json({ ...plan, nhiem_vu: missionView(plan, rctx), lich_goi: feat ? feat.lich : null, su_kien: await suKien() }, { headers: { 'cache-control': 'no-store' } }); }
+  const nv = body.nv && body.nv !== 'all' ? [].concat(body.nv).filter((x) => missionById(x)) : null;
+  if (body.nv && body.nv !== 'all' && !(nv && nv.length)) return Response.json({ error: 'Không có nhiệm vụ này.' }, { status: 400 });
   if (body.action === 'form') {
     const f = await getFormCfg(env, uid);
     if (body.typeform != null) { const v = parseFormInput('typeform', body.typeform); if (body.typeform && !v) return Response.json({ error: 'Link Typeform chưa đúng (dạng form.typeform.com/to/<mã>).' }, { status: 400 }); f.typeform = v; }
@@ -35,14 +50,20 @@ export default async (req, env) => {
     if (plan.bat) { const t = await syncTriggers(env, uid, rctx.connected, true, origin).catch((e) => ({ loi: [e && e.message] })); loi = t.loi || []; }
     return Response.json({ ok: !loi.length, loi, su_kien: await suKien(), ghi_chu: plan.bat ? undefined : 'Đã lưu. Bấm Bật chạy tự động để bắt đầu nhận khách từ form.' });
   }
-  if (body.action === 'tat') { await syncTriggers(env, uid, rctx.connected, false, origin).catch(() => {}); return Response.json(await disableAutopilot(env, uid)); }
+  if (body.action === 'tat') {
+    await disableAutopilot(env, uid, nv);
+    const plan = await planAutopilot(env, uid, rctx, feat);
+    if (!plan.bat) await syncTriggers(env, uid, rctx.connected, false, origin).catch(() => {});
+    return Response.json({ ok: true, nhiem_vu: missionView(plan, rctx), bat: plan.bat });
+  }
   if (body.action !== 'bat') return Response.json({ error: 'Thao tác không hợp lệ.' }, { status: 400 });
   if (feat && !feat.lich) return Response.json({ error: 'Gói hiện tại chưa có hẹn giờ tự chạy. Nâng lên gói Cơ bản trở lên ở trang Gói và credit.' }, { status: 400 });
-  const out = await enableAutopilot(env, uid, rctx, feat);
+  const out = await enableAutopilot(env, uid, rctx, feat, nv);
   if (!out.error) {
     const t = await syncTriggers(env, uid, rctx.connected, true, origin).catch((e) => ({ loi: [e && e.message] }));
     if (t.loi && t.loi.length) out.loi = [...(out.loi || []), ...t.loi.map((x) => 'Sự kiện tức thì: ' + x)];
     out.su_kien = await suKien();
   }
+  if (out.plan) out.nhiem_vu = missionView(out.plan, rctx);
   return Response.json(out, { status: out.error ? 400 : 200 });
 };
