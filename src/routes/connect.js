@@ -1,17 +1,20 @@
 // Tạo link đăng nhập Composio cho một công cụ (mỗi lần bấm thêm 1 tài khoản, tối đa 5 tài khoản/công cụ).
 // GET /api/connect?toolkit=<slug>[&uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
+import { isAdminEmail } from '../lib/billing.js';
 import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 
 export default async (req, env) => {
   const url = new URL(req.url);
   const toolkit = url.searchParams.get('toolkit') || '';
 
-  if (!TOOLKITS.includes(toolkit)) {
-    return Response.json({ error: 'Công cụ này chưa được mở kết nối thật.' }, { status: 400 });
-  }
   const who = await resolveUid(req, env, url.searchParams.get('uid'));
   if (who.response) return who.response;
+  // ?thu=1: CHỈ admin (ADMIN_EMAILS) thử app chưa mở để biết Composio có ra link không (thêm app mới: ra link mới đổi 'ready').
+  const probe = url.searchParams.get('thu') === '1' && who.session && isAdminEmail(env, who.session.email) && /^[a-z0-9_]{2,40}$/.test(toolkit);
+  if (!TOOLKITS.includes(toolkit) && !probe) {
+    return Response.json({ error: 'Công cụ này chưa được mở kết nối thật.' }, { status: 400 });
+  }
   const uid = who.uid;
   const apiKey = getApiKey(env);
   if (!apiKey) {
