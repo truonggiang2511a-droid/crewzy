@@ -35,6 +35,9 @@ export const BRANCH_CAT = { thuong_hieu: 'creative', doi_thu: 'research', chien_
 const CAT_NAME = { social: 'Kênh đăng bài', web: 'Website', ads: 'Quảng cáo', analytics: 'Phân tích', chat: 'Nhắn tin khách', care: 'Hỗ trợ khách', phone: 'Gọi điện, SMS', email: 'Email khách',
   sales: 'Bán hàng', leads: 'Tìm khách', money: 'Thanh toán', creative: 'Thiết kế', media: 'Ảnh, video', research: 'Nghiên cứu', office: 'Văn phòng', work: 'Quản lý việc' };
 
+// Lá là máy chủ MCP (không qua Composio): sáng khi khách đã nối máy chủ đó ở Kết nối → MCP khác.
+export const BRANCH_MCP = { noi_dung: [{ slug: 'higgsfield', name: 'Higgsfield', vai: 'Ảnh, video điện ảnh', host: 'mcp.higgsfield.ai', url: 'https://mcp.higgsfield.ai/mcp' }] };
+
 const ALL_BRANCH_APPS = new Set(Object.values(BRANCH_APPS).flat().map(([slug]) => slug));
 
 const KIND_ROOM = { bai_dang: 'phan_phoi', noi_dung: 'noi_dung', cham_soc: 'cham_soc', bao_cao: 'bao_cao', brain: 'thuong_hieu', khac: 'hang_ngay' };
@@ -75,6 +78,7 @@ export default async (req, env, ctx) => {
     const extra = connected.filter((x) => !ALL_BRANCH_APPS.has(x) && CAT_BRANCH[(appBySlug(x) || {}).cat] === d.id); // app khách nối thêm → mọc vào nhánh đúng thể loại
     const leaves = [...curated.map(([slug, vai]) => ({ slug, vai })), ...extra.map((slug) => ({ slug, vai: CAT_NAME[(appBySlug(slug) || {}).cat] || 'Ứng dụng của bạn', them: true }))]
       .map((l) => ({ ...l, name: (appBySlug(l.slug) || { name: l.slug }).name, on: connected.includes(l.slug) }));
+    for (const m of BRANCH_MCP[d.id] || []) leaves.unshift({ slug: m.slug, name: m.name, vai: m.vai, on: mcpUrls.some((u) => u.includes(m.host)), href: 'ket-noi.html?tab=mcp&ten=' + encodeURIComponent(m.name) + '&url=' + encodeURIComponent(m.url) });
     leaves.sort((a, b) => (b.on ? 1 : 0) - (a.on ? 1 : 0));
     leaves.splice(8);
     const sch = schedules.filter((s) => s.bat && flows.some((w) => w.id === s.quy_trinh));

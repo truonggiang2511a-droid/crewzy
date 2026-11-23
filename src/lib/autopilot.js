@@ -13,6 +13,7 @@ export const CHAIN = [
   { id: 'tra_loi_binh_luan', gio: '08:00', den: '22:00', lap: 'moi_gio', ngay: 'hang_ngay', buoc: 'Trả lời bình luận, gom khách hỏi giá', tu: 'phan_phoi', toi: 'cham_soc' },
   { id: 'nhac_cham_soc_deal', gio: '09:30', ngay: 't2_t6', buoc: 'Nhắc sale gọi khách chưa chăm', tu: 'ban_hang', toi: 'hang_ngay' },
   { id: 'ban_tin_sang', gio: '07:00', ngay: 'hang_ngay', buoc: 'Bản tin sáng cho CEO: số khách, việc cần gọi', tu: 'bao_cao', toi: 'hang_ngay' },
+  { id: 'noi_dung_moi_sang', gio: '06:30', ngay: 'hang_ngay', buoc: 'Nội dung mỗi sáng: ảnh/video + bài cho mọi kênh (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
   { id: 'theo_doi_quang_cao', gio: '09:00', ngay: 'hang_ngay', buoc: 'Kiểm quảng cáo, báo ngay khi bất thường', tu: 'quang_cao', toi: 'bao_cao' },
   { id: 'lich_noi_dung_tuan', gio: '07:30', ngay: 't2', buoc: 'Lên lịch nội dung 7 ngày', tu: 'chien_luoc', toi: 'noi_dung' },
   { id: 'dang_bai_da_duyet', gio: '10:00', ngay: 'hang_ngay', buoc: 'Đăng bài đã duyệt lên mọi kênh', tu: 'noi_dung', toi: 'phan_phoi' },

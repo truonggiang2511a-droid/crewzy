@@ -577,6 +577,12 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   bot Messenger trước: quy trình tra_loi_tin_nhan (FACEBOOK_GET_PAGE_CONVERSATIONS/GET_CONVERSATION_MESSAGES/SEND_MESSAGE + INSTAGRAM_LIST_ALL_CONVERSATIONS/
   SEND_TEXT_MESSAGE, quy tắc 24 giờ của Meta, xin số → CREWZY_BAO_LEAD), nhóm công cụ hop_tin, tu_dong, đứng đầu CHAIN Run (mỗi giờ 8–22, Haiku), lá Messenger/
   Instagram ở nhánh CSKH. CHƯA thử thật: app Composio quản lý chung có quyền pages_messaging hay không phải thử bằng Fanpage Nhà Xinh.
+- 23/11/2026: Giang hỏi nối Higgsfield + công cụ ảnh/video chuyên nghiệp để mỗi sáng Run làm nội dung đa nền tảng. Tra thật: MCP chính thức
+  https://mcp.higgsfield.ai/mcp (OAuth Clerk, có registration_endpoint DCR + CIMD; DCR với redirect https://crewzy…/api/mcp-callback ĐÃ được nhận 23/11),
+  trừ credit trong tài khoản Higgsfield của khách. Composio cũng có toolkit higgsfield (API_KEY, 14 công cụ, Instant hỗ trợ một phần) — chưa thêm vào catalog.
+  Làm: Higgsfield vào danh bạ MCP (Điền nhanh), nhóm anh_video/dung_video nhận mcp higgsfield, lá MCP ở nhánh Nội dung (BRANCH_MCP, sáng khi đã nối, bấm → tab MCP
+  điền sẵn), quy trình noi_dung_moi_sang (6:30 mỗi ngày trong CHAIN: Brain + lịch tuần + Kho → Higgsfield hoặc ảnh/video credit Crewzy → bài riêng từng kênh →
+  chờ duyệt → 10:00 dang_bai_da_duyet đăng). CHƯA đăng nhập Higgsfield thật (cần tài khoản), định dạng kết quả ảnh/video của Higgsfield chưa xem.
 
 ## 6. Việc tiếp theo
 

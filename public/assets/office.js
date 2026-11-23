@@ -32,7 +32,7 @@
   // Dây chuyền tự động (khớp CHAIN trong src/lib/autopilot.js): [từ phòng, tới phòng, quy trình]. Bật chạy tự động → dây hiện "đã nối";
   // có việc thật ở 2 đầu → dây sáng + hạt chạy.
   var EDGES = [
-    ['doi_thu', 'chien_luoc', 'doi_thu_reels'], ['chien_luoc', 'noi_dung', 'lich_noi_dung_tuan'], ['noi_dung', 'phan_phoi', 'dang_bai_da_duyet'],
+    ['doi_thu', 'chien_luoc', 'doi_thu_reels'], ['chien_luoc', 'noi_dung', 'lich_noi_dung_tuan'], ['noi_dung', 'phan_phoi', 'dang_bai_da_duyet|noi_dung_moi_sang'],
     ['phan_phoi', 'cham_soc', 'tra_loi_binh_luan|tra_loi_tin_nhan'], ['cham_soc', 'ban_hang', 'tra_loi_binh_luan'], ['quang_cao', 'ban_hang', 'lead_vao_crm'],
     ['ban_hang', 'hang_ngay', 'nhac_cham_soc_deal'], ['ban_hang', 'bao_cao', 'bao_cao_tuan'], ['bao_cao', 'hang_ngay', 'ban_tin_sang'], ['quang_cao', 'bao_cao', 'theo_doi_quang_cao'], ['bao_cao', 'chien_luoc', 'de_xuat_chien_luoc']
   ];
@@ -126,7 +126,7 @@
       var tp = el('text', { x: x, y: y + r * 0.38, 'text-anchor': 'middle', 'font-size': r * 1.15, 'font-weight': 600, fill: color }, pg); tp.textContent = '+';
       return;
     }
-    var g = el('g', { 'data-leaf': leaf.slug, class: 'oleaf', style: 'cursor:pointer' }, parent);
+    var g = el('g', leaf.href ? { 'data-href': leaf.href, class: 'oleaf', style: 'cursor:pointer' } : { 'data-leaf': leaf.slug, class: 'oleaf', style: 'cursor:pointer' }, parent);
     el('title', {}, g).textContent = leaf.name + ' · ' + leaf.vai + (leaf.on ? ' (đã nối)' : ' (chưa nối, bấm để nối)');
     if (lit && leaf.on) {
       var gl = el('circle', { cx: x, cy: y, r: r + 4, fill: color, opacity: 0.35, filter: 'url(#soft)' }, g);
@@ -390,7 +390,7 @@
     var counts = '<div class="od-counts">' +
       '<span><b>' + r.counts.lam + '</b>đang làm</span><span><b>' + r.counts.cho + '</b>chờ AI</span><span><b>' + r.counts.duyet + '</b>chờ duyệt</span><span><b>' + r.counts.xong_24h + '</b>xong 24h</span></div>';
     var apps = (r.leaves || []).length ? '<p class="od-meta" style="margin-bottom:4px">Ứng dụng của phòng · mỗi app một nhiệm vụ</p><ul class="od-leaves">' + r.leaves.map(function (l) {
-      return '<li><a href="ket-noi.html?app=' + esc(l.slug) + '"' + (l.on ? '' : ' class="off"') + '>' + logo(l.slug, 20) + '<span><b>' + esc(l.name) + '</b><small>' + esc(l.vai) + (l.on ? '' : ' · chưa nối') + '</small></span></a></li>'; }).join('') + '</ul>' : '';
+      return '<li><a href="' + esc(l.href || ('ket-noi.html?app=' + l.slug)) + '"' + (l.on ? '' : ' class="off"') + '>' + logo(l.slug, 20) + '<span><b>' + esc(l.name) + '</b><small>' + esc(l.vai) + (l.on ? '' : ' · chưa nối') + '</small></span></a></li>'; }).join('') + '</ul>' : '';
     var miss = r.suggest.length ? '<p class="od-meta">Nên nối: ' + r.suggest.map(function (s) { return '<a href="ket-noi.html?app=' + s.slug + '">' + esc(s.name) + '</a>'; }).join(', ') + '</p>' : '';
     var sch = r.schedules.length ? '<p class="od-meta">Lịch tự chạy: ' + r.schedules.map(function (s) { return esc(s.ten) + ' (' + (s.lap === 'moi_gio' ? 'mỗi giờ ' + esc(s.gio) + '–' + esc(s.den) : esc(s.gio)) + ')'; }).join('; ') + '</p>' : '';
     var primary = r.status === 'wait' ? '<a class="btn btn-primary" href="cho-duyet.html">Duyệt ' + r.counts.duyet + ' việc</a>'

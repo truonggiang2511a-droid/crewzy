@@ -8,6 +8,7 @@ const M = (id, name, url, auth, cat, desc, extra = {}) => ({ id, name, url, host
 
 export const MCP_DIRECTORY = [
   // Làm nội dung, ảnh, video
+  M('higgsfield', 'Higgsfield', 'https://mcp.higgsfield.ai/mcp', 'oauth', 'creative', 'Ảnh và video điện ảnh chuyên nghiệp (Kling, Veo, Sora, Seedance, Nano Banana…), nhân vật nhất quán. Trừ credit trong tài khoản Higgsfield của bạn.', { letter: 'Hf', bg: '#0B0B0B', host: 'mcp.higgsfield.ai' }),
   M('openart', 'OpenArt', 'https://mcp.openart.ai/mcp', 'oauth', 'creative', 'Tạo ảnh và video AI, ảnh/video về thẳng khung chat để đăng.', { letter: 'O', bg: '#111111' }),
   M('hyperframes', 'HyperFrames (HeyGen)', 'https://mcp.heygen.com/mcp/hyperframes', 'oauth', 'creative', 'Dựng và render video từ HTML: chữ động, slide, motion graphics, video quảng cáo theo mẫu.', { letter: 'H', bg: '#5B3DF5', host: 'heygen.com/mcp/hyperframes' }),
   M('heygen', 'HeyGen', 'https://mcp.heygen.com/mcp/v1/', 'oauth', 'creative', 'Video người dẫn AI (avatar), giọng đọc, dịch video, nhép môi.', { logo: 'heygen', host: 'heygen.com/mcp/v1' }),
