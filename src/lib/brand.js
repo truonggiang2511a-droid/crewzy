@@ -4,7 +4,7 @@
 export const BRAND_FIELDS = {
   name: 'Tên doanh nghiệp', industry: 'Ngành, lĩnh vực', products: 'Sản phẩm, dịch vụ chính', customers: 'Khách hàng mục tiêu',
   voice: 'Giọng văn', dos: 'Nên nói', donts: 'Không được nói', offers: 'Giá, ưu đãi, chính sách', faq: 'Câu hỏi khách hay hỏi',
-  links: 'Website, Fanpage, kênh', hashtags: 'Hashtag, từ khoá',
+  links: 'Website, Fanpage, kênh, link form thu khách, từ khoá bình luận (ví dụ "POST")', hashtags: 'Hashtag, từ khoá',
   visual: 'Nhận diện hình ảnh (logo, màu, font, phong cách ảnh)',
   video_style: 'Phong cách video (độ dài, hook 3 giây đầu, nhịp cắt, phụ đề, người dẫn hay không)',
   audio: 'Giọng đọc và nhạc (giọng nam/nữ, vùng miền, tốc độ, loại nhạc nền)',

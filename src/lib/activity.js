@@ -2,7 +2,9 @@
 // Dùng cho màn Kết quả (biên nhận tháng) và báo cáo tuần tự động. Ghi best-effort: lỗi không làm hỏng công cụ.
 // Chat (Trợ lý Crewzy) chỉ ghi khi công cụ chạy xong không lỗi; cổng MCP ghi lúc gọi (không đọc được kết quả Composio đã chuyển tiếp).
 const SOCIAL = /^(FACEBOOK|INSTAGRAM|YOUTUBE|LINKEDIN|PINTEREST|TWITTER|THREADS|TIKTOK|REDDIT|METRICOOL|BUFFER)_/;
-const SKIP = /^(COMPOSIO_(SEARCH_TOOLS|GET_TOOL_SCHEMAS|MANAGE_CONNECTIONS|WAIT_FOR_CONNECTIONS)|CREWZY_(?!TAO_ANH|TAO_VIDEO|BAO_LEAD))/;
+const SKIP = /^(COMPOSIO_(SEARCH_TOOLS|GET_TOOL_SCHEMAS|MANAGE_CONNECTIONS|WAIT_FOR_CONNECTIONS)|CREWZY_(?!TAO_ANH|TAO_VIDEO|BAO_LEAD|CHAM_SOC_LEAD))/;
+import { listLeads, leadsWeekly } from './leads.js';
+import { mailOwner } from './notify.js';
 
 export const KIND_LABELS = { dang_bai: 'Bài đã đăng', tra_loi: 'Bình luận đã trả lời', gui_tin: 'Tin nhắn, email đã gửi', anh: 'Ảnh đã tạo', video: 'Video đã tạo', khach: 'Khách thêm vào CRM', doc: 'Lần đọc số liệu', khac: 'Việc khác trên app' };
 
@@ -14,6 +16,7 @@ export function classify(name) {
   if (n === 'CREWZY_TAO_ANH') return 'anh';
   if (n === 'CREWZY_TAO_VIDEO') return 'video';
   if (n === 'CREWZY_BAO_LEAD') return 'khach';
+  if (n === 'CREWZY_CHAM_SOC_LEAD') return 'gui_tin';
   if (/REPLY|COMMENT/.test(n) && /CREATE|POST|SEND|ADD|REPLY/.test(n) && !/GET|LIST|FETCH/.test(n)) return 'tra_loi';
   if (/SEND_(EMAIL|MESSAGE|SMS|TEXT|DRAFT|MAIL)|SEND$|SEND_A_|REPLY_TO_THREAD/.test(n)) return 'gui_tin';
   if (SOCIAL.test(n) && /(CREATE|PUBLISH|SHARE|UPLOAD|SCHEDULE|POST).*(POST|PHOTO|VIDEO|REEL|STORY|PIN|TWEET|SHORT|FEED|MEDIA)|PUBLISH|_POST$/.test(n) && !/CONTAINER|GET|LIST|DELETE/.test(n)) return 'dang_bai';
@@ -114,12 +117,15 @@ export async function runWeeklyReports(env, { origin, submitResult, listJobs, pl
       const v = d.viec;
       const lines = Object.keys(KIND_LABELS).filter((k) => v[k]).map((k) => `- ${KIND_LABELS[k]}: ${v[k]}`);
       if (d.ket_qua.tong) lines.push(`- Kết quả nộp về Crewzy: ${d.ket_qua.tong}`);
-      if (!lines.length) continue;
+      const allLeads = await listLeads(env, r.uid);
+      const lw = leadsWeekly(allLeads, from, to);
+      if (!lines.length && !lw.tong) continue;
       const fmt = (x) => x.slice(8) + '/' + x.slice(5, 7);
       await submitResult(env, r.uid, origin, {
         tieu_de: `Báo cáo tuần Crewzy ${fmt(from)} – ${fmt(to)}`, loai: 'bao_cao', trang_thai: 'xong', nguoi_lam: 'Crewzy',
-        noi_dung: `Tuần qua đội AI đã làm:\n${lines.join('\n')}\n\nTiết kiệm khoảng ${d.gio_tiet_kiem} giờ làm việc (≈ ${d.tien_tiet_kiem.toLocaleString('vi-VN')}đ tiền công). Đã dùng ${d.credit_dung} credit.\n\nXem chi tiết: ${origin}/ket-qua.html`,
+        noi_dung: `Tuần qua đội AI đã làm:\n${lines.join('\n')}\n\nTiết kiệm khoảng ${d.gio_tiet_kiem} giờ làm việc (≈ ${d.tien_tiet_kiem.toLocaleString('vi-VN')}đ tiền công). Đã dùng ${d.credit_dung} credit.\n\n${lw.text}\n\nXem chi tiết: ${origin}/ket-qua.html`,
       });
+      if (allLeads.length) await mailOwner(env, r.uid, `Báo cáo tuần ${fmt(from)} – ${fmt(to)}: khách tiềm năng, nóng/ấm/lạnh, gợi ý cho sale`, lw.text + `\n\nXem chi tiết: ${origin}/ket-qua.html`).catch(() => {});
       sent++;
     } catch (e) { console.error('weekly report failed', r.uid, e && e.message); }
   }

@@ -121,6 +121,7 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
   if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';
   if (name === 'CREWZY_BAO_LEAD') return 'Báo khách tiềm năng cho chủ';
+  if (name === 'CREWZY_CHAM_SOC_LEAD') return 'Ghi lịch sử chăm sóc khách';
   if (name === 'CREWZY_PROMPT_PRO') return 'Lên bản chỉ đạo prompt theo thương hiệu';
   if (name === 'CREWZY_LUU_KHO') return 'Lưu ảnh vào Kho';
   if (name === 'CREWZY_DOC_WEB') return 'Đọc website' + (input && input.url ? ' ' + String(input.url).replace(/^https?:\/\//, '').slice(0, 40) : '');

@@ -12,6 +12,7 @@ export const MISSIONS = [
       { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva', 'runway', 'elevenlabs'], cat: 'creative', san_co: 'Crewzy có sẵn ảnh/video AI (credit)',
         web: [{ id: 'flow', name: 'Google Flow (Veo)', url: 'https://labs.google/flow', letter: 'F', bg: '#1A73E8' }, { id: 'capcut', name: 'CapCut', url: 'https://www.capcut.com/editor', letter: 'C', bg: '#111111' }] },
       { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], cat: 'social', bat_buoc: true, nhieu: true },
+      { vai: 'Form thu khách (link gắn dưới bài đăng)', apps: ['googleforms', 'typeform', 'tally', 'jotform'], cat: 'office', nhieu: true, san_co: 'Chưa có form thì AI dùng link website' },
       { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets', 'gmail', 'notion', 'airtable'], cat: 'office', nhieu: true, san_co: 'Báo cáo xem trong Kết quả' },
     ],
     lich: [

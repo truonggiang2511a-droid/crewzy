@@ -497,9 +497,12 @@
     leadsEl.innerHTML = '<div class="ol-head"><b>Khách tiềm năng</b>' + notif + '</div>' +
       '<div class="ol-stats"><span><b>' + (ld.hom_nay || 0) + '</b>hôm nay</span><span><b>' + (ld.can_goi || 0) + '</b>cần gọi</span><span><b>' + (ld.chot_thang || 0) + '</b>chốt tháng này</span></div>' +
       (ld.moi.length ? '<ul class="ol-list">' + ld.moi.map(function (l) {
-        var won = l.trang_thai === 'da_chot', tag = won ? '<span class="ol-tag won">Đã chốt</span>' : l.trang_thai !== 'moi' ? '<span class="ol-tag">' + ({ da_goi: 'Đã gọi', hen: 'Đã hẹn', huy: 'Không mua' }[l.trang_thai] || '') + '</span>' : l.muc_do === 'nong' ? '<span class="ol-tag hot">Nóng</span>' : '<span class="ol-tag">Mới</span>';
-        return '<li class="' + (l.muc_do === 'nong' && l.trang_thai === 'moi' ? 'hot' : '') + '"><div class="ol-row"><div><b>' + esc(l.ten) + '</b><small>' + esc(SRC[l.nguon] || l.nguon) + ' · ' + ago(l.luc) + '</small></div>' + tag + '</div>' +
-          (l.nhu_cau ? '<span class="ol-need">' + esc(l.nhu_cau) + '</span>' : '') +
+        var won = l.trang_thai === 'da_chot', tag = won ? '<span class="ol-tag won">Đã chốt</span>' : l.trang_thai !== 'moi' ? '<span class="ol-tag">' + ({ da_cham_soc: 'Đã chăm sóc', da_goi: 'Đã gọi', hen: 'Đã hẹn', huy: 'Không mua' }[l.trang_thai] || '') + '</span>' : '<span class="ol-tag">Mới</span>';
+        var nhiet = '<span class="ol-tag' + (l.muc_do === 'nong' ? ' hot' : '') + '">' + ({ nong: 'Nóng', am: 'Ấm', lanh: 'Lạnh' }[l.muc_do] || 'Ấm') + '</span>';
+        var cs = (l.cham_soc || [])[0], csTxt = cs ? '<span class="ol-need">Đã chăm sóc: ' + esc({ email: 'Gmail', goi: 'Gọi điện', tin_nhan: 'Tin nhắn' }[cs.kenh] || cs.kenh) + (cs.app ? ' (' + esc(cs.app) + ')' : '') + ' · ' + ago(cs.luc) + (cs.ket_qua ? ' · ' + esc(cs.ket_qua) : '') + '</span>' : '<span class="ol-need">Chưa chăm sóc</span>';
+        var sale = l.goi_y_sale ? '<span class="ol-need">Gợi ý sale: ' + esc(l.goi_y_sale) + '</span>' : '';
+        return '<li class="' + (l.muc_do === 'nong' && l.trang_thai === 'moi' ? 'hot' : '') + '"><div class="ol-row"><div><b>' + esc(l.ten) + '</b><small>' + esc(SRC[l.nguon] || l.nguon) + ' · ' + ago(l.luc) + '</small></div><div>' + nhiet + tag + '</div></div>' +
+          (l.nhu_cau ? '<span class="ol-need">' + esc(l.nhu_cau) + '</span>' : '') + csTxt + sale +
           '<div class="ol-acts">' + (l.sdt ? '<a class="call" href="tel:' + esc(l.sdt.replace(/[^\d+]/g, '')) + '" data-lead-call="' + l.id + '">Gọi ' + esc(l.sdt) + '</a>' : '') +
           (l.link ? '<a href="' + esc(l.link) + '" target="_blank" rel="noopener">Xem bình luận</a>' : '') +
           (won ? '' : '<button type="button" data-lead="' + l.id + '" data-st="da_goi">Đã gọi</button><button type="button" data-lead="' + l.id + '" data-st="da_chot">Chốt</button>') + '</div></li>';

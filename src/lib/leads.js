@@ -8,8 +8,9 @@ import { pushCrm } from './notify.js';
 
 const key = (uid) => 'leads:' + uid;
 const MAX = 300;
-export const LEAD_STATES = { moi: 'Mới', da_goi: 'Đã gọi', hen: 'Đã hẹn', da_chot: 'Đã chốt', huy: 'Không mua' };
+export const LEAD_STATES = { moi: 'Mới', da_cham_soc: 'Đã chăm sóc', da_goi: 'Đã gọi', hen: 'Đã hẹn', da_chot: 'Đã chốt', huy: 'Không mua' };
 const NOTIFY = [['gmail', 'Gmail'], ['telegram', 'Telegram'], ['slack', 'Slack'], ['microsoft_teams', 'Microsoft Teams'], ['discord', 'Discord'], ['whatsapp', 'WhatsApp'], ['outlook', 'Outlook']];
+const CALL_APPS = [['vapi', 'Vapi'], ['retellai', 'Retell AI'], ['bland_ai', 'Bland AI'], ['twilio', 'Twilio'], ['aircall', 'Aircall'], ['dialpad', 'Dialpad']];
 const CRM = [['hubspot', 'HubSpot'], ['pipedrive', 'Pipedrive'], ['salesforce', 'Salesforce'], ['zoho', 'Zoho CRM'], ['googlesheets', 'Google Sheets (bảng Khách tiềm năng)'], ['airtable', 'Airtable']];
 
 export const listLeads = async (env, uid) => (await kvGetJson(env, key(uid))) || [];
@@ -118,7 +119,56 @@ export const LEAD_TOOL_DEFS = [{ type: 'function', function: {
     link: { type: 'string', description: 'Link bình luận/tin nhắn gốc.' },
     ghi_chu: { type: 'string' },
   } },
+} }, { type: 'function', function: {
+  name: 'CREWZY_CHAM_SOC_LEAD',
+  description: 'Ghi LỊCH SỬ CHĂM SÓC của một khách sau khi AI đã gửi Gmail, gọi điện hoặc nhắn tin cho họ (kèm tên app khách đã nối đã dùng). Có thể đổi nhiệt khách (nóng/ấm/lạnh), trạng thái và gợi ý cho sale. Hiện trong bảng Khách tiềm năng và báo cáo tuần cho CEO.',
+  parameters: { type: 'object', properties: {
+    id: { type: 'string', description: 'id khách từ CREWZY_BAO_LEAD (hoặc dùng sdt/email).' }, sdt: { type: 'string' }, email: { type: 'string' },
+    kenh: { type: 'string', enum: ['email', 'goi', 'tin_nhan'] }, app: { type: 'string', description: 'App đã dùng: gmail, vapi, retellai, bland_ai, twilio, messenger…' },
+    noi_dung: { type: 'string', description: 'Nội dung đã gửi hoặc tóm tắt hội thoại cuộc gọi.' }, ket_qua: { type: 'string', description: 'Kết quả: khách nghe máy, hẹn lịch, không nghe máy, đã gửi…' },
+    link_ghi_am: { type: 'string' }, muc_do: { type: 'string', enum: ['nong', 'am', 'lanh'] },
+    trang_thai: { type: 'string', enum: ['da_cham_soc', 'da_goi', 'hen', 'da_chot', 'huy'] }, goi_y_sale: { type: 'string', description: '1 câu gợi ý sale chăm sóc tiếp.' },
+  } },
 } }];
+
+// Lịch sử chăm sóc từng khách: AI ghi sau mỗi lần gửi Gmail / gọi / nhắn tin (kèm app khách đã nối đã dùng).
+export async function careLead(env, uid, a) {
+  const list = await listLeads(env, uid);
+  const sdt = digits(a.sdt);
+  const l = list.find((x) => (a.id && x.id === a.id) || (sdt && digits(x.sdt) === sdt) || (a.email && x.email === a.email));
+  if (!l) return { error: 'Không tìm thấy khách. Gọi CREWZY_BAO_LEAD trước để lưu khách.' };
+  const kenh = ['email', 'goi', 'tin_nhan'].includes(a.kenh) ? a.kenh : 'tin_nhan';
+  l.cham_soc = [{ luc: new Date().toISOString(), kenh, app: clip(a.app, 40), noi_dung: clip(a.noi_dung, 600), ket_qua: clip(a.ket_qua, 120), ghi_am: /^https?:\/\//.test(String(a.link_ghi_am || '')) ? clip(a.link_ghi_am, 400) : '' }, ...(l.cham_soc || [])].slice(0, 20);
+  if (['nong', 'am', 'lanh'].includes(a.muc_do)) l.muc_do = a.muc_do;
+  if (a.goi_y_sale) l.goi_y_sale = clip(a.goi_y_sale, 200);
+  if (a.trang_thai && LEAD_STATES[a.trang_thai]) l.trang_thai = a.trang_thai;
+  else if (l.trang_thai === 'moi') l.trang_thai = kenh === 'goi' ? 'da_goi' : 'da_cham_soc';
+  l.cap_nhat = new Date().toISOString();
+  await kvPutJson(env, key(uid), list);
+  return { data: { ok: true, id: l.id, trang_thai: LEAD_STATES[l.trang_thai], nhiet: l.muc_do, so_lan_cham_soc: l.cham_soc.length } };
+}
+
+// Tổng hợp tuần cho CEO: nóng/ấm/lạnh, nguồn, đã chăm sóc chưa, khách cần sale làm tiếp + gợi ý.
+export function leadsWeekly(list, from, to) {
+  const inWeek = list.filter((l) => vnDay(l.luc) >= from && vnDay(l.luc) <= to);
+  const open = list.filter((l) => !['da_chot', 'huy'].includes(l.trang_thai));
+  const cnt = (arr, f) => arr.filter(f).length;
+  const nong = open.filter((l) => l.muc_do === 'nong'), am = open.filter((l) => l.muc_do === 'am'), lanh = open.filter((l) => l.muc_do === 'lanh');
+  const chuaCS = open.filter((l) => !(l.cham_soc || []).length);
+  const chot = list.filter((l) => l.trang_thai === 'da_chot' && vnDay(l.chot_luc || l.luc) >= from && vnDay(l.chot_luc || l.luc) <= to);
+  const nguon = {}; for (const l of inWeek) nguon[l.nguon] = (nguon[l.nguon] || 0) + 1;
+  const goi = cnt(inWeek, (l) => (l.cham_soc || []).some((c) => c.kenh === 'goi')), mail = cnt(inWeek, (l) => (l.cham_soc || []).some((c) => c.kenh === 'email'));
+  const lines = [`KHÁCH TIỀM NĂNG TUẦN QUA: ${inWeek.length} khách mới (${Object.entries(nguon).map(([k, v]) => k + ' ' + v).join(', ') || 'chưa có nguồn'}), đã chốt ${chot.length}${chot.length ? ' (' + chot.reduce((s, l) => s + (l.gia_tri || 0), 0).toLocaleString('vi-VN') + 'đ)' : ''}.`,
+    `Đang theo dõi: ${nong.length} khách NÓNG, ${am.length} ẤM, ${lanh.length} LẠNH. AI đã gửi email ${mail} khách, gọi ${goi} khách; ${chuaCS.length} khách chưa được chăm sóc.`];
+  const top = nong.slice(0, 5).map((l) => `- ${l.ten}${l.sdt ? ' · ' + l.sdt : ''} · ${l.nguon} · ${LEAD_STATES[l.trang_thai]}${l.goi_y_sale ? ' → ' + l.goi_y_sale : ' → sale gọi/nhắn trong hôm nay'}`);
+  if (top.length) lines.push('Khách nóng cần sale chốt:', ...top);
+  const tips = [];
+  if (chuaCS.length) tips.push(`${chuaCS.length} khách chưa được chăm sóc: nối Gmail/app gọi để AI chăm sóc ngay khi khách để lại thông tin.`);
+  if (nong.length && !chot.length) tips.push('Có khách nóng nhưng chưa chốt: sale gọi tay trong 24 giờ, đưa ưu đãi có hạn.');
+  if (am.length > nong.length * 2) tips.push('Nhiều khách ấm: gửi thêm nội dung giải đáp (FAQ, so sánh, review) để đẩy lên nóng.');
+  if (tips.length) lines.push('Gợi ý cho sale:', ...tips.map((t) => '- ' + t));
+  return { tong: inWeek.length, text: lines.join('\n') };
+}
 
 export async function leadTool(env, uid, args, connected, agent) {
   const out = await addLead(env, uid, args || {}, agent || '');
@@ -134,7 +184,12 @@ export async function leadTool(env, uid, args, connected, agent) {
     if (ch.kenh_bao.length) viec.push('Gửi NGAY tin dưới đây cho chủ doanh nghiệp qua ' + ch.kenh_bao.join(', ') + (ch.email_ceo ? ' (Gmail gửi tới ' + ch.email_ceo + ', tiêu đề bắt đầu bằng [Crewzy])' : '') + '. Đây là tin nội bộ cho chủ, không cần hỏi duyệt.');
     if (crm) viec.push('Crewzy đã ghi khách vào ' + crm + '. Khách nóng thì tạo thêm deal trong ' + crm + ' nếu cần.');
     else if (ch.crm.length) viec.push('Tạo liên hệ (và deal nếu là khách nóng) trong ' + ch.crm[0] + ' với tên, số, nhu cầu, nguồn.');
-    viec.push('Trả lời khách: cảm ơn, báo nhân viên sẽ gọi sớm (nhắn riêng, không lặp lại số điện thoại công khai).');
+    const goi = CALL_APPS.filter(([s]) => (connected || []).includes(s)).map(([, n]) => n);
+    if (l.email) viec.push('CHĂM SÓC NGAY: khách để lại email → gửi Gmail (hoặc Outlook) cho ' + l.email + ' NGAY: cảm ơn, nhắc đúng nhu cầu khách nêu, nói rõ bước tiếp theo, theo giọng Brain (không bịa giá, không hứa ngoài Brain). Rồi gọi CREWZY_CHAM_SOC_LEAD (id ' + l.id + ', kenh email, app gmail, noi_dung).');
+    if (l.sdt && goi.length) viec.push('CHĂM SÓC NGAY: khách để lại số ' + l.sdt + ' và đã nối app gọi (' + goi.join(', ') + ') → GỌI NGAY bằng app đó nếu đang trong 8:00–21:00 (ngoài giờ thì đặt gọi lúc 8:00 sáng mai). Kịch bản theo Brain: chào, xưng là trợ lý của doanh nghiệp, nhắc nhu cầu, hẹn lịch. Gọi xong lấy bản ghi/tóm tắt cuộc gọi và gọi CREWZY_CHAM_SOC_LEAD (id ' + l.id + ', kenh goi, app = tên app gọi, noi_dung = tóm tắt hội thoại, ket_qua, link_ghi_am nếu có).');
+    else if (l.sdt) viec.push('Khách để lại số ' + l.sdt + ' nhưng chưa nối app gọi AI: nhắn tin riêng (Messenger/Zalo/Telegram đã nối) cảm ơn và báo nhân viên sẽ gọi; gợi ý chủ nối Vapi/Retell/Bland/Twilio để AI gọi ngay. Sale gọi tay: nút Gọi trên Trung tâm điều hành.');
+    if (!l.email && !l.sdt) viec.push('Trả lời khách (nhắn riêng, không công khai thông tin): cảm ơn và xin số điện thoại hoặc email để tư vấn.');
+    viec.push('Sau khi chăm sóc, đánh dấu nhiệt (nong/am/lanh) và goi_y_sale (1 câu: sale nên làm gì tiếp) trong CREWZY_CHAM_SOC_LEAD; ghi/cập nhật dòng khách trong bảng CRM đã nối (cột Nhiệt, Trạng thái, Đã chăm sóc, Lịch sử).');
   }
   return { data: {
     da_luu: true, trung: !!out.trung, id: l.id, tin_bao_ceo: tin, ...ch,

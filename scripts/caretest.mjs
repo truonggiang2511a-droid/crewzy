@@ -1,0 +1,13 @@
+import { addLead, careLead, leadsWeekly, listLeads, leadTool } from '../src/lib/leads.js';
+const m = new Map();
+const env = { KV: { get: async (k, t) => { const v = m.get(k); return v == null ? null : (t && t.type === 'json' || t === 'json') ? JSON.parse(v) : v; }, put: async (k, v) => { m.set(k, v); }, delete: async (k) => m.delete(k) }, TEST_OFFLINE: '1' };
+const r = await addLead(env, 'u1', { ten: 'An', sdt: '0901234567', email: 'a@x.vn', nguon: 'facebook', nhu_cau: 'hỏi giá', muc_do: 'nong' }, 'test');
+const t = await leadTool(env, 'u1', { ten: 'Bình', sdt: '0911111111', nguon: 'website', muc_do: 'nong' }, ['gmail', 'vapi'], 'test');
+import assert from 'node:assert';
+assert.ok(t.data.viec_tiep.some((x) => /GỌI NGAY/.test(x)), 'có số + app gọi → gọi ngay');
+const c = await careLead(env, 'u1', { id: r.lead.id, kenh: 'goi', app: 'Vapi', noi_dung: 'khách hẹn xem', ket_qua: 'hẹn lịch', goi_y_sale: 'Gọi lại 9h sáng mai' });
+assert.equal(c.data.so_lan_cham_soc, 1);
+const l = await listLeads(env, 'u1');
+const w = leadsWeekly(l, '2000-01-01', '2999-01-01');
+assert.ok(/NÓNG/.test(w.text) && /Gợi ý cho sale/.test(w.text));
+console.log('caretest OK');
