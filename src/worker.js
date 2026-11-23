@@ -6,6 +6,7 @@ import autopilot from './routes/autopilot.js';
 import leads from './routes/leads.js';
 import { handleWebhook, runEventQueue } from './lib/events.js';
 import { runBacklog, runDigest, runDuePosts } from './lib/ops.js';
+import { runInbox } from './lib/inbox.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -97,6 +98,8 @@ export default {
     ctx.waitUntil(runDigest(env, { origin }).then((r) => console.log('digest', JSON.stringify(r))).catch((e) => console.error('digest failed', e && e.stack)));
     // Đăng bài hẹn giờ: xếp hàng TRƯỚC khi chạy hàng đợi để bài tới giờ được đăng ngay lượt này.
     await runDuePosts(env).then((r) => console.log('due posts', JSON.stringify(r))).catch((e) => console.error('due posts failed', e && e.stack));
+    // Trực Fanpage 15 phút: quét bằng code trước hàng đợi để bình luận/tin nhắn mới được AI trả lời ngay lượt này.
+    await runInbox(env).then((r) => console.log('inbox', JSON.stringify(r))).catch((e) => console.error('inbox failed', e && e.stack));
     ctx.waitUntil(runEventQueue(env, { origin, runAuto }).then((r) => console.log('events', JSON.stringify(r))).catch((e) => console.error('events failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },

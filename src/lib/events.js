@@ -1,6 +1,6 @@
 // SỰ KIỆN TỨC THÌ (Event Bus) qua Composio Triggers: app khách đã nối có sự kiện → Composio gọi /api/composio/webhook → Crewzy xử lý ngay.
 // Trigger thật đã tra docs.composio.dev/toolkits/<slug>.md (23/11/2026): Facebook, Instagram, TikTok, LinkedIn, Telegram KHÔNG có trigger
-// (bình luận vẫn đi lịch trả lời mỗi giờ). Có: Gmail GMAIL_NEW_GMAIL_MESSAGE (poll ~15 phút với auth Composio), Outlook OUTLOOK_MESSAGE_TRIGGER,
+// (Fanpage: Crewzy tự quét 15 phút bằng code — src/lib/inbox.js; kênh khác đi lịch trả lời mỗi giờ). Có: Gmail GMAIL_NEW_GMAIL_MESSAGE (poll ~15 phút với auth Composio), Outlook OUTLOOK_MESSAGE_TRIGGER,
 // Calendly CALENDLY_MEETING_SCHEDULED (webhook, gói Calendly trả phí), Zendesk ZENDESK_NEW_ZENDESK_TICKET_TRIGGER.
 // Xử lý 1 sự kiện: (1) ghi nhật ký sự kiện · (2) có số điện thoại / đặt lịch / hỏi mua → tạo lead NGAY (không cần AI) + gửi Gmail báo chủ NGAY
 // · (3) tạo phiếu việc cho AI (trả lời email, chuẩn bị cuộc hẹn…) · (4) đang bật Chạy tự động → xếp hàng để cron 15 phút cho Trợ lý Crewzy làm.
@@ -44,7 +44,7 @@ const AUTO_PER_TICK = 4;
 const composioOf = (env) => new Composio({ apiKey: getApiKey(env) });
 const vnDay = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 const clip = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n);
-const PHONE = /(?:\+?84|0)(?:[\s.\-]?\d){8,10}\b/;
+export const PHONE = /(?:\+?84|0)(?:[\s.\-]?\d){8,10}\b/;
 const BUY = /(báo giá|bao gia|giá bao nhiêu|gia bao nhieu|bảng giá|muốn mua|mua (nhà|đất|căn|sản phẩm|hàng)|đặt (hàng|mua|cọc|lịch)|tư vấn|xem nhà|đi xem|còn hàng|quote|pricing|price)/i;
 const AUTO_SENDER = /(no-?reply|noreply|notification|mailer-daemon|newsletter|marketing|bounce|donotreply)/i;
 
@@ -213,16 +213,18 @@ export async function autoOn(env, uid) {
   const sch = (await kvGetJson(env, 'sched:' + uid)) || [];
   return sch.some((s) => s.nguon === 'cay' && s.bat && s.che_do === 'crewzy');
 }
-export async function enqueue(env, uid, job, prompt) {
-  const cKey = 'evcount:' + vnDay() + ':' + uid;
+// cap/tag: trần lượt AI mỗi ngày theo loại (sự kiện 20, trực Fanpage 60 — src/lib/inbox.js). Trả true nếu đã xếp hàng.
+export async function enqueue(env, uid, job, prompt, { cap = AI_RUNS_PER_DAY, tag = 'ev' } = {}) {
+  const cKey = (tag === 'ev' ? 'evcount:' : tag + 'count:') + vnDay() + ':' + uid;
   const n = Number((await env.KV.get(cKey)) || 0);
-  if (n >= AI_RUNS_PER_DAY) return;
+  if (n >= cap) return false;
   await env.KV.put(cKey, String(n + 1), { expirationTtl: 2 * 86400 });
   const q = (await kvGetJson(env, 'evq:' + uid)) || [];
   q.push({ job, prompt });
   await kvPutJson(env, 'evq:' + uid, q.slice(-20));
   const idx = (await kvGetJson(env, 'evqidx')) || [];
   if (!idx.includes(uid)) { idx.push(uid); await kvPutJson(env, 'evqidx', idx); }
+  return true;
 }
 
 export async function runEventQueue(env, { runAuto, origin }) {

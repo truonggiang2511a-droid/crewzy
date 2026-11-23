@@ -170,6 +170,10 @@ src/lib/events.js         SỰ KIỆN TỨC THÌ (Composio Triggers): TRIGGERS g
                           vpai-<uid>. handleEvent: lọc email tự động/của chính chủ (chống vòng lặp), có SĐT/đặt lịch/hỏi mua → addLead ngay + GMAIL_SEND_EMAIL báo chủ
                           ngay (tools.execute, dangerouslySkipVersionCheck), phiếu việc nguon su_kien; bật Run chế độ crewzy → evq:<uid> (≤20 lượt AI/ngày) → cron
                           runEventQueue (4/lượt cron). Nhật ký evlog:<uid> vào Hoạt động. Test: officetest (events + webhook ký thật)
+src/lib/inbox.js          TRỰC FANPAGE 15 PHÚT (23/11, Composio Facebook không có trigger): cron quét bằng code (runTool, không AI) mỗi Fanpage 2 lượt gọi: FACEBOOK_GET_PAGE_POSTS
+                          (fields lồng comments) + FACEBOOK_GET_PAGE_CONVERSATIONS (fields lồng messages.limit(1)); chỉ khách bật Run chế độ crewzy có lịch tra_loi_*; 7:00–22:59
+                          mỗi 15 phút, đêm mỗi giờ (INBOX_NIGHT=off, INBOX=off). Có mục mới của khách → lead+Gmail ngay nếu có SĐT, xếp evq 1 lượt AI trả lời đúng comment_id/PSID
+                          (trần INBOX_RUNS_PER_DAY=60). KV inbox:<uid> {since, seen, pages, khac} chỉ ghi khi có mục mới. Lịch mỗi giờ tra_loi_* bỏ Facebook (hourlyCover). Test: inboxtest
 src/lib/notify.js         Việc làm bằng code qua composio.tools.execute (không AI): mailOwner (GMAIL_SEND_EMAIL tới email chủ, tiêu đề [Crewzy]), pushCrm (HUBSPOT_CREATE_CONTACT
                           → PIPEDRIVE_ADD_A_PERSON). Dùng khi có lead (CREWZY_BAO_LEAD và sự kiện) → lead.crm. TEST_OFFLINE/không khoá thì bỏ qua
 src/lib/ops.js            VẬN HÀNH BẰNG CODE cho khách bật Run (không AI, không chiếm lịch): runBacklog mỗi 30 phút (chờ duyệt >4 giờ, lead nóng chưa gọi >2 giờ → 1 Gmail

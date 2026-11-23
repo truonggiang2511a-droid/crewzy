@@ -21,7 +21,7 @@ export const MISSIONS = [
       { id: 'lich_noi_dung_tuan', gio: '07:30', ngay: 't2', buoc: 'Thứ Hai: lên lịch nội dung 7 ngày', tu: 'chien_luoc', toi: 'noi_dung' },
     ] },
   { id: 'cham_soc_mxh', ten: 'Chăm sóc đa nền tảng', icon: 'cham_soc', mau: '#2DD4BF', cat: 'chat',
-    mo_ta: 'Bot trả lời tin nhắn và bình luận trên mọi kênh theo Brain, xin số điện thoại, khách nóng báo bạn ngay.',
+    mo_ta: 'Bot trả lời tin nhắn và bình luận theo Brain, xin số điện thoại, khách nóng báo bạn ngay. Fanpage: Crewzy trực 15 phút/lần cả ngày lẫn đêm, có tin mới là AI trả lời liền.',
     slots: [
       { vai: 'Kênh có tin nhắn, bình luận', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'whatsapp'], bat_buoc: true, nhieu: true },
       { vai: 'Nhận báo khách nóng', apps: ['telegram', 'gmail'], san_co: 'Báo trong Crewzy' },

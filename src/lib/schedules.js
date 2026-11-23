@@ -6,6 +6,7 @@ import { kvGetJson, kvPutJson } from './common.js';
 import { workflowById, workflowPrompt } from './workflows.js';
 import { missionById, prefText } from './missions.js';
 import { createJob } from './jobs.js';
+import { hourlyCover, INBOX_WORKFLOWS } from './inbox.js';
 
 export const MAX_SCHEDULES = 10;
 export const DAYS = { hang_ngay: 'Mỗi ngày', t2_t6: 'Thứ Hai – thứ Sáu', t2: 'Thứ Hai', t3: 'Thứ Ba', t4: 'Thứ Tư', t5: 'Thứ Năm', t6: 'Thứ Sáu', t7: 'Thứ Bảy', cn: 'Chủ nhật', ngay_1: 'Ngày 1 hằng tháng' };
@@ -110,6 +111,12 @@ export async function runDueSchedules(env, { origin, runAuto, now = new Date() }
       changed = true;
       if (!w) continue;
       const notes = [];
+      // Fanpage đã có Crewzy trực 15 phút (src/lib/inbox.js) → lượt mỗi giờ chỉ lo kênh khác; không có kênh khác thì bỏ lượt, khỏi tốn AI.
+      if (s.lap === 'moi_gio' && INBOX_WORKFLOWS.includes(s.quy_trinh) && env.INBOX !== 'off') {
+        const cover = await hourlyCover(env, uid).catch(() => null);
+        if (cover && !cover.khac.length) continue;
+        if (cover) notes.push(`Facebook Fanpage đã có Crewzy trực 15 phút/lần: BỎ QUA Facebook, chỉ xử lý ${cover.khac.join(', ')}.`);
+      }
       if (s.tu_dong) notes.push('TỰ TRẢ LỜI ĐÃ BẬT: chủ cho phép trả lời ngay câu thường theo bước của quy trình; câu nhạy cảm vẫn nộp chờ duyệt.');
       if (s.lap === 'moi_gio') notes.push('Lịch chạy mỗi giờ: chỉ xử lý phần mới kể từ lần trước; không có gì mới thì nộp trang_thai xong với ghi_chu "Không có gì mới".');
       if (s.nv && missionById(s.nv)) { const pt = prefText(missionById(s.nv), ((await kvGetJson(env, 'apref:' + uid).catch(() => null)) || {})[s.nv]); if (pt) notes.push(pt); }
