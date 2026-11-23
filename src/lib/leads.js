@@ -4,6 +4,7 @@
 // (Gmail tới email chủ tài khoản, Telegram, Slack, Teams, Discord) + CRM đã nối để AI gửi/ghi tiếp bằng công cụ Composio.
 // CEO đánh dấu Đã gọi / Chốt (+ số tiền) → báo cáo doanh thu theo nguồn (đóng vòng lead → tiền).
 import { kvGetJson, kvPutJson } from './common.js';
+import { pushCrm } from './notify.js';
 
 const key = (uid) => 'leads:' + uid;
 const MAX = 300;
@@ -78,6 +79,16 @@ export async function updateLead(env, uid, id, { trang_thai, gia_tri, ghi_chu })
   return { ok: true };
 }
 
+// Ghi thêm trường hệ thống vào lead (crm, nhac…), không đổi thời gian cập nhật của khách.
+export async function markLead(env, uid, id, patch) {
+  const list = await listLeads(env, uid);
+  const l = list.find((x) => x.id === id);
+  if (!l) return false;
+  Object.assign(l, patch);
+  await kvPutJson(env, key(uid), list);
+  return true;
+}
+
 // Số liệu: hôm nay, tháng này, doanh thu đã chốt theo nguồn.
 export function leadStats(list, now = new Date()) {
   const today = vnDay(now.toISOString()), month = today.slice(0, 7);
@@ -116,9 +127,13 @@ export async function leadTool(env, uid, args, connected, agent) {
   const l = out.lead;
   const tin = `${l.muc_do === 'nong' ? 'LEAD NÓNG' : 'Lead mới'}: ${l.ten}${l.sdt ? ' · ' + l.sdt : ''} · ${l.nguon} · ${l.nhu_cau || ''}${l.link ? ' · ' + l.link : ''}`;
   const viec = [];
+  // Crewzy tự ghi CRM ngay bằng code (không chờ AI); ghi được thì AI khỏi làm lại.
+  let crm = '';
+  if (!out.trung && ch.crm.length) { crm = await pushCrm(env, uid, l, connected); if (crm) await markLead(env, uid, l.id, { crm }); }
   if (!out.trung) {
     if (ch.kenh_bao.length) viec.push('Gửi NGAY tin dưới đây cho chủ doanh nghiệp qua ' + ch.kenh_bao.join(', ') + (ch.email_ceo ? ' (Gmail gửi tới ' + ch.email_ceo + ', tiêu đề bắt đầu bằng [Crewzy])' : '') + '. Đây là tin nội bộ cho chủ, không cần hỏi duyệt.');
-    if (ch.crm.length) viec.push('Tạo liên hệ (và deal nếu là khách nóng) trong ' + ch.crm[0] + ' với tên, số, nhu cầu, nguồn.');
+    if (crm) viec.push('Crewzy đã ghi khách vào ' + crm + '. Khách nóng thì tạo thêm deal trong ' + crm + ' nếu cần.');
+    else if (ch.crm.length) viec.push('Tạo liên hệ (và deal nếu là khách nóng) trong ' + ch.crm[0] + ' với tên, số, nhu cầu, nguồn.');
     viec.push('Trả lời khách: cảm ơn, báo nhân viên sẽ gọi sớm (nhắn riêng, không lặp lại số điện thoại công khai).');
   }
   return { data: {

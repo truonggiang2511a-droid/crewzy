@@ -149,13 +149,19 @@ src/lib/leads.js          KHÁCH TIỀM NĂNG + BÁO CEO NGAY: KV leads:<uid> (�
                           +gia_tri|huy|xoa; them). leadStats: hôm nay, cần gọi, chốt + doanh thu tháng theo nguồn. Trung tâm điều hành: ô "N lead hôm nay" trên thân cây,
                           bảng Khách tiềm năng (Gọi tel:, Đã gọi, Chốt + số tiền), lead vào Hoạt động. layout.js: thông báo lead mọi trang (60 giây, Notification nếu bật)
 src/lib/events.js         SỰ KIỆN TỨC THÌ (Composio Triggers): TRIGGERS gmail GMAIL_NEW_GMAIL_MESSAGE (query bỏ from:me, [Crewzy], quảng cáo; poll ~15 phút),
-                          outlook OUTLOOK_MESSAGE_TRIGGER, calendly CALENDLY_MEETING_SCHEDULED (scope user), zendesk ZENDESK_NEW_ZENDESK_TICKET_TRIGGER. Facebook/Instagram/
+                          outlook OUTLOOK_MESSAGE_TRIGGER, calendly CALENDLY_MEETING_SCHEDULED (scope user), zendesk ZENDESK_NEW_ZENDESK_TICKET_TRIGGER, typeform TYPEFORM_NEW_RESPONSE (form_id) +
+                          googlesheets GOOGLESHEETS_NEW_ROWS_TRIGGER (spreadsheet_id, sheet_name) — form/sheet khách dán link ở hộp thoại Run (KV formcfg:<uid>, POST /api/autopilot action form). Facebook/Instagram/
                           TikTok/LinkedIn/Telegram KHÔNG có trigger (tra docs.composio.dev/toolkits/<slug>.md 23/11). ensureSubscription: 1 webhook cho cả project →
                           https://<site>/api/composio/webhook, khoá ký lưu KV composio:whsecret (sealText); KHÔNG ghi đè nếu project đã có webhook khác. syncTriggers
                           (KV trg:<uid>) chạy khi bật/tắt Run và khi /api/office thấy app có trigger mới nối. handleWebhook: verifyWebhook (v1 HMAC), chống lặp evseen:<id>,
                           vpai-<uid>. handleEvent: lọc email tự động/của chính chủ (chống vòng lặp), có SĐT/đặt lịch/hỏi mua → addLead ngay + GMAIL_SEND_EMAIL báo chủ
                           ngay (tools.execute, dangerouslySkipVersionCheck), phiếu việc nguon su_kien; bật Run chế độ crewzy → evq:<uid> (≤20 lượt AI/ngày) → cron
                           runEventQueue (4/lượt cron). Nhật ký evlog:<uid> vào Hoạt động. Test: officetest (events + webhook ký thật)
+src/lib/notify.js         Việc làm bằng code qua composio.tools.execute (không AI): mailOwner (GMAIL_SEND_EMAIL tới email chủ, tiêu đề [Crewzy]), pushCrm (HUBSPOT_CREATE_CONTACT
+                          → PIPEDRIVE_ADD_A_PERSON). Dùng khi có lead (CREWZY_BAO_LEAD và sự kiện) → lead.crm. TEST_OFFLINE/không khoá thì bỏ qua
+src/lib/ops.js            VẬN HÀNH BẰNG CODE cho khách bật Run (không AI, không chiếm lịch): runBacklog mỗi 30 phút (chờ duyệt >4 giờ, lead nóng chưa gọi >2 giờ → 1 Gmail
+                          gộp, 7:00–21:30, nhắc 1 lần/việc KV nhac:<uid>; phiếu dang_lam >3 giờ nguồn hen_gio/su_kien → xếp lại evq 1 lần) · runDigest 18:00 (số liệu ngày)
+                          và 22:00 (tổng kết + lịch ngày mai): phiếu bao_cao 'Crewzy (tổng kết tự động)' + Gmail, cờ digest:<ngày>:<giờ>:<uid>, tắt DAILY_DIGEST=off
 src/lib/library.js        KHO (D1 library, migrations/0003_library.sql ĐÃ áp lên D1 thật 23/11): addItem (UNIQUE uid+url), listItems, usageBytes, removeItem,
                           CREWZY_KHO + CREWZY_LUU_KHO (AI đọc kho, lưu ảnh web/fanpage vào kho qua rehostUrl). Tự vào kho: upload (tai_len, PUT của AI = ket_qua),
                           ảnh/video AI tạo (ai_tao). Ảnh Nhanh giờ lưu R2 (putMedia) thay KV img 90 ngày khi có MEDIA
@@ -562,6 +568,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   Event bus, Queue, Monitoring; đề xuất làm trên Cloudflare (không Supabase/Redis/LangGraph). Giang: "làm mục 1" → events.js. Phát hiện: Composio KHÔNG có trigger
   bình luận Facebook/Instagram → bình luận vẫn quét mỗi giờ; sự kiện tức thì cho Gmail/Outlook/Calendly/Zendesk. AI xử lý sự kiện chờ cron ≤15 phút (chưa có
   Queues — cần Workers Paid); lead + email báo chủ thì ngay khi webhook tới. CHƯA thử với Composio thật (webhook tạo khi khách đầu tiên bật Run có Gmail…).
+- 23/11/2026: Giang gửi mô hình A. Event-driven (form/email/lead/quảng cáo bất thường) + B. Scheduled (7:00, 9:00, 30 phút, 18:00, 22:00), hỏi Crewzy làm tốt chưa →
+  "làm hết": (1) ops.js soát tồn 30 phút + (2) tổng kết 18:00/22:00 bằng code; (3) theo_doi_quang_cao 9:00 vào CHAIN (nhắc sale dời 9:30) với ngưỡng bất thường,
+  báo chủ ngay, không tự chi tiền; (4) form Typeform/Google Sheets → lead (bỏ sheet "Khách tiềm năng"/"Báo cáo Crewzy" chống vòng lặp); (5) lead → HubSpot/Pipedrive ngay
+  bằng code (notify.js). Test: officetest (form, ops). CHƯA thử với Composio thật (tools.execute GMAIL_SEND_EMAIL/HUBSPOT_CREATE_CONTACT, trigger Typeform/Sheets).
 
 ## 6. Việc tiếp theo
 

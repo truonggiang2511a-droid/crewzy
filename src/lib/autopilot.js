@@ -1,4 +1,4 @@
-// CHẠY TỰ ĐỘNG CẢ CÂY: 1 nút trên Cây vận hành bật cả chuỗi quy trình theo giờ (dây chuyền doanh nghiệp):
+// CHẠY TỰ ĐỘNG CẢ CÂY (+ việc chạy bằng code không chiếm lịch: soát tồn đọng 30 phút, tổng kết 18:00/22:00 — src/lib/ops.js): 1 nút trên Cây vận hành bật cả chuỗi quy trình theo giờ (dây chuyền doanh nghiệp):
 // nội dung → đăng các kênh → trả lời bình luận → khách vào CRM → nhắc sale → báo cáo vào Sheet → bản tin sáng cho CEO → chiến lược tháng.
 // Mỗi bước = 1 lịch (schedules.js) gắn nguon 'cay'. Chỉ bật bước ĐÃ sẵn sàng (đủ app + dữ liệu, readiness); bước chưa đủ trả về để khách nối thêm.
 // Đăng bài/gửi khách vẫn qua cổng duyệt (WORKFLOW_RULES); CEO duyệt 1 chạm ở Việc chờ duyệt. Số lịch theo gói (feat.lich).
@@ -10,8 +10,9 @@ import { appBySlug } from './catalog.js';
 export const CHAIN = [
   { id: 'lead_vao_crm', gio: '08:30', ngay: 'hang_ngay', buoc: 'Khách mới → CRM, chào lại', tu: 'quang_cao', toi: 'ban_hang' },
   { id: 'tra_loi_binh_luan', gio: '08:00', den: '22:00', lap: 'moi_gio', ngay: 'hang_ngay', buoc: 'Trả lời bình luận, gom khách hỏi giá', tu: 'phan_phoi', toi: 'cham_soc' },
-  { id: 'nhac_cham_soc_deal', gio: '09:00', ngay: 't2_t6', buoc: 'Nhắc sale gọi khách chưa chăm', tu: 'ban_hang', toi: 'hang_ngay' },
+  { id: 'nhac_cham_soc_deal', gio: '09:30', ngay: 't2_t6', buoc: 'Nhắc sale gọi khách chưa chăm', tu: 'ban_hang', toi: 'hang_ngay' },
   { id: 'ban_tin_sang', gio: '07:00', ngay: 'hang_ngay', buoc: 'Bản tin sáng cho CEO: số khách, việc cần gọi', tu: 'bao_cao', toi: 'hang_ngay' },
+  { id: 'theo_doi_quang_cao', gio: '09:00', ngay: 'hang_ngay', buoc: 'Kiểm quảng cáo, báo ngay khi bất thường', tu: 'quang_cao', toi: 'bao_cao' },
   { id: 'lich_noi_dung_tuan', gio: '07:30', ngay: 't2', buoc: 'Lên lịch nội dung 7 ngày', tu: 'chien_luoc', toi: 'noi_dung' },
   { id: 'dang_bai_da_duyet', gio: '10:00', ngay: 'hang_ngay', buoc: 'Đăng bài đã duyệt lên mọi kênh', tu: 'noi_dung', toi: 'phan_phoi' },
   { id: 'bao_cao_tuan', gio: '07:15', ngay: 't2', buoc: 'Báo cáo tuần ghi vào Google Sheets', tu: 'ban_hang', toi: 'bao_cao' },

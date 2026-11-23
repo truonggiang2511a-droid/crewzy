@@ -18,7 +18,7 @@ console.log('officetest OK', ids.length, 'nhánh');
 import { planAutopilot, enableAutopilot, disableAutopilot, CHAIN } from '../src/lib/autopilot.js';
 import { listSchedules, createSchedule } from '../src/lib/schedules.js';
 const store = new Map();
-const env = { KV: { get: async (k, o) => (store.has(k) ? (o && o.type === 'json' ? JSON.parse(store.get(k)) : store.get(k)) : null), put: async (k, v) => { store.set(k, v); }, delete: async (k) => { store.delete(k); } } };
+const env = { KV: { get: async (k, o) => (store.has(k) ? (o && o.type === 'json' ? JSON.parse(store.get(k)) : store.get(k)) : null), put: async (k, v) => { store.set(k, v); }, delete: async (k) => { store.delete(k); } }, TEST_OFFLINE: true };
 const brand = { name: 'Nhà Xinh', products: 'Nhà phố', customers: 'Gia đình trẻ', voice: 'Thân thiện' };
 const rctx = { connected: ['facebook', 'instagram', 'hubspot', 'gmail', 'googlesheets', 'telegram', 'metaads'], mcpUrls: [], brand, done: new Set(), instant: false };
 const noBrand = await enableAutopilot(env, 'u1', { ...rctx, brand: {} }, null);
@@ -100,3 +100,35 @@ assert.ok(okRes.ok && okRes.lead, JSON.stringify(okRes));
 assert.equal((await listLeads(env, 'u5'))[0].sdt, '0903222333');
 assert.ok((await (await handleWebhook(await mk(WH), env, 'https://x')).json()).trung, 'gửi lại cùng id phải bỏ qua');
 console.log('webhook OK');
+
+// Form (Typeform / Google Sheets) → lead; sheet do Crewzy ghi bị bỏ qua.
+const tf = normalize('TYPEFORM_NEW_RESPONSE', { form_response: { token: 't1', definition: { fields: [{ id: 'a', title: 'Họ tên' }, { id: 'b', title: 'Số điện thoại' }, { id: 'c', title: 'Email' }] },
+  answers: [{ field: { id: 'a' }, type: 'text', text: 'Chị Hằng' }, { field: { id: 'b' }, type: 'phone_number', phone_number: '+84901234567' }, { field: { id: 'c' }, type: 'email', email: 'hang@x.vn' }] } });
+assert.equal(tf.ten, 'Chị Hằng'); assert.equal(tf.sdt, '+84901234567'); assert.equal(tf.email, 'hang@x.vn'); assert.ok(tf.form);
+const fr = await handleEvent(env, 'u6', 'TYPEFORM_NEW_RESPONSE', { form_response: { token: 't1', definition: { fields: [{ id: 'a', title: 'Tên' }] }, answers: [{ field: { id: 'a' }, type: 'text', text: 'Anh Long' }] } }, 'https://x', { noMail: true });
+assert.ok(fr.lead, 'form không số vẫn là lead');
+const sh = normalize('GOOGLESHEETS_NEW_ROWS_TRIGGER', { row_data: ['23/11/2026 9:00', 'Cô Ba', '0987 654 321', 'ba@x.vn', 'Hỏi nhà 3 tỷ'], sheet_name: 'Câu trả lời biểu mẫu 1', spreadsheet_id: 's', row_number: 5 });
+assert.equal(sh.ten, 'Cô Ba'); assert.equal(sh.email, 'ba@x.vn'); assert.ok(sh.sdt);
+assert.ok((await handleEvent(env, 'u6', 'GOOGLESHEETS_NEW_ROWS_TRIGGER', { row_data: ['A', '0911222333'], sheet_name: 'Khách tiềm năng' }, 'https://x', { noMail: true })).bo_qua, 'sheet do Crewzy ghi');
+import { parseFormInput } from '../src/lib/events.js';
+assert.equal(parseFormInput('typeform', 'https://form.typeform.com/to/x2DfMTz9'), 'x2DfMTz9');
+assert.equal(parseFormInput('googlesheets', 'abc'), '');
+console.log('form OK');
+
+// Soát tồn đọng + tổng kết ngày (code, không AI).
+import { backlogFor, digestText } from '../src/lib/ops.js';
+const old = new Date(Date.now() - 5 * 3600 * 1000).toISOString();
+store.set('jobs:u7', JSON.stringify([
+  { id: 'j1', tieu_de: 'Bài đăng thứ Hai', trang_thai: 'cho_duyet', cap_nhat: old, lich_su: [] },
+  { id: 'j2', tieu_de: 'Trả lời bình luận', trang_thai: 'dang_lam', nhan_luc: old, cap_nhat: old, nguon: 'hen_gio', yeu_cau: 'x', lich_su: [] },
+  { id: 'j3', tieu_de: 'Mới', trang_thai: 'cho_duyet', cap_nhat: new Date().toISOString(), lich_su: [] },
+]));
+store.set('leads:u7', JSON.stringify([{ id: 'lA', ten: 'Chị Na', sdt: '0909000111', nguon: 'facebook', muc_do: 'nong', trang_thai: 'moi', luc: old }, { id: 'lB', ten: 'Anh Tư', nguon: 'email', muc_do: 'nong', trang_thai: 'moi', luc: new Date().toISOString() }]));
+const noon = new Date(Date.UTC(2026, 10, 23, 5, 0)); // 12:00 giờ VN
+const bl = await backlogFor(env, 'u7', { now: new Date(), crewzy: true, origin: 'https://x', send: false });
+assert.equal(bl.cho_duyet, 1); assert.equal(bl.khach_nong, 1); assert.equal(bl.xep_lai, 1);
+const bl2 = await backlogFor(env, 'u7', { now: new Date(), crewzy: true, origin: 'https://x', send: false });
+assert.equal(bl2.xep_lai, 0, 'mỗi phiếu chỉ xếp lại 1 lần');
+const dg = await digestText(env, 'u7', { slot: 22 });
+assert.ok(dg.noi_dung.includes('KHÁCH CẦN GỌI') && dg.noi_dung.includes('Chị Na') && dg.noi_dung.includes('CÒN TỒN'), dg.noi_dung);
+console.log('ops OK');

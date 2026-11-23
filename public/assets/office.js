@@ -34,7 +34,7 @@
   var EDGES = [
     ['doi_thu', 'chien_luoc', 'doi_thu_reels'], ['chien_luoc', 'noi_dung', 'lich_noi_dung_tuan'], ['noi_dung', 'phan_phoi', 'dang_bai_da_duyet'],
     ['phan_phoi', 'cham_soc', 'tra_loi_binh_luan'], ['cham_soc', 'ban_hang', 'tra_loi_binh_luan'], ['quang_cao', 'ban_hang', 'lead_vao_crm'],
-    ['ban_hang', 'hang_ngay', 'nhac_cham_soc_deal'], ['ban_hang', 'bao_cao', 'bao_cao_tuan'], ['bao_cao', 'hang_ngay', 'ban_tin_sang'], ['bao_cao', 'chien_luoc', 'de_xuat_chien_luoc']
+    ['ban_hang', 'hang_ngay', 'nhac_cham_soc_deal'], ['ban_hang', 'bao_cao', 'bao_cao_tuan'], ['bao_cao', 'hang_ngay', 'ban_tin_sang'], ['quang_cao', 'bao_cao', 'theo_doi_quang_cao'], ['bao_cao', 'chien_luoc', 'de_xuat_chien_luoc']
   ];
   var DAY_TXT = { hang_ngay: 'Mỗi ngày', t2_t6: 'Thứ Hai – Sáu', t2: 'Thứ Hai', cn: 'Chủ nhật', ngay_1: 'Ngày 1 hằng tháng', t3: 'Thứ Ba', t4: 'Thứ Tư', t5: 'Thứ Năm', t6: 'Thứ Sáu', t7: 'Thứ Bảy' };
 
@@ -554,9 +554,18 @@
       return '<li class="' + (x.se_bat || x.dang_chay ? '' : 'off') + '"><i style="background:' + (COLOR[x.toi] || '#999') + '"></i><div><b>' + esc(x.buoc) + '</b><small>' +
         esc((SHORT[x.tu] || '') + ' → ' + (SHORT[x.toi] || '')) + ' · ' + esc(DAY_TXT[x.ngay] || '') + ' ' + esc(x.lap ? x.gio + '–' + x.den + ' mỗi giờ' : x.gio) + (x.ly_do ? ' · ' + esc(x.ly_do) : '') + '</small></div>' + right + '</li>';
     }).join('') + '</ol>';
-    if (p.su_kien) html += '<p class="of-auto-note"><b>Sự kiện tức thì</b> (không chờ tới giờ): ' + p.su_kien.map(function (x) {
-      return esc(x.ten) + ' ' + (x.bat ? '<span style="color:#15803D">● đang nhận</span>' : x.da_noi ? '<span>· bật khi Run</span>' : '<a href="ket-noi.html?app=' + x.app + '">· nối</a>');
-    }).join(' · ') + '. Khách để lại số hoặc đặt lịch là Crewzy lưu lead và email báo bạn ngay. Bình luận Facebook, Instagram chưa có sự kiện tức thì nên AI vẫn quét mỗi giờ.</p>';
+    html += '<p class="of-auto-note"><b>Crewzy tự trông thêm (không tốn credit AI):</b> mỗi 30 phút soát việc tồn — bài chờ duyệt quá 4 giờ, khách nóng chưa gọi quá 2 giờ thì nhắc bạn qua Gmail, việc AI làm dở thì cho làm lại · 18:00 số liệu ngày · 22:00 tổng kết ngày + việc ngày mai.</p>';
+    if (p.su_kien) {
+      var ev = p.su_kien.filter(function (x) { return !x.form; }), fm = p.su_kien.filter(function (x) { return x.form; });
+      html += '<p class="of-auto-note"><b>Sự kiện tức thì</b> (không chờ tới giờ): ' + ev.map(function (x) {
+        return esc(x.ten) + ' ' + (x.bat ? '<span style="color:#15803D">● đang nhận</span>' : x.da_noi ? '<span>· bật khi Run</span>' : '<a href="ket-noi.html?app=' + x.app + '">· nối</a>');
+      }).join(' · ') + '. Khách để lại số, điền form hoặc đặt lịch là Crewzy lưu lead, ghi CRM và email báo bạn ngay. Bình luận Facebook, Instagram chưa có sự kiện tức thì nên AI vẫn quét mỗi giờ.</p>';
+      html += '<div class="of-auto-form"><b>Nhận khách từ form</b>' + fm.map(function (x) {
+        if (!x.da_noi) return '<p class="of-auto-note" style="margin:6px 0 0">' + esc(x.ten) + ': <a href="ket-noi.html?app=' + x.app + '">nối ' + (x.app === 'typeform' ? 'Typeform' : 'Google Sheets') + '</a> trước.</p>';
+        return '<label>' + esc(x.ten) + (x.bat ? ' <span style="color:#15803D">● đang nhận</span>' : '') + '<input type="url" data-form="' + x.app + '" value="' + esc(x.gia_tri ? (x.app === 'typeform' ? 'https://form.typeform.com/to/' + x.gia_tri : 'https://docs.google.com/spreadsheets/d/' + x.gia_tri) : '') + '" placeholder="' + (x.app === 'typeform' ? 'Link form Typeform' : 'Link Google Sheet chứa câu trả lời form') + '"></label>' +
+          (x.app === 'googlesheets' ? '<label>Tên trang tính (để trống = trang đầu)<input type="text" data-form-name value="' + esc(x.ten_sheet || '') + '" placeholder="Ví dụ: Câu trả lời biểu mẫu 1"></label>' : '');
+      }).join('') + (fm.some(function (x) { return x.da_noi; }) ? '<button type="button" class="btn btn-ghost" data-form-save>Lưu form</button>' : '') + '</div>';
+    }
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' + (p.bat ? '<button type="button" class="btn btn-ghost" data-auto-off>Tắt chạy tự động</button>' : '') +
       '<button type="button" class="btn btn-primary" data-auto-on' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>' + (p.bat ? 'Cập nhật dây chuyền (' + nOn + ' bước)' : 'Bật chạy tự động (' + nOn + ' bước)') + '</button></div>';
     autoBody.innerHTML = html;
@@ -575,6 +584,14 @@
     if (e.target === autoDlg || e.target.closest('[data-auto-close]')) autoDlg.close();
     else if (e.target.closest('[data-auto-on]')) autoPost('bat');
     else if (e.target.closest('[data-auto-off]')) autoPost('tat');
+    else if (e.target.closest('[data-form-save]')) {
+      var body = { uid: uid, action: 'form' };
+      autoBody.querySelectorAll('[data-form]').forEach(function (i) { body[i.getAttribute('data-form') === 'typeform' ? 'typeform' : 'sheet'] = i.value.trim(); });
+      var nm = autoBody.querySelector('[data-form-name]'); if (nm) body.sheet_name = nm.value.trim();
+      fetch('/api/autopilot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (out) {
+        fetch('/api/autopilot?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(function (pl) { drawPlan(pl, out.error || (out.loi && out.loi.length ? out.loi.join('; ') : out.ghi_chu || 'Đã lưu form.')); });
+      });
+    }
   });
 
   function renderAll() {

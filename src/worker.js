@@ -5,6 +5,7 @@ import office from './routes/office.js';
 import autopilot from './routes/autopilot.js';
 import leads from './routes/leads.js';
 import { handleWebhook, runEventQueue } from './lib/events.js';
+import { runBacklog, runDigest } from './lib/ops.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -88,6 +89,8 @@ export default {
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
     ctx.waitUntil(runWeeklyReports(env, { origin, submitResult, listJobs, plans: plans(env) }).then((r) => console.log('weekly', JSON.stringify(r))).catch((e) => console.error('weekly failed', e && e.stack)));
+    ctx.waitUntil(runBacklog(env, { origin }).then((r) => console.log('backlog', JSON.stringify(r))).catch((e) => console.error('backlog failed', e && e.stack)));
+    ctx.waitUntil(runDigest(env, { origin }).then((r) => console.log('digest', JSON.stringify(r))).catch((e) => console.error('digest failed', e && e.stack)));
     ctx.waitUntil(runEventQueue(env, { origin, runAuto }).then((r) => console.log('events', JSON.stringify(r))).catch((e) => console.error('events failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
