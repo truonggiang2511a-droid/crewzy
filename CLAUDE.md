@@ -59,6 +59,7 @@ public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn
 public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (refs: video/ảnh mẫu, giọng mẫu, nhạc, logo, tư liệu; dán link hoặc tải file
                          qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
 public/chat.html         Màn 4 · Trợ lý AI kiểu Claude/ChatGPT (23/11, assets/chat.js): main lưới 3 hàng (đầu · khung chat cuộn · ô soạn) nên ô soạn KHÔNG đè tin;
+                         điện thoại: html.cz-lock (body fixed, chỉ khung tin cuộn, khung chat fixed giữa .mtop và .mbar; bàn phím mở → visualViewport + class kb-open);
                          ô soạn tự giãn ≤220px; nút + (tải ảnh/video/tài liệu → /api/upload vào Kho, chọn từ Kho, Ứng dụng: đã nối + tìm + Kết nối
                          /api/connect?back=chat, lấy ảnh từ web); micro → /api/giong-noi (MediaRecorder, dự phòng SpeechRecognition) rồi gửi luôn;
                          loa = đọc to bằng speechSynthesis vi-VN (crewzy.tts); bước công cụ gom "Đã làm N bước"; chọn AI/bộ não trong hộp thoại;
