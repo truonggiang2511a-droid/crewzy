@@ -12,7 +12,7 @@ import { Composio } from '@composio/core';
 import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid, createSession } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
-import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool, imageShortcut } from '../lib/crewzyTools.js';
 import { recordActivity } from '../lib/activity.js';
 import { getFeatures, upgradeHint, applyFeatures } from '../lib/billing.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
@@ -56,6 +56,8 @@ Quy tắc bắt buộc:
 - Bạn là ĐẠO DIỄN PROMPT của khách: trước khi làm ảnh/video ở bất kỳ app nào (Higgsfield, HeyGen, Canva, CREWZY_TAO_ANH/VIDEO) hoặc viết bài đăng, gọi CREWZY_PROMPT_PRO rồi viết prompt chuyên nghiệp theo đó (tiếng Anh cho app ảnh/video, đủ chủ thể, bối cảnh, ánh sáng, máy quay, phong cách thương hiệu), làm 2–3 phương án, nộp kết quả kèm prompt_da_dung để khách duyệt. Bài viết: hook dòng đầu, giá trị, CTA cụ thể, hashtag xu hướng + ngách + thương hiệu, riêng từng kênh.
 - Chọn app: khách nối nhiều app cùng loại (ảnh, video, dựng, đăng, báo cáo) mà chưa nói dùng app nào → hỏi trắc nghiệm A/B/C (kèm "Công cụ có sẵn của Crewzy" và nơi gửi báo cáo) rồi chờ khách chọn mới làm; nếu yêu cầu đã có "LỰA CHỌN CỦA KHÁCH" thì làm đúng như vậy, không hỏi lại.
 - Lead: thấy khách để lại số điện thoại/email hoặc khách nóng (hỏi giá, hẹn xem) → gọi CREWZY_BAO_LEAD ngay rồi làm theo viec_tiep (báo chủ qua Gmail/Telegram đã nối, ghi CRM). Báo cáo cho chủ gửi qua kênh trong bao_ceo.
+- Tin "[Ghi chú tiến độ của Crewzy…]" trong lịch sử = việc ĐÃ làm xong ở lượt trước. Khách nhắn "tiếp tục": đọc ghi chú, làm tiếp bước còn dở;
+  KHÔNG đọc lại quy trình, KHÔNG tạo lại ảnh/video, KHÔNG nộp trùng phiếu đã có trong ghi chú. Khách bấm dừng thì không tự làm thêm.
 - Hình ảnh thật trước, AI sau: trước khi làm ảnh/video/bài đăng, xem Kho (CREWZY_KHO) và ảnh khách gửi trong chat; nếu kho trống,
   đọc website của khách (CREWZY_DOC_WEB → trường anh) hoặc fanpage (công cụ Facebook/Instagram lấy ảnh bài gần đây), xem ảnh bằng
   CREWZY_XEM_ANH, lưu ảnh đẹp vào Kho (CREWZY_LUU_KHO). Ảnh thật đủ đẹp thì đăng thẳng ảnh thật.
@@ -226,8 +228,28 @@ function withCacheMark(convo) {
   return out;
 }
 
+// GHI CHÚ TIẾN ĐỘ (23/11, Giang: bấm "tiếp tục" thì AI chạy lại từ đầu, làm thêm ảnh, tốn token). Lịch sử chat chỉ có chữ nên lượt sau
+// không biết lượt trước đã làm gì. Mỗi công cụ chạy xong → 1 dòng ngắn (tên việc + link ảnh/video, mã phiếu, lỗi); gửi về trình duyệt (sự kiện memo),
+// trình duyệt cất vào lịch sử như tin của trợ lý (không hiện) để lượt "tiếp tục" làm tiếp đúng chỗ dừng.
+const URL_RE = /https:\/\/[^\s"'<>)]+/g;
+export function memoLine(name, args, res) {
+  const r = res && typeof res === 'object' ? res : {};
+  if (r.error) return `${name}: LỖI ${String(r.error).slice(0, 120)}`;
+  const s = JSON.stringify(r).slice(0, 4000);
+  const urls = [...new Set((s.match(URL_RE) || []).filter((u) => /\/api\/(img|media)\/|\.(jpe?g|png|webp|mp4|mov)(\?|$)/i.test(u)))].slice(0, 4);
+  const ids = (s.match(/"(?:id|job_id|ma_phieu|post_id|request_id)":"?([\w-]{4,40})/g) || []).slice(0, 2).map((x) => x.replace(/"/g, ''));
+  const what = name === 'CREWZY_QUY_TRINH' ? `đã đọc quy trình ${(args && (args.id || args.quy_trinh)) || ''}`.trim()
+    : name === 'CREWZY_NOP_KET_QUA' ? 'ĐÃ NỘP phiếu chờ duyệt' : name === 'CREWZY_TAO_ANH' ? 'ĐÃ TẠO ảnh' : name === 'CREWZY_TAO_VIDEO' ? 'ĐÃ TẠO video' : 'xong';
+  return `${name}: ${what}${ids.length ? ' · ' + ids.join(', ') : ''}${urls.length ? ' · ' + urls.join(' ') : ''}${r.anh_that ? ' · dùng ảnh thật Kho' : ''}`;
+}
+export function memoText(lines, stopped) {
+  if (!lines.length) return '';
+  return `[Ghi chú tiến độ của Crewzy${stopped ? ' (khách bấm DỪNG giữa chừng)' : ''} — các việc dưới ĐÃ LÀM XONG, khách nhắn "tiếp tục" thì làm tiếp phần còn lại, KHÔNG gọi lại công cụ đã thành công, KHÔNG tạo lại ảnh/video, dùng lại link và phiếu ở đây]\n`
+    + lines.slice(-30).map((l, i) => `${i + 1}. ${l}`).join('\n');
+}
+
 // Vòng gọi công cụ với Claude (Anthropic Messages API)
-async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, onUsage }) {
+async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, onUsage, stop = { stopped: false } }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
     return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: safeTopSchema(f.parameters) };
@@ -237,6 +259,7 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
   const systemBlocks = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   for (let step = 0; step < MAX_STEPS; step++) {
+    if (stop.stopped) return;
     const res = await client.messages.create({ model, max_tokens: MAX_OUTPUT_TOKENS, system: systemBlocks, tools: anthropicTools, messages: withCacheMark(convo) });
     // Khoá AI của Giang (chế độ app): trừ credit theo token thật sau mỗi bước; hết credit thì dừng.
     if (onUsage && (await onUsage(res.usage)) === 'stop') {
@@ -244,6 +267,8 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
       return;
     }
     if (res.stop_reason === 'max_tokens') {
+      const part = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+      if (part) emit({ type: 'text', text: part });
       emit({ type: 'text', text: 'Nội dung dài quá một lượt trả lời, anh/chị nhắn "tiếp tục" để em làm nốt nhé.' });
       return;
     }
@@ -254,6 +279,7 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
     convo.push({ role: 'assistant', content: res.content });
     const results = [];
     for (const call of calls) {
+      if (stop.stopped) return;
       emit({ type: 'tool', label: label(call.name, call.input) });
       let out;
       out = await exec(call.name, call.input || {});
@@ -274,9 +300,10 @@ async function runClaude({ client, model, tools, exec, label = toolLabel, messag
 }
 
 // Vòng gọi công cụ với ChatGPT (OpenAI Chat Completions)
-async function runOpenAI({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, tokenParam = 'max_completion_tokens' }) {
+async function runOpenAI({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, tokenParam = 'max_completion_tokens', stop = { stopped: false } }) {
   const convo = [{ role: 'system', content: system }, ...messages];
   for (let step = 0; step < MAX_STEPS; step++) {
+    if (stop.stopped) return;
     const res = await client.chat.completions.create({ model, messages: convo, tools, [tokenParam]: MAX_OUTPUT_TOKENS });
     if (res.choices[0].finish_reason === 'length') {
       emit({ type: 'text', text: 'Nội dung dài quá một lượt trả lời, anh/chị nhắn "tiếp tục" để em làm nốt nhé.' });
@@ -288,6 +315,7 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
     if (!calls.length) return;
     convo.push(msg);
     for (const call of calls) {
+      if (stop.stopped) return;
       let args = {};
       try { args = JSON.parse(call.function.arguments || '{}'); } catch (e) {}
       emit({ type: 'tool', label: label(call.function.name, args) });
@@ -306,7 +334,7 @@ async function runOpenAI({ client, model, tools, exec, label = toolLabel, messag
 
 // Chạy một lượt AI có công cụ (Composio + Crewzy + MCP ngoài). Dùng cho khung chat và cho hẹn giờ tự chạy (cron).
 // emit(event): {type:'tool'|'text'|'image'|'video'|'audio', ...}. Lỗi thì ném ra cho nơi gọi xử lý.
-export async function runAgent({ env, uid, origin, mode, key, orModel, brain, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null }) {
+export async function runAgent({ env, uid, origin, mode, key, orModel, brain, messages, emit, timeBudgetMs = TIME_BUDGET_MS, meter = null, stop = { stopped: false } }) {
   const composioKey = getApiKey(env);
   const deadline = Date.now() + timeBudgetMs;
     // Tính năng theo gói (billing.js PLAN_FEATURES): gói MCP For You không có Trợ lý Crewzy; Opus từ gói Tăng trưởng.
@@ -346,14 +374,22 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     const seenMedia = new Set();
     const label = (n, i) => (ext.label && ext.label(n)) ? 'Đang chạy ' + ext.label(n) : toolLabel(n, i);
         // Chạy một công cụ: CREWZY_* xử lý ngay trong Worker, còn lại gửi Composio.
+    const memo = [];
     const exec = async (name, args) => {
+      if (stop.stopped) return { error: 'Khách đã bấm dừng.' };
       const res = await execRaw(name, args);
       // Màn Kết quả: ghi việc đã làm khi công cụ chạy không lỗi.
       if (res && !res.error && !(res.successful === false)) await recordActivity(env, uid, name, args);
+      if (!/^CREWZY_(CHO|BRAIN|PROMPT_PRO)$/.test(name)) { memo.push(memoLine(name, args, res)); emit({ type: 'memo', text: memoText(memo, false) }); }
       return res;
     };
     const execRaw = async (name, rawArgs) => {
       // Tính năng theo gói: hạ/chặn ảnh-video Đẹp trước khi trừ credit.
+      // Ảnh thật trước: Kho có ảnh thật / gói chưa có ảnh Đẹp → trả ảnh thật, không vẽ ảnh giả, không trừ credit.
+      if (name === 'CREWZY_TAO_ANH') {
+        const sc = await imageShortcut(env, uid, rawArgs, feat).catch(() => null);
+        if (sc) { emit({ type: 'tool', label: 'Dùng ảnh thật trong Kho' }); return sc; }
+      }
       const fx = applyFeatures(name, rawArgs, feat);
       if (fx.error) return { error: fx.error };
       const args = fx.args;
@@ -405,17 +441,17 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
         baseURL: 'https://openrouter.ai/api/v1',
         defaultHeaders: { 'HTTP-Referer': origin, 'X-Title': APP_NAME },
       });
-      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system, tokenParam: 'max_tokens' });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system, tokenParam: 'max_tokens', stop });
     } else if (OPENAI_COMPAT[mode]) {
       const client = new OpenAI({ apiKey: key.trim(), baseURL: OPENAI_COMPAT[mode] });
-      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'text'), emit, deadline, system, tokenParam: 'max_tokens' });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'text'), emit, deadline, system, tokenParam: 'max_tokens', stop });
     } else if (mode === 'openai') {
       const client = new OpenAI({ apiKey: key.trim(), baseURL: 'https://api.openai.com/v1' });
-      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system });
+      await runOpenAI({ client, model, tools, exec, label, messages: withAttachments(messages, 'openai'), emit, deadline, system, stop });
     } else {
       const client = mode === 'app' ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : new Anthropic({ apiKey: key.trim(), baseURL: 'https://api.anthropic.com' });
       const onUsage = mode === 'app' && meter ? (u) => meter.tokens(u, 'chat', model) : null;
-      await runClaude({ client, model, tools, exec, label, messages: withAttachments(messages, 'claude'), emit, deadline, system, onUsage });
+      await runClaude({ client, model, tools, exec, label, messages: withAttachments(messages, 'claude'), emit, deadline, system, onUsage, stop });
     }
 }
 
@@ -456,11 +492,14 @@ export default async (req, env) => {
     }
   }
 
+  // Nút DỪNG: trình duyệt huỷ yêu cầu → luồng bị cancel → stop.stopped, vòng AI dừng trước bước/công cụ kế tiếp (không tốn thêm token).
+  const stop = { stopped: false };
   const stream = new ReadableStream({
+    cancel() { stop.stopped = true; },
     async start(controller) {
-      const emit = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
+      const emit = (event) => { if (stop.stopped) return; try { controller.enqueue(encoder.encode(JSON.stringify(event) + '\n')); } catch (e) { stop.stopped = true; } };
       try {
-        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, brain: body && body.brain, messages, emit, timeBudgetMs: TIME_BUDGET_MS, meter });
+        await runAgent({ env, uid, origin: new URL(req.url).origin, mode, key, orModel, brain: body && body.brain, messages, emit, timeBudgetMs: TIME_BUDGET_MS, meter, stop });
         emit({ type: 'done' });
       } catch (err) {
         console.error('chat failed', mode, err && err.message);
@@ -471,7 +510,7 @@ export default async (req, env) => {
         else if (/429|rate|quota/i.test(detail)) message = 'AI đang quá tải hoặc hết hạn mức, thử lại sau ít phút.';
         emit({ type: 'error', message, detail });
       }
-      controller.close();
+      try { controller.close(); } catch (e) {}
     },
   });
 

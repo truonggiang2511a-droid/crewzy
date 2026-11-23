@@ -11,7 +11,7 @@ import { linkAllowed, touchLink } from '../lib/mcpLinks.js';
 import { APP_NAME, getApiKey, verifyUpstreamToken, userIdFor } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
-import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
+import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool, imageShortcut } from '../lib/crewzyTools.js';
 import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
@@ -125,7 +125,11 @@ export default async (request, env, ctx) => {
 
   // Tính năng theo gói: ảnh Đẹp chỉ từ gói Tăng trưởng (hạ xuống Nhanh trước khi trừ credit).
   if (rpc && rpc.method === 'tools/call' && rpc.params && uid && rpc.params.name === 'CREWZY_TAO_ANH') {
-    const fx = applyFeatures(rpc.params.name, rpc.params.arguments || {}, await getFeatures(env, uid).catch(() => null));
+    const feat = await getFeatures(env, uid).catch(() => null);
+    // Ảnh thật trước (giống Trợ lý Crewzy): trả ảnh thật trong Kho thay vì vẽ ảnh giả, không trừ credit.
+    const sc = await imageShortcut(env, uid, rpc.params.arguments || {}, feat).catch(() => null);
+    if (sc) return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: JSON.stringify(sc) }] } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
+    const fx = applyFeatures(rpc.params.name, rpc.params.arguments || {}, feat);
     rpc.params.arguments = fx.args;
   }
 

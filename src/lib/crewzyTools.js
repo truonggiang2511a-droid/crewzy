@@ -11,7 +11,7 @@ import { readWebsite } from './webRead.js';
 import { listJobs } from './jobs.js';
 import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
-import { LIBRARY_TOOL_DEFS, libraryTool, addItem } from './library.js';
+import { LIBRARY_TOOL_DEFS, libraryTool, addItem, listItems } from './library.js';
 import { LEAD_TOOL_DEFS, leadTool, careLead, ceoChannels } from './leads.js';
 import { PROMPT_TOOL_DEFS, promptPro } from './promptPro.js';
 
@@ -37,6 +37,7 @@ export const CREWZY_TOOL_DEFS = [
           kho: { type: 'string', enum: Object.keys(SIZES), description: 'Khổ ảnh: vuong (1:1), doc (4:5 bài đăng; mức Đẹp ra 3:4), story (9:16), ngang (16:9). Mặc định doc.' },
           chat_luong: { type: 'string', enum: ['nhanh', 'dep'], description: 'nhanh = 3 credit, ảnh minh hoạ nhanh (mặc định). dep = 25 credit, ảnh quảng cáo đẹp 2K (Seedream 4.5), giữ đúng sản phẩm khi có anh_mau. Gói chưa có thì tự hạ xuống nhanh.' },
           anh_mau: { type: 'array', items: { type: 'string' }, description: 'Chỉ mức dep: 1–4 link https ảnh thật của khách (từ CREWZY_KHO, ảnh khách gửi trong chat, ảnh website/fanpage đã lưu) để AI giữ đúng sản phẩm, căn nhà, khuôn mặt, phong cách.' },
+          khach_yeu_cau_ai: { type: 'boolean', description: 'Chỉ đặt true khi KHÁCH nói rõ muốn ảnh AI minh hoạ không dựa trên ảnh thật. Kho có ảnh thật mà không đặt thì công cụ trả lại ảnh thật thay vì vẽ ảnh giả.' },
         },
         required: ['prompt'],
       },
@@ -365,6 +366,24 @@ export async function readBrain(env, uid, connectedNames) {
   const text = brandText(brand);
   const pack = brandPack(brand, true);
   return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
+}
+
+// ẢNH THẬT TRƯỚC (23/11, Giang: AI vẽ ảnh giả không đúng thương hiệu, tốn tiền): Kho có ảnh thật (không tính ảnh AI tạo) thì
+// CREWZY_TAO_ANH không có anh_mau → trả lại ảnh thật để đăng, không trừ credit; mức dep mà gói chưa có → đăng ảnh thật thay vì hạ xuống ảnh AI nhanh.
+export async function realPhotos(env, uid, limit = 8) {
+  const items = await listItems(env, uid, { kind: 'image', limit: 40 }).catch(() => []);
+  return items.filter((i) => i.source !== 'ai_tao' && /^https:\/\//.test(i.url || '')).slice(0, limit).map((i) => ({ url: i.url, ten: i.name || '' }));
+}
+export async function imageShortcut(env, uid, args, feat) {
+  const a = args || {};
+  const mau = Array.isArray(a.anh_mau) ? a.anh_mau.filter((u) => typeof u === 'string' && u.startsWith('https://')) : [];
+  if (mau.length && a.chat_luong === 'dep' && feat && !feat.anh_dep) {
+    return { anh_that: mau, huong_dan: 'Gói hiện tại chưa có Ảnh Đẹp nên KHÔNG vẽ ảnh AI giả. Dùng thẳng ảnh thật này để đăng/nộp duyệt (chữ, giá, lời kêu gọi viết trong bài).' };
+  }
+  if (mau.length || a.khach_yeu_cau_ai === true) return null;
+  const real = await realPhotos(env, uid);
+  if (!real.length) return null;
+  return { anh_that: real, huong_dan: 'Kho có ảnh THẬT của thương hiệu: chọn ảnh hợp nội dung nhất (xem bằng CREWZY_XEM_ANH nếu cần) rồi đăng/nộp duyệt thẳng ảnh thật. Cần ảnh quảng cáo đẹp hơn: gọi lại CREWZY_TAO_ANH chat_luong "dep" + anh_mau là link ảnh thật. Không vẽ ảnh AI giả sản phẩm; chỉ đặt khach_yeu_cau_ai true khi khách nói rõ muốn ảnh minh hoạ AI.' };
 }
 
 export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent, surface, instant }) {

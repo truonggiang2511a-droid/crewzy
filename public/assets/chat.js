@@ -45,7 +45,7 @@
   var orLogin = $('[data-or-login]');
   var modelName = $('[data-model-name]');
   var OR = window.VPAIOpenRouter;
-  var busy = false, appMode = true, feat = null;
+  var busy = false, appMode = true, feat = null, controller = null;
   var attachments = []; // {url, kind, name, uploading, local}
   var catalog = null, connected = {};
 
@@ -180,7 +180,7 @@
   function renderAll() {
     thread.innerHTML = '';
     if (!items.length) thread.appendChild(renderEmpty());
-    grouped().forEach(function (it) { thread.appendChild(renderItem(it)); });
+    grouped().filter(function (it) { return it.kind !== 'memo'; }).forEach(function (it) { thread.appendChild(renderItem(it)); });
     scrollEnd();
   }
   function scrollEnd() { requestAnimationFrame(function () { log.scrollTop = log.scrollHeight; }); }
@@ -473,15 +473,18 @@
 
   // ---------- Gửi ----------
   function apiMessages() {
-    return items.filter(function (i) { return i.kind === 'user' || i.kind === 'assistant'; })
-      .map(function (i) { var m = { role: i.kind, content: i.text || '' }; if (i.files && i.files.length) m.files = i.files; return m; })
+    // memo = ghi chú tiến độ máy chủ gửi (không hiện) → gửi lại như tin trợ lý để "tiếp tục" làm đúng chỗ dừng, không làm lại từ đầu.
+    return items.filter(function (i) { return i.kind === 'user' || i.kind === 'assistant' || i.kind === 'memo'; })
+      .map(function (i) { var m = { role: i.kind === 'memo' ? 'assistant' : i.kind, content: i.text || '' }; if (i.files && i.files.length) m.files = i.files; return m; })
       .slice(-20);
   }
   function setBusy(v) {
     busy = v;
-    sendBtn.setAttribute('aria-label', v ? 'Đang làm' : 'Gửi');
-    sendBtn.innerHTML = v ? '<span class="cz-spin" style="border-color:#666;border-top-color:#fff"></span>' : icon('<path d="M12 19V5M5 12l7-7 7 7"/>');
-    sendBtn.disabled = v; micBtn.disabled = v;
+    // Đang làm: nút gửi thành nút DỪNG (ô vuông) bấm được.
+    sendBtn.setAttribute('aria-label', v ? 'Dừng' : 'Gửi');
+    sendBtn.title = v ? 'Dừng việc AI đang làm' : '';
+    sendBtn.innerHTML = v ? '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>' : icon('<path d="M12 19V5M5 12l7-7 7 7"/>');
+    sendBtn.disabled = false; micBtn.disabled = v;
     if (!v) updateSend();
   }
   function send(text) {
@@ -497,6 +500,8 @@
     input.value = ''; attachments = []; renderAttach(); autosize();
     setBusy(true);
 
+    var memo = '', stopped = false;
+    controller = window.AbortController ? new AbortController() : null;
     var stepList = [];
     var stepsBox = aiWrap('');
     var stepsBody = stepsBox.querySelector('.cz-ai-body');
@@ -517,7 +522,8 @@
 
     fetch('/api/chat', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ uid: uid, mode: mode, key: key, model: mode === 'openrouter' ? orModel.value : undefined, brain: mode === 'app' ? brainSel.value : undefined, messages: apiMessages() })
+      body: JSON.stringify({ uid: uid, mode: mode, key: key, model: mode === 'openrouter' ? orModel.value : undefined, brain: mode === 'app' ? brainSel.value : undefined, messages: apiMessages() }),
+      signal: controller ? controller.signal : undefined
     }).then(function (res) {
       if (res.status === 401 && window.vpaiNeedLogin) window.vpaiNeedLogin();
       var type = res.headers.get('content-type') || '';
@@ -529,6 +535,7 @@
         if (!line.trim()) return;
         var ev; try { ev = JSON.parse(line); } catch (e) { return; }
         if (ev.type === 'tool') { showStep(ev.label); return; }
+        if (ev.type === 'memo') { memo = ev.text || ''; return; }
         closeSteps();
         if (ev.type === 'text') { add({ kind: 'assistant', text: ev.text }); spoken.push(ev.text); }
         else if (ev.type === 'image' || ev.type === 'video' || ev.type === 'audio') add({ kind: ev.type, text: ev.url });
@@ -545,15 +552,19 @@
       return pump();
     }).catch(function (err) {
       closeSteps();
+      if (err && err.name === 'AbortError') { stopped = true; return; }
       add({ kind: 'error', text: err.message });
     }).then(function () {
       closeSteps();
+      controller = null;
+      if (memo) { items.push({ kind: 'memo', text: memo }); save(); }
+      if (stopped) add({ kind: 'assistant', text: 'Đã dừng theo yêu cầu. Việc đã làm xong em ghi lại rồi, anh/chị nhắn "tiếp tục" là em làm tiếp từ chỗ dừng, không làm lại từ đầu.' });
       setBusy(false);
       if (spoken.length) speak(spoken[spoken.length - 1]);
       if (!(window.matchMedia && matchMedia('(pointer: coarse)').matches)) input.focus();
     });
   }
-  form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
+  form.addEventListener('submit', function (e) { e.preventDefault(); if (busy) { if (controller) controller.abort(); return; } send(input.value); });
   input.addEventListener('keydown', function (e) {
     var mobile = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !mobile) { e.preventDefault(); send(input.value); }
