@@ -161,14 +161,14 @@ export const sessionCookie = (token, maxAgeSeconds) =>
   `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
 
 // Mã khách cho Composio. Đã bật đăng nhập Google (có GOOGLE_CLIENT_ID) thì chỉ tin phiên; chưa bật thì dùng mã trình duyệt gửi lên.
-// AGENCY (23/11): doanh nghiệp đang chọn nằm ở cookie cz_biz=<n> (1–9) → mã khách con "<chủ>-b<n>" (Brain, Kho, kênh, phiếu việc, lịch… tách riêng);
+// AGENCY (23/11): doanh nghiệp đang chọn nằm ở cookie cz_biz=<n> (1–40) → mã khách con "<chủ>-b<n>" (Brain, Kho, kênh, phiếu việc, lịch… tách riêng);
 // gói, credit, tài khoản luôn tính theo chủ (billing.js ownerUid). n phải có trong danh sách KV biz:<chủ> (tạo ở /api/doanh-nghiep).
 export const BIZ_COOKIE = 'cz_biz';
 export async function resolveUid(req, env, fallbackUid) {
   const session = await readSession(req, env);
   if (session) {
     const n = Number(readCookie(req, BIZ_COOKIE)) || 0;
-    if (n >= 1 && n <= 9 && env.KV) {
+    if (n >= 1 && n <= 40 && env.KV) {
       const list = await kvGetJson(env, 'biz:' + session.uid).catch(() => null);
       if (list && Array.isArray(list.items) && list.items.some((b) => b.n === n)) return { uid: `${session.uid}-b${n}`, owner: session.uid, biz: n, session };
     }

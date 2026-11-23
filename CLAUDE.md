@@ -200,11 +200,12 @@ Quy trình san_xuat_5x5    Nhiệm vụ Sản xuất 06:30: 5 ảnh nhiều kh�
 Chat (23/11)              imageShortcut: Kho có ảnh thật → CREWZY_TAO_ANH trả ảnh thật (không vẽ ảnh giả, không trừ credit), khach_yeu_cau_ai mới cho vẽ;
                           nút Dừng (AbortController ↔ ReadableStream.cancel → stop.stopped); sự kiện memo (memoLine) cất vào lịch sử để "tiếp tục" không làm lại;
                           safeTopSchema gộp oneOf/anyOf/allOf tầng ngoài của mọi công cụ (Claude từ chối cả lượt nếu có). Test: scripts/realphototest.mjs
-Gói (23/11, billing.js)   4 gói: mcp_1t 199k/30 ngày (Haiku, 1 tài khoản/nền tảng, 3 Fanpage, 2 bài/ngày/nền tảng, KHÔNG AI ảnh/video Crewzy) · mcp_ai_6t 5,99tr/180 ngày
-                          (Sonnet, 5 tài khoản, 1.000 Fanpage = 5×200, 5 ảnh + 5 video/ngày, 10 bài/ngày/trang) · mcp_ai_1n 14,99tr/365 ngày (Opus, 10 tài khoản, 2.000 Fanpage,
-                          10+10/ngày, video Đẹp) · agency 4,99tr/30 ngày (Opus, 10 doanh nghiệp × 5 kênh, 5+5/ngày mỗi DN). Gói cũ map sang gói mới. capBrain hạ bộ não theo gói;
-                          src/lib/quota.js: postQuota (bài/ngày/nền tảng, KV post:<ngày>:<uid>:<toolkit>), mediaQuota (ảnh/video Crewzy/ngày), planNote (hạn mức + đăng nhiều
-                          Fanpage lệch 2 phút + spin) vào system chat và instructions MCP. connect.js: tai_khoan/nền tảng, Agency kenh_moi_dn kênh/DN. Test: agencytest, billingtest
+Gói (23/11 16:47, billing.js) 4 gói: thang 199k/30 ngày (Haiku, 1 tài khoản/nền tảng, 3 Fanpage, 2 bài/ngày, 30 ảnh AI/tháng, không video Crewzy) · sau_thang 6×199k
+                          (Sonnet, 5 tài khoản, 5 Fanpage + mua thêm 10k/tháng/trang tới 100, 3 bài/ngày, 90 ảnh + 10 video/tháng) · mot_nam 12×199k (Opus, 10 tài khoản, 10 Fanpage
+                          + mua thêm tới 200, 5 bài/ngày, 150 ảnh + 20 video, video Đẹp) · agency 5tr/tháng (Opus, 5 thương hiệu + 100k/tháng/thương hiệu tới 30, 5 kênh & 20 Fanpage/TH,
+                          150 ảnh + 30 video/tháng/TH). Mua thêm nằm trong mã gói "sau_thang+fp15", "agency+th3" (parsePlanId/priceOf/planFeatures), không đổi D1. Mã cũ map sang gói mới.
+                          capBrain hạ bộ não; src/lib/quota.js: postQuota (bài/ngày/nền tảng), mediaQuota (ảnh/video Crewzy/THÁNG), planNote (hạn mức + lệch 2 phút + spin).
+                          pay.js: khung "Content mỗi tháng" + ô "Thêm Fanpage/thương hiệu" tự cộng giá. Test: agencytest, billingtest
 Agency (23/11)            Doanh nghiệp con = mã khách "<chủ>-b<n>" (cookie cz_biz, KV biz:<chủ>, /api/doanh-nghiep tao|chon|doi_ten, src/routes/business.js); resolveUid trả
                           {uid, owner, biz}; billing.js ownerUid() trong getAccount/charge/grant… → tiền/gói theo chủ; trang Gói dùng owner, 4 bước theo DN. layout.js: ô chọn DN
 MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ làm ảnh/video (forMcp viết lại "AI LÀM ẢNH/VIDEO" của san_xuat_5x5; instructions cổng MCP), Crewzy chỉ lưu + đăng

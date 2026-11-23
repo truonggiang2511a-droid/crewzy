@@ -13,7 +13,7 @@ const tok = await signSession(env, { uid: OWNER, email: 'a@b.vn', exp: Date.now(
 const req = (path, { method = 'GET', body, biz } = {}) => new Request('https://crewzy.test' + path, { method, headers: { 'content-type': 'application/json', cookie: `${SESSION_COOKIE}=${encodeURIComponent(tok)}` + (biz != null ? `; cz_biz=${biz}` : '') }, body: body ? JSON.stringify(body) : undefined });
 
 let r = await business(req('/api/doanh-nghiep'), env); let j = await r.json();
-assert.equal(j.toi_da, 10); assert.equal(j.items.length, 0); assert.equal(j.dang_chon, 0);
+assert.equal(j.toi_da, 10, 'billing tắt = mở 10'); assert.equal(j.items.length, 0); assert.equal(j.dang_chon, 0);
 r = await business(req('/api/doanh-nghiep', { method: 'POST', body: { action: 'tao', ten: 'Spa Hoa Mai' } }), env); j = await r.json();
 assert.equal(j.dang_chon, 1); assert.match(r.headers.get('set-cookie'), /cz_biz=1/);
 // Cookie cz_biz=1 → mã khách con; cookie lạ → về doanh nghiệp chính.
@@ -27,16 +27,18 @@ r = await business(req('/api/doanh-nghiep', { method: 'POST', body: { action: 'c
 assert.match(r.headers.get('set-cookie'), /cz_biz=0; .*Max-Age=0/);
 
 // Hạn mức: MCP 1 tháng 2 bài/ngày/nền tảng (Facebook × 3 Fanpage = 6), không AI ảnh Crewzy.
-const f1 = planFeatures('mcp_1t');
+const f1 = planFeatures('thang');
 const post = (name, args) => postQuota(env, 'k1', f1, name, args);
 assert.equal(await post('INSTAGRAM_CREATE_POST', {}), null);
 assert.equal(await post('INSTAGRAM_CREATE_POST', {}), null);
 assert.match(await post('INSTAGRAM_CREATE_POST', {}), /hạn mức gói trên instagram/);
 assert.equal(await post('COMPOSIO_MULTI_EXECUTE_TOOL', { tools: [{ tool_slug: 'FACEBOOK_CREATE_POST' }, { tool_slug: 'FACEBOOK_CREATE_PHOTO_POST' }] }), null);
 assert.equal(await post('FACEBOOK_LIST_MANAGED_PAGES', {}), null, 'đọc không tính');
-assert.match(await mediaQuota(env, 'k1', f1, 'CREWZY_TAO_ANH'), /không có ảnh AI/);
-const f6 = planFeatures('mcp_ai_6t');
-for (let i = 0; i < 5; i++) assert.equal(await mediaQuota(env, 'k6', f6, 'CREWZY_TAO_VIDEO'), null);
-assert.match(await mediaQuota(env, 'k6', f6, 'CREWZY_TAO_VIDEO'), /hết 5 video/);
-assert.ok(planNote(f6).includes('1000 Fanpage') && planNote(f6).includes('2 phút'));
+assert.match(await mediaQuota(env, 'k1', f1, 'CREWZY_TAO_VIDEO'), /không có video AI/);
+for (let i = 0; i < 30; i++) assert.equal(await mediaQuota(env, 'k1', f1, 'CREWZY_TAO_ANH'), null);
+assert.match(await mediaQuota(env, 'k1', f1, 'CREWZY_TAO_ANH'), /hết 30 ảnh/);
+const f6 = planFeatures('sau_thang');
+for (let i = 0; i < 10; i++) assert.equal(await mediaQuota(env, 'k6', f6, 'CREWZY_TAO_VIDEO'), null);
+assert.match(await mediaQuota(env, 'k6', f6, 'CREWZY_TAO_VIDEO'), /hết 10 video/);
+assert.ok(planNote(planFeatures('sau_thang+fp15')).includes('20 Fanpage') && planNote(f6).includes('2 phút'));
 console.log('agencytest OK');

@@ -10,7 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveUid, safeDetail, sameText } from '../lib/common.js';
 import {
-  billingOn, plans, topups, prices, startTrial, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant, getFeatures } from '../lib/billing.js';
+  billingOn, priceOf, plans, topups, prices, startTrial, ensureAccount, getAccount, publicAccount, isAdminEmail, onboarding, grant, getFeatures } from '../lib/billing.js';
 import { readWebsite } from '../lib/webRead.js';
 import { BRAND_FIELDS } from '../lib/brand.js';
 
@@ -36,8 +36,9 @@ function publicOrder(env, o) {
   };
 }
 function findItem(env, item) {
-  const p = plans(env).find((x) => x.id === item);
-  if (p) return { kind: 'plan', item: p.id, amount: p.gia, credits: p.credits, days: p.ngay };
+  // Gói kèm mua thêm Fanpage/thương hiệu: "sau_thang+fp15", "agency+th3" (billing.js priceOf tính tiền).
+  const p = priceOf(env, item);
+  if (p) return { kind: 'plan', item: p.id, amount: p.amount, credits: p.credits, days: p.days };
   const t = topups(env).find((x) => x.id === item);
   if (t) return { kind: 'topup', item: t.id, amount: t.gia, credits: t.credits, days: 0 };
   return null;

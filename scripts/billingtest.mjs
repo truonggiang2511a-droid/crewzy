@@ -74,13 +74,13 @@ await KV.put('aiseen:khach-test-02', { ten: 'Claude' });
 assert.equal((await onboarding(env, 'khach-test-02', {})).steps.ai, true);
 
 // 3. Tạo đơn mua gói: có mã CZ…, QR VietQR đúng số tiền; bấm lại dùng lại đơn cũ.
-const o1 = await call('/api/billing/order', { method: 'POST', body: { item: 'mcp_1t' } });
+const o1 = await call('/api/billing/order', { method: 'POST', body: { item: 'thang' } });
 assert.equal(o1.status, 200, JSON.stringify(o1.data));
 const don = o1.data.don;
 assert.match(don.code, /^CZ[A-HJ-NP-Z2-9]{8}$/);
 assert.equal(don.amount, 199000);
 assert.match(don.qr, /^https:\/\/vietqr\.app\/img\?acc=0123456789&bank=MBBank&amount=199000&des=CZ/);
-assert.equal((await call('/api/billing/order', { method: 'POST', body: { item: 'mcp_1t' } })).data.don.id, don.id);
+assert.equal((await call('/api/billing/order', { method: 'POST', body: { item: 'thang' } })).data.don.id, don.id);
 assert.equal((await call('/api/billing/order', { method: 'POST', body: { item: 'khong_co' } })).status, 400);
 
 // 4. Webhook SePay: sai khoá → 401; thiếu tiền → không cộng; đủ tiền → cộng gói + credit; gửi lại → không cộng lần hai.
@@ -94,7 +94,7 @@ r = await hook(tx(3, 199000, 'NGUYEN VAN A ' + don.code.toLowerCase() + ' thanh 
 assert.deepEqual(await r.json(), { success: true });
 let acc = await getAccount(env, UID);
 assert.equal(acc.credits, 1500);
-assert.equal(acc.plan, 'mcp_1t');
+assert.equal(acc.plan, 'thang');
 assert.ok(acc.plan_until > Date.now() + 29 * 86400000);
 assert.equal((await hook(tx(3, 199000, don.code))).status, 200);
 assert.equal((await getAccount(env, UID)).credits, 1500, 'SePay gửi lại cùng id không cộng lần hai');
@@ -124,21 +124,26 @@ assert.equal(toolPrice(env, 'CREWZY_TAO_ANH', {}), 3);
 assert.equal(toolPrice(env, 'CREWZY_TAO_VIDEO', { giay: 8 }), 136, 'video Nhanh 17 credit/giây (LTX 0,03 USD)');
 assert.equal(toolPrice(env, 'CREWZY_TAO_VIDEO', { giay: 5, chat_luong: 'dep' }), 325, 'video Đẹp 65 credit/giây (Seedance 0,12 USD)');
 assert.equal(toolPrice(env, 'CREWZY_TAO_ANH', { chat_luong: 'dep' }), 25, 'ảnh Đẹp (Seedream 0,04 USD)');
-{ // Tính năng theo gói (23/11): MCP 1 tháng Haiku, không AI ảnh/video Crewzy, 1 tài khoản/nền tảng, 3 Fanpage; 6 tháng Sonnet 5 tài khoản; 1 năm Opus 10 tài khoản; Agency 10 doanh nghiệp.
-  const { planFeatures, applyFeatures, capBrain, ownerUid } = await import('../src/lib/billing.js');
-  const f1 = planFeatures('mcp_1t'), f6 = planFeatures('mcp_ai_6t'), fy = planFeatures('mcp_ai_1n'), fa = planFeatures('agency');
-  assert.equal(f1.tro_ly, true); assert.equal(f1.tai_khoan, 1); assert.equal(f1.fanpage, 3); assert.equal(f1.bai_ngay, 2); assert.equal(f1.anh_ngay, 0);
-  assert.equal(capBrain('manh', f1), 'tiet_kiem', 'MCP 1 tháng chỉ Haiku');
-  assert.equal(capBrain('manh', f6), 'can_bang'); assert.equal(capBrain('tiet_kiem', f6), 'tiet_kiem'); assert.equal(capBrain('manh', fy), 'manh');
-  assert.equal(f6.tai_khoan, 5); assert.equal(f6.fanpage, 1000); assert.equal(f6.anh_ngay, 5); assert.equal(f6.video_ngay, 5);
-  assert.equal(fy.tai_khoan, 10); assert.equal(fy.fanpage, 2000); assert.equal(fy.video_dep, true);
-  assert.equal(fa.doanh_nghiep, 10); assert.equal(fa.kenh_moi_dn, 5);
-  assert.equal(planFeatures('khong_co').tro_ly, false, 'gói lạ / hết hạn = không có tính năng');
-  assert.ok(applyFeatures('CREWZY_TAO_ANH', {}, f1).error, 'MCP 1 tháng không có AI ảnh Crewzy');
-  assert.ok(applyFeatures('CREWZY_TAO_VIDEO', {}, f1).error, 'MCP 1 tháng không làm video');
+{ // Gói (23/11 16:47): Tháng 199k Haiku · 6 tháng 6×199k Sonnet + Fanpage 10k/tháng · 1 năm 12×199k Opus · Agency 5tr 5 thương hiệu + 100k/tháng/thương hiệu.
+  const { planFeatures, applyFeatures, capBrain, ownerUid, priceOf } = await import('../src/lib/billing.js');
+  const f1 = planFeatures('thang'), f6 = planFeatures('sau_thang'), fy = planFeatures('mot_nam'), fa = planFeatures('agency');
+  assert.equal(f1.tai_khoan, 1); assert.equal(f1.fanpage, 3); assert.equal(f1.bai_ngay, 2); assert.equal(f1.anh_thang, 30); assert.equal(f1.video_thang, 0);
+  assert.equal(capBrain('manh', f1), 'tiet_kiem'); assert.equal(capBrain('manh', f6), 'can_bang'); assert.equal(capBrain('manh', fy), 'manh');
+  assert.equal(f6.fanpage, 5); assert.equal(planFeatures('sau_thang+fp15').fanpage, 20); assert.equal(fy.fanpage, 10); assert.equal(fa.doanh_nghiep, 5);
+  assert.equal(planFeatures('agency+th3').doanh_nghiep, 8);
+  assert.equal(planFeatures('mcp_1t').fanpage, 3, 'mã gói cũ vẫn chạy');
+  assert.equal(priceOf(env, 'thang').amount, 199000);
+  assert.equal(priceOf(env, 'sau_thang').amount, 1194000);
+  assert.equal(priceOf(env, 'sau_thang+fp15').amount, 1194000 + 15 * 10000 * 6);
+  assert.equal(priceOf(env, 'mot_nam+fp10').amount, 2388000 + 10 * 10000 * 12);
+  assert.equal(priceOf(env, 'agency+th3').amount, 5300000);
+  assert.equal(priceOf(env, 'sau_thang+fp96'), null, 'vượt tối đa 100 Fanpage');
+  assert.equal(priceOf(env, 'thang+fp1'), null, 'gói Tháng không mua thêm Fanpage');
+  assert.equal(planFeatures('khong_co').tro_ly, false);
+  assert.ok(applyFeatures('CREWZY_TAO_VIDEO', {}, f1).error, 'gói Tháng không có video Crewzy');
   assert.equal(applyFeatures('CREWZY_TAO_VIDEO', { chat_luong: 'dep' }, f6).args.chat_luong, 'nhanh');
   assert.equal(applyFeatures('CREWZY_TAO_VIDEO', { chat_luong: 'dep' }, fy).args.chat_luong, 'dep');
-  assert.equal(ownerUid('khach-abc-12-b3'), 'khach-abc-12'); assert.equal(ownerUid('khach-abc-12'), 'khach-abc-12');
+  assert.equal(ownerUid('khach-abc-12-b3'), 'khach-abc-12');
 }
 assert.equal(toolPrice(env, 'm28b8_compose', {}), 1);
 assert.equal(toolPrice({ PRICES_JSON: '{"tool":2}' }, 'FACEBOOK_CREATE_POST', {}), 2, 'đổi giá bằng biến PRICES_JSON');
@@ -170,14 +175,14 @@ assert.equal(b.bat, true);
 assert.equal(b.thanh_toan_mo, true);
 assert.ok(b.so.length >= 3 && b.don.length === 1 && b.goi.length === 4);
 const env2 = { ...env, SEPAY_ACCOUNT: '' };
-const res2 = await billingRoute(new Request('https://crewzy.test/api/billing/order', { method: 'POST', headers: { 'content-type': 'application/json', cookie: await cookie('khach-test-03', 'c@example.com') }, body: JSON.stringify({ item: 'mcp_1t' }) }), env2);
+const res2 = await billingRoute(new Request('https://crewzy.test/api/billing/order', { method: 'POST', headers: { 'content-type': 'application/json', cookie: await cookie('khach-test-03', 'c@example.com') }, body: JSON.stringify({ item: 'thang' }) }), env2);
 assert.equal(res2.status, 503);
 // Chưa đăng nhập → 401.
 assert.equal((await call('/api/billing', { uid: null })).status, 401);
 
 // 10. Gia hạn cộng dồn: mua thêm khi còn hạn thì cộng tiếp 30 ngày từ ngày hết hạn cũ.
 const before = (await getAccount(env, UID)).plan_until;
-await grant(env, UID, 1500, 30, 'mua_goi', 'test', 'mcp_1t');
+await grant(env, UID, 1500, 30, 'mua_goi', 'test', 'thang');
 assert.equal((await getAccount(env, UID)).plan_until, before + 30 * 86400000);
 
 console.log('billingtest OK');

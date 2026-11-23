@@ -17,8 +17,13 @@
         (p.noi_bat ? '<span class="pill" style="align-self:flex-start">Nên chọn</span>' : '') +
         '<b style="font-size:17px">' + esc(p.ten) + '</b>' +
         '<div style="font-size:26px;font-weight:600;letter-spacing:-.02em">' + vnd(p.gia) + (p.ngay ? '<span class="muted" style="font-size:14px;font-weight:400"> / ' + (p.ngay >= 360 ? '1 năm' : p.ngay >= 30 && p.ngay % 30 === 0 ? (p.ngay / 30) + ' tháng' : p.ngay + ' ngày') + '</span>' : '') +
-        (p.ngay > 30 ? '<div class="muted" style="font-size:12px">≈ ' + vnd(Math.round(p.gia / (p.ngay / 30) / 1000) * 1000) + ' mỗi tháng</div>' : '') + '</div>' +
-        '<p class="muted" style="margin:0;font-size:13px">' + Number(p.credits).toLocaleString('vi-VN') + ' credit' + (p.mo_ta ? ' · ' + esc(p.mo_ta) : '') + '</p>' +
+        (p.ngay > 30 ? '<div class="muted" style="font-size:12px">≈ ' + vnd(Math.round(p.gia / (p.ngay >= 360 ? 12 : p.ngay / 30) / 1000) * 1000) + ' mỗi tháng</div>' : '') + '</div>' +
+        '<p class="muted" style="margin:0;font-size:13px">' + (p.mo_ta ? esc(p.mo_ta) : Number(p.credits).toLocaleString('vi-VN') + ' credit') + '</p>' +
+        // Content khách nhận mỗi tháng (23/11) + ô mua thêm Fanpage / thương hiệu (giá tự cộng).
+        (p.noi_dung && p.noi_dung.length ? '<div style="background:#F6F6F6;border-radius:10px;padding:10px 12px"><div class="label-mono" style="font-size:11px;margin-bottom:6px">Content mỗi tháng</div><ul style="margin:0;padding-left:16px;font-size:13px;line-height:1.5">' + p.noi_dung.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
+        (p.them ? '<label style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px">Thêm ' + esc(p.them.ten) + ' <small class="muted">(' + vnd(p.them.gia_thang) + '/tháng mỗi ' + esc(p.them.ten) + ')</small>' +
+          '<input type="number" min="0" max="' + p.them.toi_da + '" value="0" data-them="' + esc(p.id) + '" style="width:72px;font:inherit;padding:6px;border:1px solid #E2E2E2;border-radius:8px"></label>' +
+          '<div style="font-size:13px" data-them-tong="' + esc(p.id) + '"></div>' : '') +
         (p.loi_ich && p.loi_ich.length ? '<ul style="margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:13px;line-height:1.45">' +
           p.loi_ich.map(function (t) { return '<li style="display:flex;gap:8px"><span aria-hidden="true" style="flex:none;width:16px;height:16px;margin-top:2px;border-radius:50%;background:#D4FF4A;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0F0F0F">✓</span><span>' + esc(t) + '</span></li>'; }).join('') +
           '</ul>' +
@@ -27,7 +32,19 @@
           '<p class="muted" style="margin:0;font-size:11px">Số lượng ước tính, credit dùng chung cho mọi việc.</p>' : '') +
         '<button type="button" class="btn ' + (p.noi_bat ? 'btn-primary' : 'btn-ghost') + '" data-pick="' + esc(p.id) + '" style="margin-top:auto">' + (opts.topup ? 'Nạp' : 'Chọn gói') + '</button></div>';
     }).join('') + '</div>';
-    box.querySelectorAll('[data-pick]').forEach(function (b) { b.addEventListener('click', function () { onPick(b.getAttribute('data-pick')); }); });
+    box.querySelectorAll('[data-pick]').forEach(function (b) { b.addEventListener('click', function () {
+      var id = b.getAttribute('data-pick'), inp = box.querySelector('[data-them="' + id + '"]');
+      var p = list.filter(function (x) { return x.id === id; })[0], n = inp ? Math.max(0, Math.min(p.them.toi_da, parseInt(inp.value, 10) || 0)) : 0;
+      onPick(n ? id + '+' + p.them.loai + n : id);
+    }); });
+    box.querySelectorAll('[data-them]').forEach(function (inp) {
+      var id = inp.getAttribute('data-them'), p = list.filter(function (x) { return x.id === id; })[0], out = box.querySelector('[data-them-tong="' + id + '"]');
+      var upd = function () {
+        var n = Math.max(0, Math.min(p.them.toi_da, parseInt(inp.value, 10) || 0));
+        out.innerHTML = n ? 'Tổng: <b>' + (p.them.kem + n) + ' ' + esc(p.them.ten) + '</b> · <b>' + vnd(p.gia + n * p.them.gia_thang * p.them.thang) + '</b>' : 'Đã gồm ' + p.them.kem + ' ' + esc(p.them.ten) + '.';
+      };
+      inp.addEventListener('input', upd); upd();
+    });
   }
 
   var timer = null;

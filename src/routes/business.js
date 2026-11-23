@@ -29,12 +29,12 @@ export default async (req, env) => {
 
   if (body.action === 'tao') {
     if (max <= 1) return json({ error: upgradeHint('doanh_nghiep') }, 402);
-    if (data.items.length + 1 >= max) return json({ error: `Gói hiện tại tối đa ${max} doanh nghiệp.` }, 400);
+    if (data.items.length + 1 >= max) return json({ error: `Gói hiện tại có ${max} thương hiệu. Mua thêm thương hiệu (100.000đ/tháng/thương hiệu) ở trang Gói và credit.` }, 400);
     const ten = clean(body.ten);
     if (!ten) return json({ error: 'Nhập tên doanh nghiệp/thương hiệu.' }, 400);
     const used = new Set(data.items.map((b) => b.n));
-    let n = 1; while (used.has(n) && n <= 9) n++;
-    if (n > 9) return json({ error: 'Đã đủ số doanh nghiệp.' }, 400);
+    let n = 1; while (used.has(n) && n <= 40) n++;
+    if (n > 40) return json({ error: 'Đã đủ số doanh nghiệp.' }, 400);
     data.items.push({ n, ten, tao: new Date().toISOString() });
     await kvPutJson(env, key, data);
     // Tạo xong chuyển sang doanh nghiệp mới để điền Brain, nối kênh ngay.
