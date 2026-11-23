@@ -2,7 +2,7 @@
 // Link trỏ về cổng /mcp/<token> của app; cổng gắn khoá Composio ở máy chủ, khách không thấy khoá.
 // GET /api/mcp-link[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid, createSession } from '../lib/common.js';
+import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT_CAP, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid, createSession } from '../lib/common.js';
 import { addLink, deviceLabel } from '../lib/mcpLinks.js';
 
 export default async (req, env) => {
@@ -20,7 +20,7 @@ export default async (req, env) => {
     const session = await createSession(composio, userIdFor(uid), {
       mcp: true,
       toolkits: TOOLKITS,
-      multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT_CAP },
       // Instant (Composio trả bằng ví của Giang) tắt cho link nối AI: cổng MCP không đo được tiền từng lần gọi để trừ credit khách.
       instant: false,
     });

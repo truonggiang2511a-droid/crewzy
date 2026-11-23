@@ -111,8 +111,8 @@ export const VIDEO_TOOL = {
     },
   },
 };
-const VIDEO_USER_DAILY = 3;   // video/ngày mỗi khách
-const VIDEO_APP_DAILY = 30;   // video/ngày cả app (chặn tiền chạy quá tay)
+const VIDEO_USER_DAILY = 10;  // trần kỹ thuật mỗi khách/ngày (hạn mức thật theo gói ở quota.js: 5 hoặc 10)
+const VIDEO_APP_DAILY_DEFAULT = 300; // trần cả app/ngày chặn tiền chạy quá tay (đổi bằng biến VIDEO_APP_DAILY)
 
 const pickUrl = (out, key) => {
   const r = (out && out.result) || out || {};
@@ -173,7 +173,7 @@ export async function createVideo(env, uid, origin, args) {
   const aKey = `vidcount:${day}:all`;
   const [u, a] = await Promise.all([env.KV.get(uKey), env.KV.get(aKey)]);
   if (Number(u || 0) >= VIDEO_USER_DAILY) return { error: `Hôm nay đã làm đủ ${VIDEO_USER_DAILY} video, quay lại ngày mai.` };
-  if (Number(a || 0) >= VIDEO_APP_DAILY) return { error: 'Hôm nay app đã hết lượt làm video, quay lại ngày mai.' };
+  if (Number(a || 0) >= (Number(env.VIDEO_APP_DAILY) || VIDEO_APP_DAILY_DEFAULT)) return { error: 'Hôm nay app đã hết lượt làm video, quay lại ngày mai.' };
   const { url, model } = await runVideoModel(env, { prompt, kho, giay, anh, dep, mau });
   const ttl = { expirationTtl: 2 * 86400 };
   await Promise.all([env.KV.put(uKey, String(Number(u || 0) + 1), ttl), env.KV.put(aKey, String(Number(a || 0) + 1), ttl)]);

@@ -195,9 +195,43 @@
     }).catch(function () {});
   }
 
+  // AGENCY (23/11): chọn doanh nghiệp/thương hiệu đang làm (gói Agency tối đa 10). Đổi xong tải lại trang: mọi dữ liệu theo doanh nghiệp đó.
+  function loadBiz() {
+    if (/dang-nhap/.test(location.pathname)) return;
+    var e = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+    fetch('/api/doanh-nghiep', { cache: 'no-store', credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || (d.toi_da <= 1 && !d.items.length)) return;
+      var opts = [{ n: 0, ten: d.chinh }].concat(d.items);
+      var cur = opts.filter(function (o) { return o.n === d.dang_chon; })[0] || opts[0];
+      document.querySelectorAll('[data-brand-sub],[data-brand-sub-m]').forEach(function (el) { el.textContent = cur.ten; });
+      var html = '<label class="biz-switch"><span class="label-mono">Doanh nghiệp · ' + opts.length + '/' + d.toi_da + '</span><select data-biz aria-label="Chọn doanh nghiệp">' +
+        opts.map(function (o) { return '<option value="' + o.n + '"' + (o.n === cur.n ? ' selected' : '') + '>' + e(o.ten) + '</option>'; }).join('') +
+        (opts.length < d.toi_da ? '<option value="new">+ Tạo doanh nghiệp mới…</option>' : '') + '</select></label>';
+      var brand = document.querySelector('nav[data-sidebar] .sb-brand');
+      if (brand && !document.querySelector('nav[data-sidebar] .biz-switch')) brand.insertAdjacentHTML('afterend', html);
+      var head = document.querySelector('.msheet-card .msheet-head');
+      if (head && !document.querySelector('.msheet-card .biz-switch')) head.insertAdjacentHTML('afterend', html);
+      document.querySelectorAll('select[data-biz]').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+          var v = sel.value, body;
+          if (v === 'new') {
+            var ten = window.prompt('Tên doanh nghiệp / thương hiệu mới');
+            if (!ten) { sel.value = String(cur.n); return; }
+            body = { action: 'tao', ten: ten };
+          } else body = { action: 'chon', n: Number(v) };
+          fetch('/api/doanh-nghiep', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function (r) { return r.json(); }).then(function (j) {
+              if (j.error) { window.alert(j.error); sel.value = String(cur.n); return; }
+              location.href = body.action === 'tao' ? 'thuong-hieu.html' : location.href;
+            }).catch(function () { sel.value = String(cur.n); });
+        });
+      });
+    }).catch(function () {});
+  }
+
   function init() {
     var nav = document.querySelector('nav[data-sidebar]');
-    if (nav) { render(nav); loadBadge(); loadPlan(); }
+    if (nav) { render(nav); loadBadge(); loadPlan(); loadBiz(); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

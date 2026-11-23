@@ -1,7 +1,8 @@
 // Tạo link đăng nhập Composio cho một công cụ (mỗi lần bấm thêm 1 tài khoản, tối đa 5 tài khoản/công cụ).
 // GET /api/connect?toolkit=<slug>[&uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { isAdminEmail } from '../lib/billing.js';
+import { isAdminEmail, getFeatures, SOCIAL_APPS } from '../lib/billing.js';
+import { connectedApps } from '../lib/connected.js';
 import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
 
 export default async (req, env) => {
@@ -25,12 +26,20 @@ export default async (req, env) => {
     const composio = new Composio({ apiKey });
     const userId = userIdFor(uid);
     const existing = await composio.connectedAccounts.list({ userIds: [userId], toolkitSlugs: [toolkit], statuses: ['ACTIVE'] });
-    if ((existing.items || []).length >= MAX_ACCOUNTS_PER_TOOLKIT) {
-      return Response.json({ error: `Đã đủ ${MAX_ACCOUNTS_PER_TOOLKIT} tài khoản cho công cụ này.` }, { status: 400 });
+    // Theo gói (23/11): số tài khoản mỗi nền tảng (1 / 5 / 10); Agency: mỗi doanh nghiệp tối đa kenh_moi_dn kênh mạng xã hội.
+    const feat = probe ? null : await getFeatures(env, uid, who.session && who.session.email).catch(() => null);
+    const maxAcc = feat && feat.tai_khoan ? feat.tai_khoan : MAX_ACCOUNTS_PER_TOOLKIT;
+    if ((existing.items || []).length >= maxAcc) {
+      return Response.json({ error: `Gói hiện tại cho tối đa ${maxAcc} tài khoản mỗi nền tảng. Nâng gói ở trang Gói và credit để nối thêm.` }, { status: 400 });
+    }
+    if (feat && feat.kenh_moi_dn && SOCIAL_APPS.includes(toolkit)) {
+      const have = await connectedApps(env, uid).catch(() => ({}));
+      const kenh = Object.entries(have || {}).filter(([k, n]) => SOCIAL_APPS.includes(k) && n > 0).reduce((t, [, n]) => t + n, 0);
+      if (kenh >= feat.kenh_moi_dn) return Response.json({ error: `Mỗi doanh nghiệp tối đa ${feat.kenh_moi_dn} kênh mạng xã hội. Gỡ bớt kênh hoặc tạo doanh nghiệp khác.` }, { status: 400 });
     }
     const session = await composio.create(userId, {
       toolkits: [toolkit],
-      multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      multiAccount: { enable: true, maxAccountsPerToolkit: Math.max(MAX_ACCOUNTS_PER_TOOLKIT, maxAcc) },
     });
     const request = await session.authorize(toolkit, {
       callbackUrl: url.searchParams.get('back') === 'bat-dau' ? `${url.origin}/bat-dau.html?ket_noi=${toolkit}` : url.searchParams.get('back') === 'chat' ? `${url.origin}/chat.html?ket_noi=${toolkit}` : `${url.origin}/ket-noi.html?ket_noi=${toolkit}`,

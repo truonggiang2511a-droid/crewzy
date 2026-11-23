@@ -22,6 +22,7 @@ import workflows from './routes/workflows.js';
 import billing from './routes/billing.js';
 import results from './routes/results.js';
 import kho from './routes/kho.js';
+import business from './routes/business.js';
 import voice from './routes/voice.js';
 import { runAgent, takeAppQuota } from './routes/chat.js';
 import { runDueSchedules } from './lib/schedules.js';
@@ -29,14 +30,14 @@ import { submitResult } from './lib/jobs.js';
 import { serveImage } from './lib/crewzyTools.js';
 import { serveMedia } from './lib/media.js';
 import { markWorking } from './lib/jobs.js';
-import { gate, makeMeter, prices, plans } from './lib/billing.js';
+import { gate, makeMeter, prices, plans, getFeatures } from './lib/billing.js';
 import { runWeeklyReports } from './lib/activity.js';
 import { listJobs } from './lib/jobs.js';
 
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice, '/api/doanh-nghiep': business,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 
@@ -84,7 +85,9 @@ export default {
       await markWorking(env, uid, job.id, 'Trợ lý Crewzy (hẹn giờ)').catch(() => {});
       const texts = [];
       // Tự trả lời bình luận chạy mỗi giờ → Haiku cho rẻ; lịch làm nội dung/báo cáo → Opus (mặc định).
-      const brain = /TỰ TRẢ LỜI ĐÃ BẬT|ĐĂNG THEO GIỜ HẸN/.test(prompt) ? 'tiet_kiem' : 'can_bang'; // lịch nội dung/báo cáo chạy Sonnet (khớp số lượng trong mô tả gói)
+      // Bộ não theo gói (23/11): MCP 1 tháng Haiku, 6 tháng Sonnet, 1 năm/Agency Opus cho mọi việc; riêng đăng bài hẹn giờ (máy móc) luôn Haiku cho rẻ.
+      const featB = await getFeatures(env, uid).catch(() => null);
+      const brain = /ĐĂNG THEO GIỜ HẸN/.test(prompt) ? 'tiet_kiem' : (featB && featB.ai) || 'can_bang';
       await runAgent({ env, uid, origin, mode: 'app', brain, messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };

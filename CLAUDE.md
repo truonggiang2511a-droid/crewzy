@@ -200,6 +200,14 @@ Quy trình san_xuat_5x5    Nhiệm vụ Sản xuất 06:30: 5 ảnh nhiều kh�
 Chat (23/11)              imageShortcut: Kho có ảnh thật → CREWZY_TAO_ANH trả ảnh thật (không vẽ ảnh giả, không trừ credit), khach_yeu_cau_ai mới cho vẽ;
                           nút Dừng (AbortController ↔ ReadableStream.cancel → stop.stopped); sự kiện memo (memoLine) cất vào lịch sử để "tiếp tục" không làm lại;
                           safeTopSchema gộp oneOf/anyOf/allOf tầng ngoài của mọi công cụ (Claude từ chối cả lượt nếu có). Test: scripts/realphototest.mjs
+Gói (23/11, billing.js)   4 gói: mcp_1t 199k/30 ngày (Haiku, 1 tài khoản/nền tảng, 3 Fanpage, 2 bài/ngày/nền tảng, KHÔNG AI ảnh/video Crewzy) · mcp_ai_6t 5,99tr/180 ngày
+                          (Sonnet, 5 tài khoản, 1.000 Fanpage = 5×200, 5 ảnh + 5 video/ngày, 10 bài/ngày/trang) · mcp_ai_1n 14,99tr/365 ngày (Opus, 10 tài khoản, 2.000 Fanpage,
+                          10+10/ngày, video Đẹp) · agency 4,99tr/30 ngày (Opus, 10 doanh nghiệp × 5 kênh, 5+5/ngày mỗi DN). Gói cũ map sang gói mới. capBrain hạ bộ não theo gói;
+                          src/lib/quota.js: postQuota (bài/ngày/nền tảng, KV post:<ngày>:<uid>:<toolkit>), mediaQuota (ảnh/video Crewzy/ngày), planNote (hạn mức + đăng nhiều
+                          Fanpage lệch 2 phút + spin) vào system chat và instructions MCP. connect.js: tai_khoan/nền tảng, Agency kenh_moi_dn kênh/DN. Test: agencytest, billingtest
+Agency (23/11)            Doanh nghiệp con = mã khách "<chủ>-b<n>" (cookie cz_biz, KV biz:<chủ>, /api/doanh-nghiep tao|chon|doi_ten, src/routes/business.js); resolveUid trả
+                          {uid, owner, biz}; billing.js ownerUid() trong getAccount/charge/grant… → tiền/gói theo chủ; trang Gói dùng owner, 4 bước theo DN. layout.js: ô chọn DN
+MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ làm ảnh/video (forMcp viết lại "AI LÀM ẢNH/VIDEO" của san_xuat_5x5; instructions cổng MCP), Crewzy chỉ lưu + đăng
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 

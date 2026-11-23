@@ -111,7 +111,8 @@ export default async (req, env, ctx) => {
 
   const who = await resolveUid(req, env, url.searchParams.get('uid'));
   if (who.response) return who.response;
-  const uid = who.uid;
+  // Agency: trang Gói, đơn, sổ credit luôn của chủ; 4 bước bắt đầu (Brain, kênh, AI) theo doanh nghiệp đang chọn.
+  const uid = path.startsWith('/api/onboarding') ? who.uid : (who.owner || who.uid);
   const email = (who.session && who.session.email) || '';
   const admin = isAdminEmail(env, email);
 

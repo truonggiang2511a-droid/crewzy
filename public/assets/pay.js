@@ -16,7 +16,8 @@
       return '<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px;' + (p.noi_bat ? 'border:2px solid var(--text)' : '') + '">' +
         (p.noi_bat ? '<span class="pill" style="align-self:flex-start">Nên chọn</span>' : '') +
         '<b style="font-size:17px">' + esc(p.ten) + '</b>' +
-        '<div style="font-size:26px;font-weight:600;letter-spacing:-.02em">' + vnd(p.gia) + (p.ngay ? '<span class="muted" style="font-size:14px;font-weight:400"> / ' + p.ngay + ' ngày</span>' : '') + '</div>' +
+        '<div style="font-size:26px;font-weight:600;letter-spacing:-.02em">' + vnd(p.gia) + (p.ngay ? '<span class="muted" style="font-size:14px;font-weight:400"> / ' + (p.ngay >= 360 ? '1 năm' : p.ngay >= 30 && p.ngay % 30 === 0 ? (p.ngay / 30) + ' tháng' : p.ngay + ' ngày') + '</span>' : '') +
+        (p.ngay > 30 ? '<div class="muted" style="font-size:12px">≈ ' + vnd(Math.round(p.gia / (p.ngay / 30) / 1000) * 1000) + ' mỗi tháng</div>' : '') + '</div>' +
         '<p class="muted" style="margin:0;font-size:13px">' + Number(p.credits).toLocaleString('vi-VN') + ' credit' + (p.mo_ta ? ' · ' + esc(p.mo_ta) : '') + '</p>' +
         (p.loi_ich && p.loi_ich.length ? '<ul style="margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:13px;line-height:1.45">' +
           p.loi_ich.map(function (t) { return '<li style="display:flex;gap:8px"><span aria-hidden="true" style="flex:none;width:16px;height:16px;margin-top:2px;border-radius:50%;background:#D4FF4A;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0F0F0F">✓</span><span>' + esc(t) + '</span></li>'; }).join('') +

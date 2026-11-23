@@ -11,31 +11,54 @@ import { listServers } from './mcpServers.js';
 
 const DAY = 86400 * 1000;
 
-// GÓI = TÍNH NĂNG + CREDIT. Gói cao mở thêm tính năng (kiểm tra ở máy chủ bằng planFeatures/getFeatures), không chỉ thêm credit,
-// để gói rẻ MCP For You không thay được gói trên: gói này không có Trợ lý Crewzy trong app, không tự chạy khi vắng, không ảnh/video đẹp.
-// Mọi gói nối không giới hạn kênh (176 app). Số lượng ước tính theo giá credit thật (bộ não Cân bằng = Sonnet 5.5, có cache):
-//   1 bài có ảnh đăng mọi kênh ≈ 55 credit trong Trợ lý Crewzy (≈ 10 khi dùng AI của khách qua link) · 1 trả lời bình luận ≈ 6 (≈ 2 qua link)
-//   1 ảnh Đẹp (Seedream 4.5, 0,04 USD) = 25 · 1 video Nhanh 6 giây (LTX, 0,03 USD/giây) = 6×17 · 1 video Đẹp 5 giây (Seedance 2.0 Fast, 0,12 USD/giây) = 5×65
-//   Cơ bản 3.000 ≈ 30×55 + 150×6 + 4×100 · Tăng trưởng 8.000 ≈ 70×55 + 400×6 + 20 ảnh đẹp + 5 video nhanh
-//   Doanh nghiệp 20.000 ≈ 150×55 + 1.000×6 + 60 ảnh đẹp + 10 video nhanh + 4 video đẹp. Đổi credit gói thì sửa lại các số này.
+// GÓI = TÍNH NĂNG + CREDIT (23/11/2026 Giang chốt lại 4 gói). Tính năng kiểm tra ở máy chủ (getFeatures), credit trả chi phí AI/ảnh/video.
+//  ai          bộ não cao nhất được dùng: tiet_kiem = Haiku 5.5, can_bang = Sonnet 5.5, manh = Opus 5.5 (Trợ lý Crewzy + tự chạy)
+//  tai_khoan   số tài khoản tối đa MỖI nền tảng (Facebook, Instagram, TikTok…)
+//  fanpage     số Fanpage tối đa: 1 trang cá nhân Facebook tạo/quản lý tối đa 200 Fanpage (giới hạn Meta công bố) → gói lớn = tai_khoan × 200
+//  bai_ngay    số bài tối đa mỗi ngày trên MỖI tài khoản/Fanpage của một nền tảng
+//  anh_ngay, video_ngay  số ảnh / video ngắn AI của Crewzy làm mỗi ngày (0 = không có AI ảnh/video của Crewzy, AI của khách tự làm)
+//  doanh_nghiep, kenh_moi_dn  Agency: số doanh nghiệp/thương hiệu tạo được, số kênh mạng xã hội tối đa mỗi doanh nghiệp
+//  Chi phí thật để định giá: video Nhanh 6 giây ≈ 0,18 USD ≈ 4.700đ (102 credit), ảnh Đẹp ≈ 1.000đ (25 credit), 1 bài Sonnet có ảnh ≈ 55 credit.
+//  Credit kèm gói đủ khoảng 60% hạn mức ảnh/video tối đa mỗi ngày; dùng hết hạn mức thì nạp thêm credit (giá credit luôn có lãi ×2).
+export const FB_PAGES_PER_PROFILE = 200;
+// Kênh mạng xã hội (đếm cho Agency: mỗi doanh nghiệp tối đa kenh_moi_dn tài khoản kênh).
+export const SOCIAL_APPS = ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'reddit', 'twitter', 'upload_post'];
 export const PLAN_FEATURES = {
-  mcp_for_you:  { tro_ly: false, opus: false, anh_dep: false, video: false, video_dep: false, lich: 0,  tu_tra_loi: false, kho_gb: 1,  mcp_ngoai: 3 },
-  co_ban:       { tro_ly: true,  opus: false, anh_dep: false, video: false, video_dep: false, lich: 3,  tu_tra_loi: false, kho_gb: 3,  mcp_ngoai: 3 },
-  tang_truong:  { tro_ly: true,  opus: true,  anh_dep: true,  video: true,  video_dep: false, lich: 10, tu_tra_loi: true,  kho_gb: 10, mcp_ngoai: 10 },
-  doanh_nghiep: { tro_ly: true,  opus: true,  anh_dep: true,  video: true,  video_dep: true,  lich: 10, tu_tra_loi: true,  kho_gb: 50, mcp_ngoai: 10 },
+  mcp_1t:    { tro_ly: true, ai: 'tiet_kiem', opus: false, anh_dep: false, video: false, video_dep: false, lich: 3,  tu_tra_loi: true, kho_gb: 2,   mcp_ngoai: 3,
+               tai_khoan: 1,  fanpage: 3,    bai_ngay: 2,  anh_ngay: 0,  video_ngay: 0,  doanh_nghiep: 1,  kenh_moi_dn: 0 },
+  mcp_ai_6t: { tro_ly: true, ai: 'can_bang',  opus: false, anh_dep: true,  video: true,  video_dep: false, lich: 10, tu_tra_loi: true, kho_gb: 20,  mcp_ngoai: 10,
+               tai_khoan: 5,  fanpage: 5 * FB_PAGES_PER_PROFILE,  bai_ngay: 10, anh_ngay: 5,  video_ngay: 5,  doanh_nghiep: 1,  kenh_moi_dn: 0 },
+  mcp_ai_1n: { tro_ly: true, ai: 'manh',      opus: true,  anh_dep: true,  video: true,  video_dep: true,  lich: 20, tu_tra_loi: true, kho_gb: 50,  mcp_ngoai: 10,
+               tai_khoan: 10, fanpage: 10 * FB_PAGES_PER_PROFILE, bai_ngay: 20, anh_ngay: 10, video_ngay: 10, doanh_nghiep: 1,  kenh_moi_dn: 0 },
+  agency:    { tro_ly: true, ai: 'manh',      opus: true,  anh_dep: true,  video: true,  video_dep: true,  lich: 10, tu_tra_loi: true, kho_gb: 100, mcp_ngoai: 10,
+               tai_khoan: 5,  fanpage: 5 * FB_PAGES_PER_PROFILE,  bai_ngay: 10, anh_ngay: 5,  video_ngay: 5,  doanh_nghiep: 10, kenh_moi_dn: 5 },
 };
-PLAN_FEATURES.dung_thu = { ...PLAN_FEATURES.tang_truong, kho_gb: 1 }; // dùng thử = trải nghiệm gói Tăng trưởng
-const ALL_FEATURES = { ...PLAN_FEATURES.doanh_nghiep };
-const NO_FEATURES = { ...PLAN_FEATURES.mcp_for_you, kho_gb: 0.2 };
+// Gói cũ (trước 23/11) vẫn chạy cho khách đã mua tới hết hạn.
+PLAN_FEATURES.mcp_for_you = { ...PLAN_FEATURES.mcp_1t };
+PLAN_FEATURES.co_ban = { ...PLAN_FEATURES.mcp_1t };
+PLAN_FEATURES.tang_truong = { ...PLAN_FEATURES.mcp_ai_6t };
+PLAN_FEATURES.doanh_nghiep = { ...PLAN_FEATURES.mcp_ai_1n };
+PLAN_FEATURES.dung_thu = { ...PLAN_FEATURES.mcp_ai_6t, tai_khoan: 1, fanpage: 3, anh_ngay: 2, video_ngay: 1, kho_gb: 1 }; // dùng thử = nếm gói 6 tháng
+const ALL_FEATURES = { ...PLAN_FEATURES.mcp_ai_1n, doanh_nghiep: 10, kenh_moi_dn: 0 };
+const NO_FEATURES = { ...PLAN_FEATURES.mcp_1t, tro_ly: false, kho_gb: 0.2, bai_ngay: 0 };
+const PLAN_ORDER = ['mcp_1t', 'mcp_ai_6t', 'mcp_ai_1n', 'agency'];
 // Tên gói thấp nhất có tính năng (để báo khách nâng gói).
-const FEATURE_NAMES = { tro_ly: 'Trợ lý Crewzy trong app', opus: 'bộ não Mạnh nhất (Opus)', anh_dep: 'ảnh Đẹp', video: 'làm video', video_dep: 'video Đẹp', tu_tra_loi: 'tự trả lời bình luận', lich: 'hẹn giờ tự chạy' };
+const FEATURE_NAMES = { tro_ly: 'Trợ lý Crewzy trong app', opus: 'bộ não Mạnh nhất (Opus)', anh_dep: 'AI làm ảnh của Crewzy', video: 'AI làm video của Crewzy', video_dep: 'video Đẹp', tu_tra_loi: 'tự trả lời bình luận', lich: 'hẹn giờ tự chạy', doanh_nghiep: 'nhiều doanh nghiệp/thương hiệu' };
 export function upgradeHint(feature) {
-  const order = ['mcp_for_you', 'co_ban', 'tang_truong', 'doanh_nghiep'];
-  const id = order.find((p) => PLAN_FEATURES[p][feature]);
+  const id = PLAN_ORDER.find((p) => { const v = PLAN_FEATURES[p][feature]; return feature === 'doanh_nghiep' ? v > 1 : !!v; });
   const p = DEFAULT_PLANS.find((x) => x.id === id);
   return `${FEATURE_NAMES[feature] || feature} có từ gói ${p ? p.ten : 'cao hơn'}. Vào Gói và credit để nâng gói.`;
 }
 export function planFeatures(planId) { return PLAN_FEATURES[planId] || NO_FEATURES; }
+// Bộ não theo gói: khách chọn cao hơn gói cho phép thì hạ xuống mức của gói.
+const BRAIN_RANK = { tiet_kiem: 0, can_bang: 1, manh: 2 };
+export function capBrain(brain, feat) {
+  const want = BRAIN_RANK[brain] != null ? brain : 'manh';
+  const cap = feat && feat.ai ? feat.ai : 'manh';
+  return BRAIN_RANK[want] > BRAIN_RANK[cap] ? cap : want;
+}
+// Agency: dữ liệu mỗi doanh nghiệp nằm ở mã khách con "<chủ>-b<n>"; gói, credit, tài khoản luôn tính theo chủ.
+export const ownerUid = (uid) => String(uid || '').replace(/-b\d{1,2}$/, '');
 // Tính năng của khách: tắt billing hoặc admin → mở hết; gói hết hạn → như chưa có gói.
 export async function getFeatures(env, uid, email) {
   if (!billingOn(env) || !uid) return ALL_FEATURES;
@@ -49,6 +72,7 @@ export async function getFeatures(env, uid, email) {
 export function applyFeatures(name, args, feat) {
   const a = { ...(args || {}) };
   if (!feat) return { args: a };
+  if (name === 'CREWZY_TAO_ANH' && !feat.anh_ngay) return { args: a, error: 'Gói hiện tại không có AI làm ảnh của Crewzy: dùng thẳng ảnh thật trong Kho, hoặc AI của khách (Claude, ChatGPT…) tự tạo ảnh rồi tải lên bằng CREWZY_TAI_LEN. ' + upgradeHint('anh_dep') };
   if (name === 'CREWZY_TAO_ANH' && a.chat_luong === 'dep' && !feat.anh_dep) return { args: { ...a, chat_luong: 'nhanh' }, note: 'Đã làm ảnh Nhanh vì ' + upgradeHint('anh_dep') };
   if (name === 'CREWZY_TAO_VIDEO') {
     if (!feat.video) return { args: a, error: upgradeHint('video') };
@@ -57,19 +81,29 @@ export function applyFeatures(name, args, feat) {
   return { args: a };
 }
 
-const ALL_CHANNELS = 'Nối không giới hạn kênh: Facebook, Instagram, YouTube, LinkedIn, Pinterest, Telegram, WhatsApp, Gmail… (176 app)';
+const MCP_LINK = '1 link nối Claude, ChatGPT, Gemini, Grok, Claude Code, Codex (Claude cài 1 bấm): AI của bạn tự làm nội dung, ảnh, video';
 export const DEFAULT_PLANS = [
-  { id: 'mcp_for_you', ten: 'MCP For You', gia: 149000, credits: 2000, ngay: 30, mo_ta: 'Đã có Claude, ChatGPT, Gemini hay Grok? Nối Crewzy vào AI của bạn, AI của bạn làm việc thật trên mọi kênh.',
-    loi_ich: [ALL_CHANNELS, '1 link nối Claude, ChatGPT, Gemini, Grok, Claude Code, Codex, Cursor (Claude và Cursor cài 1 bấm)', 'Tới 100 bài kèm ảnh/tháng khi AI của bạn làm (6 kênh = 600 lượt đăng)', 'Brain thương hiệu, 23 quy trình, 28 lệnh nhanh tự nạp vào AI của bạn', 'Kho lưu trữ 1GB, kết quả nộp về Crewzy để duyệt'],
-    khong: ['Trợ lý Crewzy trong app (chat, giọng nói)', 'Tự chạy khi bạn vắng mặt', 'Ảnh Đẹp, video AI'] },
-  { id: 'co_ban', ten: 'Cơ bản', gia: 299000, credits: 3000, ngay: 30, mo_ta: 'Cửa hàng, cá nhân kinh doanh: có sẵn Trợ lý AI trong Crewzy, không cần tài khoản AI riêng.',
-    loi_ich: [ALL_CHANNELS, 'Trợ lý Crewzy trong app: chat, ra lệnh bằng giọng nói, gửi ảnh/video cho AI xem', 'Khoảng 30 bài kèm ảnh/tháng, mỗi bài đăng cùng lúc mọi kênh (6 kênh = 180 lượt đăng)', '150 bình luận, tin nhắn được AI trả lời', 'Hẹn giờ 3 quy trình tự chạy khi bạn vắng', 'AI đọc website, lấy ảnh làm content · Kho lưu trữ 3GB', 'Bao gồm mọi thứ của MCP For You'],
-    khong: ['Bộ não Mạnh nhất (Opus)', 'Ảnh Đẹp, video AI', 'Tự trả lời bình luận mỗi giờ'] },
-  { id: 'tang_truong', ten: 'Tăng trưởng', gia: 699000, credits: 8000, ngay: 30, mo_ta: 'Doanh nghiệp nhỏ muốn có mặt hằng ngày trên mọi kênh, có ảnh và video đẹp.', noi_bat: true,
-    loi_ich: ['Mọi thứ của gói Cơ bản', 'Bộ não Mạnh nhất Claude Opus 5.5', 'Khoảng 70 bài/tháng (gần 3 bài/ngày) · 6 kênh = 420 lượt đăng', 'Ảnh Đẹp (Seedream 4.5) theo ảnh sản phẩm thật của bạn · 20 ảnh/tháng', 'Video AI ngắn cho Reels, TikTok, Shorts · 5 video/tháng', 'Tự trả lời bình luận mỗi giờ · 400 bình luận/tháng', 'Hẹn giờ 10 quy trình · Kho lưu trữ 10GB · Credit rẻ hơn 13%'],
-    khong: ['Video Đẹp (Seedance)'] },
-  { id: 'doanh_nghiep', ten: 'Doanh nghiệp', gia: 1490000, credits: 20000, ngay: 30, mo_ta: 'Cả đội nhân viên AI: nhiều phòng ban chạy cùng lúc, video đẹp như quay thật.',
-    loi_ich: ['Mọi thứ của gói Tăng trưởng', 'Video Đẹp (Seedance 2.0) dựng từ ảnh thật của bạn · 4 video/tháng + 10 video nhanh', 'Khoảng 150 bài/tháng (5 bài/ngày) · 6 kênh = 900 lượt đăng', '60 ảnh Đẹp/tháng · 1.000 bình luận được trả lời', 'Soi đối thủ, tìm khách doanh nghiệp, báo giá, chăm khách vào CRM', 'Kho lưu trữ 50GB · Credit rẻ hơn 25%'] },
+  { id: 'mcp_1t', ten: 'MCP For You · 1 tháng', gia: 199000, credits: 1500, ngay: 30,
+    mo_ta: 'Đã có Claude hoặc ChatGPT? Nối Crewzy vào AI của bạn: AI của bạn làm nội dung, Crewzy đăng bài, trả lời khách, báo cáo.',
+    loi_ich: [MCP_LINK, 'Mỗi nền tảng 1 tài khoản (Facebook, Instagram, TikTok, YouTube, LinkedIn, Pinterest…)', '1 trang cá nhân Facebook → tối đa 3 Fanpage',
+      'Tối đa 2 bài (ảnh hoặc video) mỗi ngày trên mỗi nền tảng / mỗi Fanpage', 'Trợ lý Crewzy chạy Claude Haiku: trả lời bình luận, tin nhắn, chatbot, đăng bài', 'Brain thương hiệu, quy trình chuẩn, Việc chờ duyệt, Kho 2GB'],
+    khong: ['AI làm ảnh, video của Crewzy (AI của bạn tự làm)', 'Bộ não Sonnet, Opus'] },
+  { id: 'mcp_ai_6t', ten: 'MCP + AI Crewzy · 6 tháng', gia: 5990000, credits: 60000, ngay: 180, noi_bat: true,
+    mo_ta: 'Đội marketing AI chạy cả ngày: AI của bạn + AI ảnh, video ngắn của Crewzy, đăng hàng loạt nhiều Fanpage.',
+    loi_ich: ['Mọi thứ của MCP For You', 'Mỗi nền tảng 5 tài khoản · 5 trang cá nhân Facebook → tối đa 1.000 Fanpage (200 Fanpage/trang cá nhân)',
+      'Mỗi ngày 5 ảnh + 5 video ngắn AI của Crewzy, đăng đa nền tảng (tối đa 10 bài/ngày mỗi tài khoản, mỗi Fanpage)',
+      'Nhiều Fanpage: tự hẹn giờ lệch 2 phút mỗi trang, đảo ảnh và viết lại bài từng trang để không bị đánh dấu spam', 'Mọi việc chạy Claude Sonnet 5.5 · hẹn giờ 10 quy trình · Kho 20GB',
+      '60.000 credit (≈ 10.000/tháng): đủ khoảng 3 video + 5 ảnh mỗi ngày, cần nhiều hơn thì nạp thêm'],
+    khong: ['Bộ não Opus', 'Video Đẹp (như quay thật)'] },
+  { id: 'mcp_ai_1n', ten: 'MCP + AI Crewzy · 1 năm', gia: 14990000, credits: 180000, ngay: 365,
+    mo_ta: 'Cho doanh nghiệp chạy nhiều kênh, nhiều Fanpage cả năm với bộ não mạnh nhất.',
+    loi_ich: ['Mọi thứ của gói 6 tháng', 'Mỗi nền tảng 10 tài khoản · 10 trang cá nhân Facebook → tối đa 2.000 Fanpage',
+      'Mỗi ngày 10 ảnh + 10 video ngắn AI của Crewzy, có video Đẹp (tối đa 20 bài/ngày mỗi tài khoản, mỗi Fanpage)', 'Mọi việc chạy Claude Opus 5.5 · hẹn giờ 20 quy trình · Kho 50GB',
+      '180.000 credit (≈ 15.000/tháng), giá mỗi credit rẻ hơn gói 6 tháng khoảng 17%'] },
+  { id: 'agency', ten: 'Agency · 10 doanh nghiệp', gia: 4990000, credits: 40000, ngay: 30,
+    mo_ta: 'Cho agency, người làm dịch vụ marketing: quản lý tới 10 doanh nghiệp/thương hiệu riêng, mỗi nơi Brain, Kho, kênh và báo cáo riêng.',
+    loi_ich: ['Tạo tối đa 10 doanh nghiệp/thương hiệu, chuyển qua lại 1 chạm', 'Mỗi doanh nghiệp tối đa 5 kênh mạng xã hội, Brain, Kho, Việc chờ duyệt, báo cáo riêng',
+      'Mỗi doanh nghiệp mỗi ngày 5 ảnh + 5 video ngắn AI của Crewzy', 'Mọi việc chạy Claude Opus 5.5, có video Đẹp · Kho 100GB', '40.000 credit mỗi tháng dùng chung cho các doanh nghiệp'] },
 ];
 export const DEFAULT_TOPUPS = [
   { id: 'nap_1000', ten: '1.000 credit', gia: 120000, credits: 1000 },
@@ -105,6 +139,7 @@ export const plans = (env) => parseJson(env.PLANS_JSON, DEFAULT_PLANS);
 export const DEFAULT_TRIAL = { ngay: 7, credits: 300 };
 export const trialConfig = (env) => (String(env.TRIAL || '').toLowerCase() === 'off' ? null : { ...DEFAULT_TRIAL, ...parseJson(env.TRIAL_JSON, {}) });
 export async function trialAvailable(env, uid) {
+  uid = ownerUid(uid);
   const t = trialConfig(env);
   if (!t || !env.DB || !uid) return false;
   const row = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM ledger WHERE uid = ?1 AND reason = 'dung_thu') + (SELECT COUNT(*) FROM orders WHERE uid = ?1 AND status = 'paid') AS n").bind(uid).first();
@@ -112,6 +147,7 @@ export async function trialAvailable(env, uid) {
 }
 // Nguyên tử: ghi sổ chỉ khi chưa từng dùng thử/mua gói, rồi mới cộng credit + hạn (bấm 2 lần cũng chỉ được 1 lần).
 export async function startTrial(env, uid, email) {
+  uid = ownerUid(uid);
   const t = trialConfig(env);
   if (!t) return { ok: false, error: 'Hiện chưa mở dùng thử.' };
   await ensureAccount(env, uid, email);
@@ -134,6 +170,7 @@ export const isAdminEmail = (env, email) => {
 
 // ---------- Tài khoản ----------
 export async function ensureAccount(env, uid, email) {
+  uid = ownerUid(uid);
   if (!env.DB || !uid) return null;
   const now = Date.now();
   await env.DB.prepare('INSERT INTO accounts (uid, email, created_at, updated_at) VALUES (?1, ?2, ?3, ?3) ON CONFLICT(uid) DO UPDATE SET email = COALESCE(?2, accounts.email), updated_at = ?3')
@@ -141,6 +178,7 @@ export async function ensureAccount(env, uid, email) {
   return getAccount(env, uid);
 }
 export async function getAccount(env, uid) {
+  uid = ownerUid(uid);
   if (!env.DB || !uid) return null;
   return env.DB.prepare('SELECT * FROM accounts WHERE uid = ?1').bind(uid).first();
 }
@@ -186,6 +224,7 @@ export async function onboarding(env, uid, { email, admin } = {}) {
 // ---------- Credit ----------
 // Trừ credit có kiểm tra số dư, nguyên tử trong một lô D1 (UPDATE … WHERE credits >= n, chỉ ghi sổ khi UPDATE có đổi).
 export async function charge(env, uid, n, reason, ref) {
+  uid = ownerUid(uid);
   n = Math.ceil(Number(n) || 0);
   if (n <= 0) return { ok: true, charged: 0 };
   const now = Date.now();
@@ -198,6 +237,7 @@ export async function charge(env, uid, n, reason, ref) {
 // Trừ theo chi phí thật sau khi việc đã xảy ra (token AI): luôn trừ, số dư có thể âm nhẹ; lượt sau bị chặn.
 // Trả số dư còn lại (null nếu không trừ gì).
 export async function chargeAfter(env, uid, n, reason, ref) {
+  uid = ownerUid(uid);
   n = Math.ceil(Number(n) || 0);
   if (n <= 0) return null;
   const now = Date.now();
@@ -209,6 +249,7 @@ export async function chargeAfter(env, uid, n, reason, ref) {
   return row ? row.credits : null;
 }
 export async function grant(env, uid, credits, days, reason, ref, planId) {
+  uid = ownerUid(uid);
   const now = Date.now();
   const stmts = [
     env.DB.prepare('INSERT INTO accounts (uid, created_at, updated_at) VALUES (?1, ?2, ?2) ON CONFLICT(uid) DO NOTHING').bind(uid, now),

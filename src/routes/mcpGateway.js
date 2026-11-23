@@ -16,6 +16,7 @@ import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
 import { billingOn, gate, makeMeter, getFeatures, applyFeatures } from '../lib/billing.js';
+import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
@@ -47,7 +48,7 @@ async function buildInstructions(env, uid) {
   const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
   const parts = [
     `Bạn đang làm việc cho một doanh nghiệp qua ${APP_NAME}. Dùng công cụ Composio để làm việc thật trên các app khách đã kết nối:`,
-    'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. Cần ảnh mới thì dùng CREWZY_TAO_ANH (Canva API không tạo ảnh từ chữ).',
+    'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. Ảnh/video: TỰ làm bằng công cụ của chính bạn (tạo ảnh/video, chạy code của bạn, hoặc app khách đã nối), lấy ảnh thật trong Kho (CREWZY_KHO) làm tham chiếu, rồi tải lên bằng CREWZY_TAI_LEN; chỉ gọi CREWZY_TAO_ANH khi bạn không tạo được ảnh.',
     'Luôn trả lời bằng tiếng Việt. Trước khi đăng bài, gửi tin/email cho người khác, xoá dữ liệu hay chi tiền quảng cáo: tóm tắt và hỏi người dùng đồng ý.',
     'Không bịa giá, số liệu; không đưa số điện thoại khách lên bài công khai. Làm ra kết quả thật (bài đăng, ảnh, báo cáo), không đẩy việc về cho người dùng.',
     'Quy trình chuẩn: khi chạy một quy trình (hoặc phiếu việc có quy_trinh), gọi CREWZY_QUY_TRINH với id để lấy đúng các bước, kiểm tra app thiếu và làm đúng thứ tự. Lệnh nhanh: prompts qt_<mã>.',
@@ -61,6 +62,8 @@ async function buildInstructions(env, uid) {
   }
   const skills = skillText(slugs);
   if (skills) parts.push('# Skill từng app\n' + skills);
+  const note = planNote(await getFeatures(env, uid).catch(() => null));
+  if (note) parts.push(note);
   return { text: parts.join('\n'), names };
 }
 
@@ -131,6 +134,13 @@ export default async (request, env, ctx) => {
     if (sc) return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: JSON.stringify(sc) }] } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
     const fx = applyFeatures(rpc.params.name, rpc.params.arguments || {}, feat);
     rpc.params.arguments = fx.args;
+  }
+
+  // Hạn mức gói (23/11): bài đăng mỗi nền tảng/ngày, ảnh AI Crewzy/ngày — AI của khách đăng qua COMPOSIO_MULTI_EXECUTE_TOOL hoặc gọi thẳng.
+  if (rpc && rpc.method === 'tools/call' && rpc.params && uid && /^(COMPOSIO_MULTI_EXECUTE_TOOL|CREWZY_TAO_ANH)$|_(POST|PUBLISH|UPLOAD|SHARE)/i.test(rpc.params.name || '')) {
+    const featQ = await getFeatures(env, uid).catch(() => null);
+    const over = (await mediaQuota(env, uid, featQ, rpc.params.name).catch(() => null)) || (await postQuota(env, uid, featQ, rpc.params.name, rpc.params.arguments || {}).catch(() => null));
+    if (over) return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: 'Lỗi: ' + over }], isError: true } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
   }
 
   // Gói và credit (khi bật): mọi tools/call cần gói còn hạn; công cụ tốn tiền trừ credit TRƯỚC khi chạy (kể cả gửi sang Composio).

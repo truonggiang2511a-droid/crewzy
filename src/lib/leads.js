@@ -21,7 +21,7 @@ const clip = (s, n) => String(s || '').trim().slice(0, n);
 // Email chủ tài khoản (đăng nhập Google) để AI gửi báo lead / báo cáo qua Gmail.
 export async function ownerEmail(env, uid) {
   try {
-    const sub = await env.KV.get('uid:' + uid);
+    const sub = await env.KV.get('uid:' + String(uid).replace(/-b\d{1,2}$/, ''));
     if (!sub) return '';
     const u = await kvGetJson(env, 'user:' + sub);
     return (u && u.email) || '';

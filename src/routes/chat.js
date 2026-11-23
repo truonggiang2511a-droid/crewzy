@@ -9,12 +9,13 @@ import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE, sessionToolLimi
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Composio } from '@composio/core';
-import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid, createSession } from '../lib/common.js';
+import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, MAX_ACCOUNTS_PER_TOOLKIT_CAP, userIdFor, safeDetail, getApiKey, resolveUid, createSession } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool, imageShortcut } from '../lib/crewzyTools.js';
 import { recordActivity } from '../lib/activity.js';
-import { getFeatures, upgradeHint, applyFeatures } from '../lib/billing.js';
+import { getFeatures, upgradeHint, applyFeatures, capBrain } from '../lib/billing.js';
+import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 import { billingOn, gate, makeMeter, prices } from '../lib/billing.js';
@@ -94,6 +95,8 @@ async function buildSystem(env, composio, uid) {
   parts.push('# Ứng dụng đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa kết nối ứng dụng nào. Hướng dẫn người dùng vào trang Kết nối (ket-noi.html).'));
   const skills = skillText(connected);
   if (skills) parts.push('# Skill từng ứng dụng\n' + skills);
+  const note = planNote(await getFeatures(env, uid).catch(() => null));
+  if (note) parts.push(note);
   return { system: parts.join('\n\n'), names, slugs: connected };
 }
 
@@ -344,16 +347,20 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
       emit({ type: 'text', text: 'Gói của anh/chị dùng AI riêng (Claude, ChatGPT…) qua link nối AI ở trang Kết nối → AI của bạn. ' + upgradeHint('tro_ly') });
       return;
     }
-    if (feat && !feat.opus && (!brain || brain === 'manh')) {
-      brain = 'can_bang';
-      emit({ type: 'tool', label: 'Gói hiện tại dùng bộ não Cân bằng (Sonnet 5.5). Bộ não Mạnh nhất có từ gói Tăng trưởng.' });
+    // Bộ não theo gói (23/11): MCP 1 tháng = Haiku, 6 tháng = Sonnet, 1 năm/Agency = Opus. Khách chọn cao hơn thì hạ xuống.
+    if (feat && mode === 'app') {
+      const capped = capBrain(brain || 'manh', feat);
+      if (capped !== (brain || 'manh')) emit({ type: 'tool', label: 'Gói hiện tại dùng bộ não ' + ({ tiet_kiem: 'Tiết kiệm (Haiku 5.5)', can_bang: 'Cân bằng (Sonnet 5.5)', manh: 'Mạnh nhất (Opus 5.5)' }[capped]) + '.' });
+      brain = capped;
     }
+    // Hạn mức gói (bài/ngày, ảnh/video AI Crewzy, số tài khoản mỗi nền tảng) áp cho mọi chế độ AI.
+    const featQ = feat || await getFeatures(env, uid).catch(() => null);
     const composio = new Composio({ apiKey: composioKey });
     // Instant chỉ cho Trợ lý Crewzy (khoá của Giang): đo được tiền từng lần gọi để trừ credit. Khoá riêng của khách thì tắt.
     const instant = mode === 'app' ? await instantConfig(env, uid).catch(() => false) : false;
     const session = await createSession(composio, userIdFor(uid), {
       toolkits: TOOLKITS,
-      multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
+      multiAccount: { enable: true, maxAccountsPerToolkit: Math.max(1, Math.min(MAX_ACCOUNTS_PER_TOOLKIT_CAP, (featQ && featQ.tai_khoan) || MAX_ACCOUNTS_PER_TOOLKIT)) },
       ...(Object.keys(sessionToolLimits()).length ? { tools: sessionToolLimits() } : {}),
       instant,
     });
@@ -388,13 +395,16 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
       // Tính năng theo gói: hạ/chặn ảnh-video Đẹp trước khi trừ credit.
       // Ảnh thật trước: Kho có ảnh thật / gói chưa có ảnh Đẹp → trả ảnh thật, không vẽ ảnh giả, không trừ credit.
       if (name === 'CREWZY_TAO_ANH') {
-        const sc = await imageShortcut(env, uid, rawArgs, feat).catch(() => null);
+        const sc = await imageShortcut(env, uid, rawArgs, featQ).catch(() => null);
         if (sc) { emit({ type: 'tool', label: 'Dùng ảnh thật trong Kho' }); return sc; }
       }
-      const fx = applyFeatures(name, rawArgs, feat);
+      const fx = applyFeatures(name, rawArgs, featQ);
       if (fx.error) return { error: fx.error };
       const args = fx.args;
       if (fx.note) emit({ type: 'tool', label: fx.note });
+      // Hạn mức gói: bài đăng mỗi nền tảng/ngày, ảnh/video AI Crewzy/ngày (trước khi trừ credit).
+      const over = (await mediaQuota(env, uid, featQ, name).catch(() => null)) || (await postQuota(env, uid, featQ, name, args).catch(() => null));
+      if (over) return { error: over };
       // Gói và credit: trừ trước khi chạy công cụ tốn tiền (Composio, MCP ngoài, ảnh, video); hết credit thì báo AI.
       if (meter) {
         const no = await meter.tool(name, args);

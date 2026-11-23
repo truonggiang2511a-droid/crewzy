@@ -646,3 +646,8 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .mz-steps details summary { cursor: pointer; color: var(--muted); }
 .mz-steps .ai-install-grid { margin-top: 8px; }
 .btn.is-disabled { opacity: .4; pointer-events: none; }
+
+/* Chọn doanh nghiệp (Agency, 23/11) */
+.biz-switch { display: grid; gap: 4px; margin: 10px 0 4px; padding: 10px; border: 1px solid #E5E5E5; border-radius: 10px; background: #fff; }
+.biz-switch select { font: inherit; font-size: 14px; padding: 8px; border: 1px solid #E2E2E2; border-radius: 8px; background: #FAFAFA; width: 100%; }
+.msheet-card .biz-switch { margin: 0 0 10px; }
