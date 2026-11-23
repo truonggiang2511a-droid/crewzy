@@ -551,6 +551,7 @@ export function forMcp(text) {
 }
 
 export const WORKFLOW_RULES = [
+  'APP CỦA KHÁCH LÀ DANH SÁCH DUY NHẤT: làm ảnh/video CHỈ bằng app/MCP nằm trong "App đã kết nối" và "Máy chủ MCP đã nối" (Higgsfield, HeyGen, Veo qua Gemini, Canva, Runway…); khách nối thêm app nào thì dùng thêm app đó, chưa nối thì dùng ảnh/video có sẵn của Crewzy. ĐĂNG đúng các nền tảng đã nối, khách nối thêm nền tảng nào thì đăng thêm nền tảng đó; nền tảng chưa nối thì không đăng và ghi "chưa kết nối" vào báo cáo. CapCut, Google Flow chưa có cổng kết nối: chỉ gợi ý khách tự mở web để chỉnh.',
   'BÁO CHỦ: báo cáo, bản tin, lead nóng gửi tới chủ doanh nghiệp qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack, Teams đã nối). Email gửi chủ: tiêu đề bắt đầu bằng [Crewzy]. Tin nội bộ cho chủ không cần hỏi duyệt; tin gửi KHÁCH vẫn theo cổng duyệt.',
   'ĐẠO DIỄN PROMPT: trước khi làm ảnh/video ở BẤT KỲ app nào (Higgsfield, HeyGen, Canva, CREWZY_TAO_ANH/VIDEO, MCP ảnh-video) hoặc viết bài đăng, gọi CREWZY_PROMPT_PRO (loai, app, muc_tieu, kenh) → viết prompt chuyên nghiệp theo luat_app, làm 2–3 phương án, nộp kèm prompt_da_dung + app_da_dung. Bài viết theo cong_thuc_kenh (hook dòng đầu/2 giây đầu, CTA, hashtag xu hướng + ngách + thương hiệu).',
   'LEAD: thấy khách để lại số điện thoại/email hoặc khách nóng ở bất kỳ kênh nào → gọi CREWZY_BAO_LEAD ngay, rồi làm theo viec_tiep.',

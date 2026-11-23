@@ -275,6 +275,19 @@
     }).catch(function () {});
   }
 
+  // Quay về nơi bấm + (nhiệm vụ trên Trung tâm điều hành / Quy trình) sau khi nối xong.
+  (function () {
+    var tv = new URLSearchParams(location.search).get('tro_ve');
+    if (tv && /^(index|quy-trinh|chat)\.html(#[\w-]*)?$/.test(tv)) try { localStorage.setItem('crewzy.troVe', tv); } catch (e) {}
+  })();
+  function backIfConnected(slug) {
+    var tv = ''; try { tv = localStorage.getItem('crewzy.troVe') || ''; } catch (e) {}
+    if (!tv || !accounts[slug]) return;
+    try { localStorage.removeItem('crewzy.troVe'); } catch (e) {}
+    var el = document.querySelector('[data-detail-msg]');
+    if (el) { el.style.display = 'block'; el.style.background = '#E8F5EC'; el.style.color = '#14532D'; el.textContent = 'Đã nối xong, đang quay về nhiệm vụ…'; }
+    setTimeout(function () { location.href = tv; }, 1500);
+  }
   var justConnected = new URLSearchParams(location.search).get('ket_noi');
   Promise.all([getJson('/api/catalog'), refreshStatus()]).then(function (r) {
     if (!r[0].ok) throw new Error(r[0].body.error || 'Không tải được danh sách ứng dụng.');
@@ -287,11 +300,13 @@
       history.replaceState(null, '', 'ket-noi.html?app=' + encodeURIComponent(justConnected));
       var notice = accounts[justConnected] ? '' : 'Đang chờ Composio xác nhận kết nối…';
       route(notice);
+      backIfConnected(justConnected);
       if (!accounts[justConnected]) {
         setTimeout(function () {
           refreshStatus().then(function () {
             renderList();
             route(accounts[justConnected] ? '' : 'Chưa thấy kết nối hoàn tất. Nếu bạn đã đăng nhập xong, tải lại trang sau vài giây.');
+            backIfConnected(justConnected);
           });
         }, 3000);
       }

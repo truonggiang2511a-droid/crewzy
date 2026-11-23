@@ -15,9 +15,13 @@
       '. Với mỗi quy trình gọi CREWZY_QUY_TRINH với id để lấy đúng bước, đọc Brain trước, làm ra kết quả thật và nộp vào Việc chờ duyệt (kèm quy_trinh). Bỏ qua quy trình thiếu app và nói tôi cần nối gì.';
   }
 
+  // Nối xong quay về đúng nhiệm vụ này (ket-noi.html đọc tro_ve).
+  function back(href, m) { return href.indexOf('ket-noi.html') === 0 ? href + (href.indexOf('?') > 0 ? '&' : '?') + 'tro_ve=' + encodeURIComponent((location.pathname.split('/').pop() || 'index.html') + '#nv-' + m.id) : href; }
   function slotHtml(sl, m) {
     var chips = sl.da_noi.map(function (a) { return '<a class="mz-app on" href="' + esc(a.href) + '" title="' + esc(a.name) + ' đã nối">' + logo(a) + '<span>' + esc(a.name) + '</span><i>✓</i></a>'; });
-    if (!sl.da_noi.length || sl.nhieu) chips = chips.concat(sl.goi_y.slice(0, sl.da_noi.length ? 2 : 3).map(function (a) { return '<a class="mz-app" href="' + esc(a.href) + '" title="Nối ' + esc(a.name) + '">' + logo(a) + '<span>' + esc(a.name) + '</span><i>+</i></a>'; }));
+    chips = chips.concat(sl.goi_y.map(function (a) { return '<a class="mz-app" href="' + esc(back(a.href, m)) + '" title="Nối ' + esc(a.name) + '">' + logo(a) + '<span>' + esc(a.name) + '</span><i>+</i></a>'; }));
+    chips = chips.concat((sl.web || []).map(function (w) { return '<a class="mz-app web" href="' + esc(w.url) + '" target="_blank" rel="noopener" title="' + esc(w.name) + ' chưa có cổng kết nối: mở web để tự chỉnh"><b class="mz-ini" style="background:' + esc(w.bg) + ';color:#fff;display:grid;place-items:center;font-size:11px">' + esc(w.letter) + '</b><span>' + esc(w.name) + '</span><i>↗</i></a>'; }));
+    if (sl.cat) chips.push('<a class="mz-app plus" href="' + esc(back('ket-noi.html?cat=' + sl.cat, m)) + '" title="Thêm app của bạn, AI sẽ dùng đúng app bạn nối"><span>+ Thêm app của bạn</span></a>');
     var note = !sl.da_noi.length ? (sl.san_co ? '<small class="mz-note ok">' + esc(sl.san_co) + '</small>' : sl.bat_buoc ? '<small class="mz-note need">Cần nối ít nhất 1 app</small>' : '<small class="mz-note">Không bắt buộc</small>') : '';
     return '<div class="mz-slot"><p class="mz-vai">' + esc(sl.vai) + (sl.bat_buoc ? ' <em>bắt buộc</em>' : '') + '</p><div class="mz-apps">' + chips.join('') + '</div>' + note + '</div>';
   }
@@ -28,17 +32,19 @@
     var on = [], need = 0, total = m.slots.length;
     m.slots.forEach(function (sl) { if (sl.da_noi.length) on = on.concat(sl.da_noi); else if (sl.bat_buoc) need++; });
     var okSlots = m.slots.filter(function (sl) { return sl.da_noi.length || sl.san_co; }).length;
-    var logos = on.slice(0, 5).map(function (a) { return '<span class="mz-mini" title="' + esc(a.name) + '">' + logo(a) + '</span>'; }).join('') + (on.length > 5 ? '<span class="mz-mini more">+' + (on.length - 5) + '</span>' : '');
+    var cand = []; m.slots.forEach(function (sl) { sl.goi_y.slice(0, 2).forEach(function (a) { cand.push(a); }); });
+    var logos = on.slice(0, 5).map(function (a) { return '<span class="mz-mini" title="' + esc(a.name) + '">' + logo(a) + '</span>'; }).join('') + (on.length > 5 ? '<span class="mz-mini more">+' + (on.length - 5) + '</span>' : '') +
+      cand.slice(0, Math.max(0, 6 - on.length)).map(function (a) { return '<span class="mz-mini off" title="' + esc(a.name) + ' (chưa nối)">' + logo(a) + '</span>'; }).join('') + '<span class="mz-mini more" title="Bấm Chi tiết để thêm app">+</span>';
     var first = m.lich[0];
     var isOpen = open === m.id, b = busy === m.id;
     var detail = !isOpen ? '' : '<div class="mz-detail"><p class="mz-desc">' + esc(m.mo_ta) + '</p>' +
       m.slots.map(function (sl) { return slotHtml(sl, m); }).join('') +
-      '<a class="mz-more" href="ket-noi.html?cat=' + esc(m.cat) + '">+ Thêm app khác</a>' +
+      '<a class="mz-more" href="' + esc(back('ket-noi.html?cat=' + m.cat, m)) + '">+ Thêm app khác</a>' +
       '<ul class="mz-lich">' + m.lich.map(function (l) { return '<li class="' + (l.dang_chay ? 'on' : '') + '"><b>' + esc(when(l)) + '</b> ' + esc(l.buoc) + '</li>'; }).join('') + '</ul></div>';
     return '<article class="card mz-card' + (m.dang_chay ? ' running' : '') + (isOpen ? ' open' : '') + '" style="--mz:' + esc(m.mau) + '" id="nv-' + esc(m.id) + '">' +
       '<button type="button" class="mz-sum" data-open="' + esc(m.id) + '" aria-expanded="' + isOpen + '">' +
         '<span class="mz-top"><b class="mz-name">' + esc(m.ten) + '</b>' + st + '</span>' +
-        '<span class="mz-line"><span class="mz-logos">' + (logos || '<span class="mz-none">Chưa nối app</span>') + '</span>' +
+        '<span class="mz-line"><span class="mz-logos">' + logos + '</span>' +
         '<span class="mz-meta">' + okSlots + '/' + total + ' ô app · ' + esc(first ? when(first) : '') + '</span></span>' +
         (!m.san_sang && m.ly_do ? '<span class="mz-why">' + esc(m.ly_do) + '</span>' : '') +
         '<span class="mz-chev" aria-hidden="true">' + (isOpen ? '▴ Thu gọn' : '▾ Chi tiết') + '</span>' +

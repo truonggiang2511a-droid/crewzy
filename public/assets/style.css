@@ -560,6 +560,9 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .mz-app.on { border-style: solid; border-color: var(--mz); background: color-mix(in srgb, var(--mz) 8%, #fff); }
 .mz-app.on i { color: #15803D; }
 .mz-app:hover { border-color: #0F0F0F; }
+.mz-app.web { border-style: solid; border-color: #E5E5E5; }
+.mz-app.plus { border-color: #0F0F0F; font-weight: 600; padding: 0 12px; }
+.mz-mini.off { opacity: .45; filter: grayscale(1); }
 .mz-note { font-size: 12px; color: var(--muted); }
 .mz-note.ok { color: #15803D; }
 .mz-note.need { color: #B42318; }

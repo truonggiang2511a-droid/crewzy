@@ -9,9 +9,10 @@ export const MISSIONS = [
   { id: 'san_xuat', ten: 'Sản xuất & phân phối nội dung', icon: 'noi_dung', mau: '#E879F9', cat: 'social',
     mo_ta: 'AI làm ảnh/video đẹp từ Brain thương hiệu, viết bài chuyển đổi (hashtag, lời kêu gọi), bạn duyệt 1 chạm rồi đăng mọi mạng xã hội.',
     slots: [
-      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva'], san_co: 'Crewzy có sẵn ảnh/video AI (credit)' },
-      { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], bat_buoc: true, nhieu: true },
-      { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets'], san_co: 'Báo cáo xem trong Kết quả' },
+      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva', 'runway', 'elevenlabs'], cat: 'creative', san_co: 'Crewzy có sẵn ảnh/video AI (credit)',
+        web: [{ id: 'flow', name: 'Google Flow (Veo)', url: 'https://labs.google/flow', letter: 'F', bg: '#1A73E8' }, { id: 'capcut', name: 'CapCut', url: 'https://www.capcut.com/editor', letter: 'C', bg: '#111111' }] },
+      { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], cat: 'social', bat_buoc: true, nhieu: true },
+      { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets', 'gmail', 'notion', 'airtable'], cat: 'office', nhieu: true, san_co: 'Báo cáo xem trong Kết quả' },
     ],
     lich: [
       { id: 'noi_dung_moi_sang', gio: '06:30', ngay: 'hang_ngay', buoc: 'Làm ảnh/video + bài cho mọi kênh (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
@@ -82,5 +83,5 @@ export function slotStatus(slot, connected, mcpUrls) {
   const apps = slot.apps.filter((s) => s.startsWith('mcp:') || appBySlug(s)).map((s) => ({ slug: s.replace(/^mcp:/, ''), mcp: s.startsWith('mcp:'), name: nameOf(s), on: isOn(s, connected, mcpUrls),
     soon: !s.startsWith('mcp:') && (appBySlug(s) || {}).status !== 'ready', href: hrefOf(s, nameOf(s)) }));
   const on = apps.filter((a) => a.on);
-  return { vai: slot.vai, bat_buoc: !!slot.bat_buoc, nhieu: !!slot.nhieu, san_co: slot.san_co || '', da_noi: on, goi_y: apps.filter((a) => !a.on && !a.soon).slice(0, 3), sap_co: apps.filter((a) => a.soon).map((a) => a.name), ok: !!(on.length || slot.san_co || !slot.bat_buoc) };
+  return { vai: slot.vai, cat: slot.cat || '', web: slot.web || [], bat_buoc: !!slot.bat_buoc, nhieu: !!slot.nhieu, san_co: slot.san_co || '', da_noi: on, goi_y: apps.filter((a) => !a.on && !a.soon).slice(0, 6), sap_co: apps.filter((a) => a.soon).map((a) => a.name), ok: !!(on.length || slot.san_co || !slot.bat_buoc) };
 }
