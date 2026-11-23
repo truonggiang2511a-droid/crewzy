@@ -9,7 +9,7 @@ import { instantConfig, instantUsd, recordInstant, INSTANT_NOTE } from '../lib/i
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Composio } from '@composio/core';
-import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid } from '../lib/common.js';
+import { APP_NAME, TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, resolveUid, createSession } from '../lib/common.js';
 import { skillText, appBySlug } from '../lib/catalog.js';
 import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool } from '../lib/crewzyTools.js';
@@ -53,6 +53,7 @@ Quy tắc bắt buộc:
 - Nếu ứng dụng chưa kết nối, nói người dùng vào trang Kết nối công cụ (ket-noi.html) để kết nối, hoặc đưa link kết nối từ COMPOSIO_MANAGE_CONNECTIONS.
 - Khi xong việc, báo kết quả kèm link bài đăng hoặc dữ liệu cụ thể nếu có.
 - Viết nội dung, trả lời khách: theo đúng Brain thương hiệu bên dưới; mục nào trống thì hỏi người dùng, không tự bịa.
+- Bạn là ĐẠO DIỄN PROMPT của khách: trước khi làm ảnh/video ở bất kỳ app nào (Higgsfield, HeyGen, Canva, CREWZY_TAO_ANH/VIDEO) hoặc viết bài đăng, gọi CREWZY_PROMPT_PRO rồi viết prompt chuyên nghiệp theo đó (tiếng Anh cho app ảnh/video, đủ chủ thể, bối cảnh, ánh sáng, máy quay, phong cách thương hiệu), làm 2–3 phương án, nộp kết quả kèm prompt_da_dung để khách duyệt. Bài viết: hook dòng đầu, giá trị, CTA cụ thể, hashtag xu hướng + ngách + thương hiệu, riêng từng kênh.
 - Lead: thấy khách để lại số điện thoại/email hoặc khách nóng (hỏi giá, hẹn xem) → gọi CREWZY_BAO_LEAD ngay rồi làm theo viec_tiep (báo chủ qua Gmail/Telegram đã nối, ghi CRM). Báo cáo cho chủ gửi qua kênh trong bao_ceo.
 - Hình ảnh thật trước, AI sau: trước khi làm ảnh/video/bài đăng, xem Kho (CREWZY_KHO) và ảnh khách gửi trong chat; nếu kho trống,
   đọc website của khách (CREWZY_DOC_WEB → trường anh) hoặc fanpage (công cụ Facebook/Instagram lấy ảnh bài gần đây), xem ảnh bằng
@@ -120,6 +121,7 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
   if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';
   if (name === 'CREWZY_BAO_LEAD') return 'Báo khách tiềm năng cho chủ';
+  if (name === 'CREWZY_PROMPT_PRO') return 'Lên bản chỉ đạo prompt theo thương hiệu';
   if (name === 'CREWZY_LUU_KHO') return 'Lưu ảnh vào Kho';
   if (name === 'CREWZY_DOC_WEB') return 'Đọc website' + (input && input.url ? ' ' + String(input.url).replace(/^https?:\/\//, '').slice(0, 40) : '');
   if (name === 'CREWZY_VIEC_CAN_LAM') return 'Xem việc Crewzy đang giao';
@@ -298,7 +300,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     const composio = new Composio({ apiKey: composioKey });
     // Instant chỉ cho Trợ lý Crewzy (khoá của Giang): đo được tiền từng lần gọi để trừ credit. Khoá riêng của khách thì tắt.
     const instant = mode === 'app' ? await instantConfig(env, uid).catch(() => false) : false;
-    const session = await composio.create(userIdFor(uid), {
+    const session = await createSession(composio, userIdFor(uid), {
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
       instant,

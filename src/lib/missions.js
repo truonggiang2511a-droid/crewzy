@@ -10,7 +10,7 @@ export const MISSIONS = [
     mo_ta: 'AI làm ảnh/video đẹp từ Brain thương hiệu, viết bài chuyển đổi (hashtag, lời kêu gọi), bạn duyệt 1 chạm rồi đăng mọi mạng xã hội.',
     slots: [
       { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'canva'], san_co: 'Crewzy có sẵn ảnh/video AI (credit)' },
-      { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads'], bat_buoc: true, nhieu: true },
+      { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], bat_buoc: true, nhieu: true },
     ],
     lich: [
       { id: 'noi_dung_moi_sang', gio: '06:30', ngay: 'hang_ngay', buoc: 'Làm ảnh/video + bài cho mọi kênh (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
@@ -49,7 +49,7 @@ export const MISSIONS = [
     slots: [
       { vai: 'CRM', apps: ['hubspot', 'pipedrive', 'googlesheets'], bat_buoc: true },
       { vai: 'Email, tin nhắn', apps: ['gmail', 'telegram'] },
-      { vai: 'Gọi điện AI', apps: ['vapi', 'retellai', 'bland_ai', 'twilio'] },
+      { vai: 'Gọi điện AI', apps: ['vapi', 'retellai', 'bland_ai', 'twilio', 'aircall'] },
     ],
     lich: [
       { id: 'lead_vao_crm', gio: '08:30', ngay: 'hang_ngay', buoc: 'Khách mới vào CRM, soạn tin chào', tu: 'quang_cao', toi: 'ban_hang' },

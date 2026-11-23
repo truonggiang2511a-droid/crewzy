@@ -6,6 +6,17 @@ export const APP_NAME = 'Crewzy';
 
 // Công cụ khách được kết nối thật: các app status 'ready' trong src/lib/catalog.js.
 export const TOOLKITS = READY_SLUGS;
+// App 'ready' CHƯA thử /api/connect trên trang thật (auth API_KEY nên gần như chắc chạy). Lưới an toàn: tạo phiên lỗi "auth config"
+// thì tạo lại không có các app này để chat/link nối AI của mọi người không hỏng. Thử ra link (admin: /api/connect?toolkit=<slug>) rồi xoá khỏi đây.
+export const UNVERIFIED = ['vapi', 'retellai', 'bland_ai', 'upload_post'];
+export async function createSession(composio, userId, opts) {
+  try { return await composio.create(userId, opts); }
+  catch (e) {
+    if (!/auth.?config|managed/i.test(String(e && e.message)) || !opts.toolkits) throw e;
+    console.error('composio.create retry without unverified', e && e.message);
+    return composio.create(userId, { ...opts, toolkits: opts.toolkits.filter((t) => !UNVERIFIED.includes(t)) });
+  }
+}
 export const MAX_ACCOUNTS_PER_TOOLKIT = 5;
 export const UID_PATTERN = /^[a-z0-9-]{8,64}$/;
 

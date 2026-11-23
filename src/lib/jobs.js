@@ -46,7 +46,7 @@ export async function createJob(env, uid, { tieu_de, yeu_cau, loai, nguon, quy_t
 }
 
 // Khách thao tác trên trang: duyệt, từ chối, sửa nội dung, xoá.
-export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu }) {
+export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu, media }) {
   const jobs = await listJobs(env, uid);
   const i = jobs.findIndex((j) => j.id === id);
   if (i < 0) return { error: 'Không tìm thấy phiếu việc.' };
@@ -59,11 +59,18 @@ export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu
     await putBrand(env, uid, { ...current, ...cleanBrand(j.ket_qua.brain) });
   }
   if (action === 'sua' && j.ket_qua) j.ket_qua.noi_dung = clip(noi_dung, 20000);
+  else if (action === 'thay_media') {
+    // Khách tự sửa ảnh/video trong app khác (Canva, Higgsfield, Descript…) rồi dán link bản đã sửa / chọn từ Kho.
+    const links = (Array.isArray(media) ? media : [media]).map((x) => String(x || '').trim()).filter((x) => /^https:\/\/\S{8,1000}$/.test(x)).slice(0, 8);
+    if (!links.length) return { error: 'Dán link https của ảnh/video đã sửa.' };
+    j.ket_qua = j.ket_qua || {};
+    j.ket_qua.media = links.map((link) => ({ loai: /\.(mp4|webm|mov)(\?|$)/i.test(link) ? 'video' : /\.(jpe?g|png|webp|gif)(\?|$)/i.test(link) || /\/api\/(img|media)\//.test(link) ? 'image' : 'link', link }));
+  }
   else if (map[action]) j.trang_thai = map[action];
   else return { error: 'Thao tác không hợp lệ.' };
   if (ghi_chu) j.ghi_chu_khach = clip(ghi_chu, 1000);
   j.cap_nhat = now();
-  j.lich_su = [...(j.lich_su || []), { luc: now(), viec: action === 'sua' ? 'Bạn sửa nội dung' : 'Bạn chuyển sang: ' + STATUSES[j.trang_thai] + (ghi_chu ? ' — ' + clip(ghi_chu, 200) : '') }].slice(-20);
+  j.lich_su = [...(j.lich_su || []), { luc: now(), viec: action === 'sua' ? 'Bạn sửa nội dung' : action === 'thay_media' ? 'Bạn thay ảnh/video bằng bản tự sửa' : 'Bạn chuyển sang: ' + STATUSES[j.trang_thai] + (ghi_chu ? ' — ' + clip(ghi_chu, 200) : '') }].slice(-20);
   await saveJobs(env, uid, jobs);
   return { job: j };
 }
@@ -101,6 +108,8 @@ export const JOB_TOOL_DEFS = [
           quy_trinh: { type: 'string', description: 'Mã quy trình Crewzy đang chạy (lấy từ CREWZY_QUY_TRINH), nếu có.' },
           brain: { type: 'object', description: 'Chỉ dùng với loai "brain": các mục Brain đề xuất (name, industry, products, customers, voice, dos, donts, offers, faq, links, hashtags). Khách duyệt là Crewzy lưu.', properties: Object.fromEntries(Object.keys(BRAND_FIELDS).map((k) => [k, { type: 'string' }])) },
           ghi_chu: { type: 'string', description: 'Ghi chú cho khách (điều cần kiểm tra, số liệu còn thiếu…).' },
+          prompt_da_dung: { type: 'string', description: 'Prompt đã gửi app làm ảnh/video (theo CREWZY_PROMPT_PRO), để khách xem và yêu cầu làm lại đúng ý.' },
+          app_da_dung: { type: 'string', description: 'App đã làm ảnh/video: Higgsfield, HeyGen, Canva, Ảnh AI Crewzy…' },
         },
         required: ['tieu_de', 'noi_dung'],
       },
@@ -184,6 +193,8 @@ export async function submitResult(env, uid, origin, args) {
     lien_ket: [...new Set([...(prev.lien_ket || []), ...cleanList(a.lien_ket, 10, 1000)])].slice(0, 15),
     ghi_chu: a.ghi_chu ? clip(a.ghi_chu, 2000) : prev.ghi_chu || '',
     brain: a.brain && typeof a.brain === 'object' ? cleanBrand(a.brain) : prev.brain,
+    prompt_da_dung: a.prompt_da_dung ? clip(a.prompt_da_dung, 4000) : prev.prompt_da_dung || '',
+    app_da_dung: a.app_da_dung ? clip(a.app_da_dung, 80) : prev.app_da_dung || '',
   };
   job.trang_thai = status;
   job.nguoi_lam = clip(a.nguoi_lam, 40) || job.nguoi_lam || 'AI';

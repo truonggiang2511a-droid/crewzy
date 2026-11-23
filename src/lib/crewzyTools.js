@@ -13,6 +13,7 @@ import { mcpById } from './mcpDirectory.js';
 import { listServers } from './mcpServers.js';
 import { LIBRARY_TOOL_DEFS, libraryTool, addItem } from './library.js';
 import { LEAD_TOOL_DEFS, leadTool, ceoChannels } from './leads.js';
+import { PROMPT_TOOL_DEFS, promptPro } from './promptPro.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -158,7 +159,7 @@ export async function createVideo(env, uid, origin, args) {
   };
 }
 
-CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS);
+CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS, ...PROMPT_TOOL_DEFS);
 
 // Link tải file lên cho AI chạy trên máy khách (Claude Code, Codex): video/ảnh vừa dựng bằng Remotion, HyperFrames, ffmpeg…
 CREWZY_TOOL_DEFS.push({
@@ -376,6 +377,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_NOP_KET_QUA') return await submitResult(env, uid, origin, args);
     if (name === 'CREWZY_DOC_WEB') return await readWebsite(args && args.url);
     if (name === 'CREWZY_XEM_ANH') return await viewImages(env, uid, origin, args);
+    if (name === 'CREWZY_PROMPT_PRO') return await promptPro(env, uid, args);
     if (name === 'CREWZY_BAO_LEAD') return await leadTool(env, uid, args, connected || [], agent);
     if (name === 'CREWZY_KHO' || name === 'CREWZY_LUU_KHO') return await libraryTool(env, uid, origin, name, args || {});
     if (name === 'CREWZY_TAI_LEN') return await createPutLink(env, origin, uid, args && args.loai_file);

@@ -46,7 +46,9 @@ public/assets/office.js  Đọc /api/office mỗi 20 giây (khi trang đang mở
 src/routes/office.js     GET /api/office: phòng (phiếu theo quy_trinh→phong, loai→phòng), app đã nối/nên nối, lịch, sự kiện (lich_su),
                          bộ não (aiseen:<uid> do cổng MCP ghi lúc initialize + Trợ lý app), setup. dang_lam quá 3 giờ coi như cho_lam
 public/cho-duyet.html    Màn 2 · Việc chờ duyệt (DỮ LIỆU THẬT từ 22/11, script assets/jobs.js): Giao việc mới (mẫu, Giao cho AI của tôi /
-                         Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, Duyệt/Sửa/Làm lại/Từ chối/Đăng/Xoá, ?id= làm nổi
+                         Làm ngay bằng Trợ lý Crewzy), lọc Chờ duyệt/Chờ AI làm/Đã duyệt/Báo cáo, ?id= làm nổi. Từ 23/11: thẻ hiện "✓ Bài viết xong · N ảnh · N video",
+                         ảnh/video lớn bên trái + bài bên phải, Prompt AI đã dùng; nút ✓ Duyệt & đăng đa kênh (duyệt rồi mở Trợ lý đăng), ↻ Yêu cầu AI làm lại (chip ý sửa
+                         + ghi chú → Làm lại ngay bằng Trợ lý / Gửi AI của tôi), Tự sửa ảnh/video (app đã nối mở thẳng web, chưa nối → Kết nối; dán link bản sửa → action thay_media)
 public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, lọc thể loại, tìm kiếm, ?app=<slug> trang chi tiết có Skill, ?tab=ai AI của bạn,
                          ?tab=mcp MCP khác (tên máy chủ + link MCP → Kết nối, script assets/mcp-servers.js)
 public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
@@ -147,6 +149,9 @@ src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây
                           readiness sẵn sàng, theo số lịch gói (ưu tiên ra khách trước); cần Brain ≥4/6 mục. GET/POST /api/autopilot (src/routes/autopilot.js).
                           Dây giữa phòng trên cây = EDGES trong office.js (khớp CHAIN tu→toi): bật tự động → dây đứt nét chảy chậm, có việc thật → sáng + hạt.
                           Nút + mỗi nhánh → ket-noi.html?cat=<BRANCH_CAT>; app khách nối thêm mọc lá ở nhánh theo CAT_BRANCH (src/routes/office.js)
+src/lib/promptPro.js      BỘ NÃO PROMPT: CREWZY_PROMPT_PRO (chat + link MCP, không gọi AI) = Brain + mẫu khách thích + APP_RULES (Higgsfield, HeyGen, Canva, ảnh/video Crewzy,
+                          Descript, Captions, ElevenLabs) + CHANNEL (khổ, hook, công thức bài, CTA, hashtag từng kênh) + tự kiểm. WORKFLOW_RULES "ĐẠO DIỄN PROMPT" + lời dặn chat
+                          bắt gọi trước khi làm ảnh/video/bài; phiếu nộp kèm prompt_da_dung, app_da_dung (hiện ở Việc chờ duyệt)
 src/lib/leads.js          KHÁCH TIỀM NĂNG + BÁO CEO NGAY: KV leads:<uid> (≤300), công cụ CREWZY_BAO_LEAD (chat + link MCP; gộp trùng số 7 ngày) trả email_ceo
                           (email Google của chủ: uid:<uid> → user:<sub>), kenh_bao (Gmail/Telegram/Slack/Teams/Discord/WhatsApp/Outlook đã nối), crm, viec_tiep để AI gửi
                           tiếp bằng Composio. CREWZY_QUY_TRINH trả bao_ceo (báo cáo/bản tin gửi chủ qua các kênh đó). GET/POST /api/leads (cap_nhat: da_goi|hen|da_chot
@@ -596,8 +601,17 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   kịch bản gọi chờ duyệt, không tự gọi. Báo cáo CEO dạng PDF: nút "Tải PDF" ở Kết quả (window.print + @media print ẩn menu) — chưa có file PDF đính kèm email.
   Test: officetest "missions OK". Playwright 1440/390 không tràn ngang.
 
+- 23/11/2026: Giang: "thu gọn 6 thẻ, bật gọi điện AI thật, Bộ não Crewzy là trợ lý prompt cấp cao vào app khách nối (Higgsfield…) làm ảnh/video chuyên nghiệp, content
+  dễ lên xu hướng, màn duyệt rõ (đã xong gì, làm lại, gợi ý app tự sửa rồi mới đăng đa kênh), thêm mạng xã hội nếu nối được". Làm: thẻ nhiệm vụ gọn (logo app đã nối,
+  x/y ô app, giờ chạy, Chi tiết mở ra); promptPro.js; màn duyệt mới; thay_media. Gọi điện AI: vapi, retellai, bland_ai (Composio, API_KEY) đổi 'ready'; MXH: upload_post
+  (Upload-Post, 1 khoá API đăng TikTok/X/Threads/Bluesky/Reddit/Pinterest…, đây là đường có TikTok/X/Threads mà không cần auth config riêng). 4 slug này CHƯA thử
+  /api/connect trên trang thật (Chrome không kết nối được lúc làm) → common.js UNVERIFIED + createSession: tạo phiên lỗi "auth config" thì tạo lại không có chúng, chat/
+  link nối AI của mọi người không hỏng. /api/connect thêm ?thu=1 CHỈ cho admin để thử slug chưa mở. Composio có nhưng OAuth (cần auth config, giữ 'soon'/chưa thêm):
+  twitter, threads, tiktok, snapchat, twitch, kick, vimeo, wordpress_com, buffer, discordbot. KHÔNG có: bluesky, mastodon, tumblr, medium, zalo, lemon8.
+
 ## 6. Việc tiếp theo
 
+- Giang (đăng nhập admin): mở /api/connect?toolkit=vapi (rồi retellai, bland_ai, upload_post) → thấy redirectUrl là chạy; xoá slug đó khỏi UNVERIFIED.
 - (Đã đưa MCP ngoài vào link nối AI và có công tắc 22/11.) Còn: ghi số lượt gọi MCP ngoài vào credit.
 
 - Giang: nộp đơn Sign in with ChatGPT (developers.openai.com/siwc) và tạo OAuth app Linked billing trên Claude Console.

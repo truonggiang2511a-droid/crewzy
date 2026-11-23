@@ -349,7 +349,7 @@ export function formatsFor(connected, mcpIds) {
 const G = {
   luu: { vai: 'Nơi lưu kết quả, lịch', apps: ['googlesheets', 'notion', 'airtable', 'googledocs', 'clickup', 'trello', 'asana', 'monday', 'coda', 'basecamp', 'wrike', 'excel', 'googledrive', 'one_drive', 'dropbox', 'box'], mcp: ['notion', 'monday', 'clickup'] },
   tai_lieu: { vai: 'Nơi lưu báo cáo, tài liệu', apps: ['googledocs', 'notion', 'googleslides', 'confluence', 'coda', 'onenote', 'googledrive', 'one_drive', 'dropbox', 'box', 'share_point'], mcp: ['notion'] },
-  kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'sprout_social', 'webflow', 'wix', 'framer', 'reddit', 'line', 'tiktok', 'threads'], mcp: ['metricool', 'wix', 'webflow'] },
+  kenh_dang: { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'linkedin', 'youtube', 'pinterest', 'sprout_social', 'webflow', 'wix', 'framer', 'reddit', 'line', 'tiktok', 'threads', 'upload_post'], mcp: ['metricool', 'wix', 'webflow'] },
   fanpage: { vai: 'Kênh có bình luận', apps: ['facebook', 'instagram', 'youtube', 'linkedin', 'sprout_social', 'reddit', 'tiktok'], mcp: ['metricool'] },
   goi_dien: { vai: 'Gọi điện AI / SMS', apps: ['twilio', 'aircall', 'dialpad', 'clicksend', 'plivo', 'vapi', 'retellai', 'bland_ai'] },
   nhan_noi_bo: { vai: 'Gửi báo cáo nội bộ', apps: ['telegram', 'slack', 'microsoft_teams', 'discord', 'gmail', 'outlook', 'whatsapp', 'line'] },
@@ -547,6 +547,7 @@ export function forMcp(text) {
 
 export const WORKFLOW_RULES = [
   'BÁO CHỦ: báo cáo, bản tin, lead nóng gửi tới chủ doanh nghiệp qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack, Teams đã nối). Email gửi chủ: tiêu đề bắt đầu bằng [Crewzy]. Tin nội bộ cho chủ không cần hỏi duyệt; tin gửi KHÁCH vẫn theo cổng duyệt.',
+  'ĐẠO DIỄN PROMPT: trước khi làm ảnh/video ở BẤT KỲ app nào (Higgsfield, HeyGen, Canva, CREWZY_TAO_ANH/VIDEO, MCP ảnh-video) hoặc viết bài đăng, gọi CREWZY_PROMPT_PRO (loai, app, muc_tieu, kenh) → viết prompt chuyên nghiệp theo luat_app, làm 2–3 phương án, nộp kèm prompt_da_dung + app_da_dung. Bài viết theo cong_thuc_kenh (hook dòng đầu/2 giây đầu, CTA, hashtag xu hướng + ngách + thương hiệu).',
   'LEAD: thấy khách để lại số điện thoại/email hoặc khách nóng ở bất kỳ kênh nào → gọi CREWZY_BAO_LEAD ngay, rồi làm theo viec_tiep.',
   'BƯỚC 0 BẮT BUỘC: đọc kỹ thuong_hieu kèm trong kết quả CREWZY_QUY_TRINH (Brain, phong cách hình ảnh/video, giọng đọc, nhạc, mẫu tham khảo) TRƯỚC khi làm bất cứ việc gì. Mở các link mẫu khách thích để học phong cách; làm theo phong cách đó cho thương hiệu của khách, không sao chép nội dung, logo, người trong mẫu. Mục trong thuong_hieu.thieu: hỏi khách 1 lần hoặc dùng mặc định và ghi rõ trong kết quả.',
   'Đăng bài: chỉ đăng lên kênh có định dạng phù hợp trong dinh_dang_kenh (vd YouTube chỉ nhận video, Instagram không nhận bài chỉ có chữ); kênh không nhận thì bỏ qua và ghi chú. Mỗi kênh một nội dung riêng đúng văn phong và khổ ảnh/video của kênh đó.',

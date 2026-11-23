@@ -50,42 +50,86 @@
 
   function chatLink(text) { return 'chat.html?q=' + encodeURIComponent(text); }
 
+  // App để khách TỰ SỬA cho ưng ý (đã nối thì mở thẳng web app, chưa nối thì tới trang kết nối).
+  var EDIT_APPS = {
+    image: [['canva', 'Canva', 'https://www.canva.com/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['figma', 'Figma', 'https://www.figma.com/']],
+    video: [['descript_mcp', 'Descript', 'https://web.descript.com/'], ['captions', 'Captions', 'https://desktop.captions.ai/'], ['higgsfield', 'Higgsfield', 'https://higgsfield.ai/', 1], ['canva', 'Canva', 'https://www.canva.com/'], ['capcut', 'CapCut (web)', 'https://www.capcut.com/editor', 2]],
+  };
+  var connected = {};
+  fetch('/api/status?uid=' + encodeURIComponent(uid)).then(function (r) { return r.json(); }).then(function (d) { connected = (d && d.accounts) || {}; if (data.jobs.length) render(); }).catch(function () {});
+  function editApps(kinds) {
+    var list = [], seen = {};
+    kinds.forEach(function (k) { (EDIT_APPS[k] || []).forEach(function (a) { if (!seen[a[0]]) { seen[a[0]] = 1; list.push(a); } }); });
+    list.sort(function (x, y) { return (connected[y[0]] ? 1 : 0) - (connected[x[0]] ? 1 : 0); });
+    return list.slice(0, 4).map(function (a) {
+      var on = connected[a[0]] || a[3] === 2;
+      var href = on ? a[2] : a[3] === 1 ? 'ket-noi.html?tab=mcp&ten=Higgsfield&url=' + encodeURIComponent('https://mcp.higgsfield.ai/mcp') : 'ket-noi.html?app=' + a[0];
+      return '<a class="jb-app' + (on ? ' on' : '') + '" href="' + href + '"' + (on ? ' target="_blank" rel="noopener"' : '') + '>' + (a[3] === 2 ? '' : '<img src="https://logos.composio.dev/api/' + a[0] + '" alt="" loading="lazy">') + esc(a[1]) + (on ? ' ↗' : ' · Nối') + '</a>';
+    }).join('');
+  }
+  var REDO = ['Ảnh/video khác phong cách', 'Hook mở đầu mạnh hơn', 'Viết ngắn gọn hơn', 'Đổi góc máy, ánh sáng', 'Thêm lời kêu gọi rõ hơn', 'Hashtag xu hướng hơn', 'Đúng màu thương hiệu hơn'];
+
   function card(j) {
     var r = j.ket_qua || {};
-    var media = (r.media || []).map(function (m) {
-      if (m.loai === 'video') return '<video src="' + esc(m.link) + '" controls playsinline preload="metadata" style="width:220px;max-width:100%;border-radius:8px;background:#000"></video>';
-      if (m.loai === 'image') return '<a href="' + esc(m.link) + '" target="_blank" rel="noopener"><img src="' + esc(m.link) + '" alt="" loading="lazy" style="width:160px;max-width:100%;border-radius:8px;border:1px solid #E8E8E8"></a>';
-      return '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">' + esc(m.link) + '</a>';
+    var ms = r.media || [];
+    var nImg = ms.filter(function (m) { return m.loai === 'image'; }).length, nVid = ms.filter(function (m) { return m.loai === 'video'; }).length;
+    var media = ms.map(function (m) {
+      if (m.loai === 'video') return '<figure class="jb-m"><video src="' + esc(m.link) + '" controls playsinline preload="metadata"></video></figure>';
+      if (m.loai === 'image') return '<figure class="jb-m"><a href="' + esc(m.link) + '" target="_blank" rel="noopener"><img src="' + esc(m.link) + '" alt="" loading="lazy"></a><a class="jb-dl" href="' + esc(m.link) + '" download>Tải về</a></figure>';
+      return '<a href="' + esc(m.link) + '" target="_blank" rel="noopener" style="word-break:break-all">' + esc(m.link) + '</a>';
     }).join('');
     var links = (r.lien_ket || []).map(function (l) { return '<a href="' + esc(l) + '" target="_blank" rel="noopener" style="word-break:break-all">' + esc(l) + '</a>'; }).join('<br>');
+    var ready = [];
+    if (r.noi_dung) ready.push('✓ Bài viết xong');
+    if (nImg) ready.push('✓ ' + nImg + ' ảnh');
+    if (nVid) ready.push('✓ ' + nVid + ' video');
+    if (r.app_da_dung) ready.push('làm bằng ' + esc(r.app_da_dung));
+    var review = j.trang_thai === 'cho_duyet';
+    var postPrompt = 'Đăng phiếu việc ' + j.id + ' ("' + j.tieu_de + '") đã được duyệt lên đa kênh: gọi CREWZY_VIEC_CAN_LAM với id để lấy đúng bài và ảnh/video, đăng mỗi kênh đúng nội dung và khổ của kênh đó (bỏ kênh không nhận định dạng), rồi nộp lại trạng thái da_dang kèm link từng bài.';
     var acts = [];
-    if (j.trang_thai === 'cho_duyet') {
-      acts.push('<button type="button" class="btn btn-primary" data-act="duyet">Duyệt</button>');
-      acts.push('<button type="button" class="btn btn-ghost" data-act="sua-mo">Sửa nội dung</button>');
-      acts.push('<button type="button" class="btn btn-ghost" data-act="lam_lai">Yêu cầu làm lại</button>');
+    if (review) {
+      acts.push('<button type="button" class="btn btn-primary" data-act="duyet-dang">✓ Duyệt & đăng đa kênh</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="duyet">Chỉ duyệt</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="redo-mo">↻ Yêu cầu AI làm lại</button>');
+      acts.push('<button type="button" class="btn btn-ghost" data-act="sua-mo">✎ Sửa bài</button>');
+      if (ms.length) acts.push('<button type="button" class="btn btn-ghost" data-act="tu-sua-mo">Tự sửa ảnh/video</button>');
       acts.push('<button type="button" class="btn btn-ghost" data-act="tu_choi">Từ chối</button>');
     } else if (j.trang_thai === 'da_duyet') {
-      acts.push('<a class="btn btn-primary" href="' + chatLink('Đăng phiếu việc ' + j.id + ' ("' + j.tieu_de + '") đã được duyệt: gọi CREWZY_VIEC_CAN_LAM để lấy đúng nội dung, đăng lên kênh phù hợp, rồi nộp lại trạng thái da_dang kèm link bài.') + '">Đăng ngay bằng Trợ lý Crewzy</a>');
+      acts.push('<a class="btn btn-primary" href="' + chatLink(postPrompt) + '">Đăng đa kênh ngay</a>');
       acts.push('<button type="button" class="btn btn-ghost" data-act="da_dang">Đánh dấu đã đăng</button>');
     } else if (j.trang_thai === 'cho_lam' || j.trang_thai === 'dang_lam') {
-      acts.push('<a class="btn btn-primary" href="' + chatLink('Làm phiếu việc ' + j.id + ' ("' + j.tieu_de + '"): ' + j.yeu_cau + '\nLàm xong nộp kết quả bằng CREWZY_NOP_KET_QUA kèm id ' + j.id + '.') + '">Làm ngay bằng Trợ lý Crewzy</a>');
+      acts.push('<a class="btn btn-primary" href="' + chatLink('Làm phiếu việc ' + j.id + ' ("' + j.tieu_de + '"): ' + j.yeu_cau + (j.ghi_chu_khach ? '\nKhách yêu cầu sửa: ' + j.ghi_chu_khach : '') + '\nTrước khi làm ảnh/video gọi CREWZY_PROMPT_PRO. Làm xong nộp CREWZY_NOP_KET_QUA kèm id ' + j.id + ' và prompt_da_dung.') + '">Làm ngay bằng Trợ lý Crewzy</a>');
     }
     acts.push('<button type="button" class="btn btn-ghost" data-act="xoa" style="color:#8A2A12">Xoá</button>');
-    return '<article class="card" data-job="' + esc(j.id) + '" id="job-' + esc(j.id) + '" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px' + (focusId === j.id ? ';box-shadow:0 0 0 3px rgba(0,7,205,.18);border-color:var(--accent)' : '') + '">' +
+    var kinds = []; if (nImg) kinds.push('image'); if (nVid) kinds.push('video');
+    return '<article class="card jb-card' + (review ? ' review' : '') + '" data-job="' + esc(j.id) + '" data-post="' + esc(postPrompt) + '" id="job-' + esc(j.id) + '"' + (focusId === j.id ? ' style="box-shadow:0 0 0 3px rgba(0,7,205,.18);border-color:var(--accent)"' : '') + '>' +
       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">' +
       '<span class="pill">' + esc(data.kinds[j.loai] || j.loai) + '</span>' +
       '<span class="pill ' + (PILL[j.trang_thai] || '') + '">' + esc(data.statuses[j.trang_thai] || j.trang_thai) + '</span>' +
       '<span class="muted" style="font-size:12px;margin-left:auto">' + (j.nguoi_lam ? esc(j.nguoi_lam) + ' · ' : '') + when(j.cap_nhat) + '</span></div>' +
       '<h2 style="margin:0;font-size:17px;font-weight:600">' + esc(j.tieu_de) + '</h2>' +
-      (j.yeu_cau ? '<p class="muted" style="margin:0;font-size:13px;line-height:1.5"><b>Yêu cầu:</b> ' + esc(j.yeu_cau.slice(0, 400)) + '</p>' : '') +
-      (j.ghi_chu_khach ? '<p style="margin:0;font-size:13px;color:var(--warn)"><b>Bạn ghi chú:</b> ' + esc(j.ghi_chu_khach) + '</p>' : '') +
-      (r.noi_dung ? '<div data-content style="font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;padding:12px;border-radius:8px;background:#F7F7F8">' + md(r.noi_dung) + '</div>' +
-        '<div data-edit hidden style="display:flex;flex-direction:column;gap:8px"><textarea class="field" rows="10">' + esc(r.noi_dung) + '</textarea><div style="display:flex;gap:8px"><button type="button" class="btn btn-primary" data-act="sua">Lưu nội dung</button><button type="button" class="btn btn-ghost" data-act="sua-dong">Huỷ</button></div></div>' : '') +
-      (media ? '<div style="display:flex;flex-wrap:wrap;gap:8px">' + media + '</div>' : '') +
-      ((r.kenh || []).length ? '<p style="margin:0;font-size:13px"><b>Kênh:</b> ' + esc(r.kenh.join(', ')) + '</p>' : '') +
-      (links ? '<p style="margin:0;font-size:13px;line-height:1.6"><b>Liên kết:</b><br>' + links + '</p>' : '') +
-      (r.ghi_chu ? '<p style="margin:0;font-size:13px;padding:8px 10px;border-radius:6px;background:var(--warn-soft);color:var(--warn)"><b>AI ghi chú:</b> ' + esc(r.ghi_chu) + '</p>' : '') +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px">' + acts.join('') + '</div></article>';
+      (ready.length ? '<p class="jb-ready">' + ready.join(' · ') + '</p>' : '') +
+      (j.ghi_chu_khach ? '<p style="margin:0;font-size:13px;color:var(--warn)"><b>Bạn yêu cầu:</b> ' + esc(j.ghi_chu_khach) + '</p>' : '') +
+      '<div class="jb-body' + (media ? ' has-media' : '') + '">' +
+        (media ? '<div class="jb-media">' + media + '</div>' : '') +
+        '<div class="jb-text">' +
+          (r.noi_dung ? '<div data-content class="jb-content">' + md(r.noi_dung) + '</div>' +
+            '<div data-edit hidden style="display:flex;flex-direction:column;gap:8px"><textarea class="field" rows="12">' + esc(r.noi_dung) + '</textarea><div style="display:flex;gap:8px"><button type="button" class="btn btn-primary" data-act="sua">Lưu bài</button><button type="button" class="btn btn-ghost" data-act="sua-dong">Huỷ</button></div></div>'
+            : (j.yeu_cau ? '<p class="muted" style="margin:0;font-size:13px;line-height:1.5"><b>Yêu cầu:</b> ' + esc(j.yeu_cau.slice(0, 400)) + '</p>' : '')) +
+          ((r.kenh || []).length ? '<p style="margin:0;font-size:13px"><b>Kênh đăng:</b> ' + esc(r.kenh.join(', ')) + '</p>' : '') +
+          (links ? '<p style="margin:0;font-size:13px;line-height:1.6"><b>Liên kết:</b><br>' + links + '</p>' : '') +
+          (r.ghi_chu ? '<p class="jb-note"><b>AI ghi chú:</b> ' + esc(r.ghi_chu) + '</p>' : '') +
+          (r.prompt_da_dung ? '<details class="jb-prompt"><summary>Prompt AI đã dùng' + (r.app_da_dung ? ' (' + esc(r.app_da_dung) + ')' : '') + '</summary><pre>' + esc(r.prompt_da_dung) + '</pre></details>' : '') +
+        '</div>' +
+      '</div>' +
+      (review ? '<div class="jb-redo" data-redo hidden><p class="label-mono" style="margin:0">Muốn AI sửa gì?</p><div class="jb-chips">' + REDO.map(function (t) { return '<button type="button" class="btn chip btn-ghost" data-chip>' + esc(t) + '</button>'; }).join('') + '</div>' +
+        '<textarea class="field" rows="3" data-redo-note placeholder="Ghi thêm ý của bạn, ví dụ: ảnh sáng hơn, người mẫu trẻ hơn, nhắc ưu đãi giảm 10%…"></textarea>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-primary" data-act="redo-ngay">Làm lại ngay bằng Trợ lý</button><button type="button" class="btn btn-ghost" data-act="lam_lai">Gửi AI của tôi làm lại</button><button type="button" class="btn btn-ghost" data-act="redo-dong">Huỷ</button></div></div>' : '') +
+      (review && ms.length ? '<div class="jb-redo" data-tusua hidden><p style="margin:0;font-size:13.5px;line-height:1.5">Mở app để tự chỉnh ảnh/video cho ưng ý (tải ảnh/video ở trên về rồi mở trong app), xong dán link bản đã sửa vào đây (hoặc tải lên <a href="kho.html" target="_blank">Kho</a> rồi chép link):</p>' +
+        '<div class="jb-chips">' + editApps(kinds) + '</div>' +
+        '<input class="field" data-media-link placeholder="https://… link ảnh/video đã sửa (nhiều link cách nhau dấu cách)">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-primary" data-act="thay_media">Dùng bản đã sửa</button><button type="button" class="btn btn-ghost" data-act="tu-sua-dong">Huỷ</button></div></div>' : '') +
+      '<div class="jb-acts">' + acts.join('') + '</div></article>';
   }
 
   function render() {
@@ -133,18 +177,33 @@
       $('[data-content]', art).style.display = open ? 'none' : '';
       return;
     }
+    if (act === 'redo-mo' || act === 'redo-dong') { $('[data-redo]', art).hidden = act === 'redo-dong'; var tu = $('[data-tusua]', art); if (tu) tu.hidden = true; return; }
+    if (act === 'tu-sua-mo' || act === 'tu-sua-dong') { $('[data-tusua]', art).hidden = act === 'tu-sua-dong'; $('[data-redo]', art).hidden = true; return; }
+    var job = data.jobs.filter(function (x) { return x.id === id; })[0] || {};
     var body = { action: act, id: id };
     if (act === 'sua') body.noi_dung = $('[data-edit] textarea', art).value;
-    if (act === 'lam_lai' || act === 'tu_choi') {
-      var note = window.prompt(act === 'lam_lai' ? 'Cần AI sửa gì? (AI sẽ đọc ghi chú này khi làm lại)' : 'Lý do từ chối (không bắt buộc)', '');
-      if (note === null) return;
-      body.ghi_chu = note;
+    if (act === 'thay_media') body.media = $('[data-media-link]', art).value.split(/\s+/).filter(Boolean);
+    var redoNote = function () {
+      var chips = Array.prototype.map.call(art.querySelectorAll('[data-chip].on'), function (c) { return c.textContent; });
+      var t = ($('[data-redo-note]', art) || {}).value || '';
+      return chips.concat(t.trim() ? [t.trim()] : []).join('; ');
+    };
+    if (act === 'redo-ngay' || act === 'lam_lai') {
+      body.action = 'lam_lai'; body.ghi_chu = redoNote();
+      if (!body.ghi_chu) { say('Chọn ít nhất 1 ý hoặc ghi thêm điều cần sửa.'); return; }
     }
+    if (act === 'tu_choi') { var note = window.prompt('Lý do từ chối (không bắt buộc)', ''); if (note === null) return; body.ghi_chu = note; }
+    if (act === 'duyet-dang') body.action = 'duyet';
     if (act === 'xoa' && !window.confirm('Xoá phiếu việc này?')) return;
     b.disabled = true;
     say('');
-    api('POST', body).then(load).catch(function (err) { b.disabled = false; say(err.message); });
+    api('POST', body).then(function () {
+      if (act === 'duyet-dang') { location.href = chatLink(art.getAttribute('data-post')); return; }
+      if (act === 'redo-ngay') { location.href = chatLink('Làm lại phiếu việc ' + id + ' ("' + job.tieu_de + '"). Khách yêu cầu sửa: ' + body.ghi_chu + '. Gọi CREWZY_VIEC_CAN_LAM với id để đọc bản cũ (gồm prompt_da_dung), gọi CREWZY_PROMPT_PRO, viết prompt mới sửa đúng ý khách, làm lại ảnh/video và bài, nộp CREWZY_NOP_KET_QUA kèm id ' + id + ' và prompt_da_dung mới.'); return; }
+      return load();
+    }).catch(function (err) { b.disabled = false; say(err.message); });
   });
+  listEl.addEventListener('click', function (e) { var c = e.target.closest('[data-chip]'); if (c) c.classList.toggle('on'); });
 
   // Giao việc mới
   var sel = $('[data-template]');

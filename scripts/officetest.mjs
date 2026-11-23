@@ -161,3 +161,13 @@ assert.equal(bl2.xep_lai, 0, 'mỗi phiếu chỉ xếp lại 1 lần');
 const dg = await digestText(env, 'u7', { slot: 22 });
 assert.ok(dg.noi_dung.includes('KHÁCH CẦN GỌI') && dg.noi_dung.includes('Chị Na') && dg.noi_dung.includes('CÒN TỒN'), dg.noi_dung);
 console.log('ops OK');
+
+// Bộ não prompt: bản chỉ đạo theo Brain + luật app + khổ kênh, không gọi AI.
+import { promptPro } from '../src/lib/promptPro.js';
+store.set('brand:u5', JSON.stringify({ name: 'Nhà Xinh', products: 'Nhà phố Bình Chánh', customers: 'Gia đình trẻ', voice: 'Thân thiện', visual: 'Tông be, ánh nắng ấm', refs: [{ loai: 'video_mau', link: 'https://example.com/v.mp4' }] }));
+const pp = await promptPro(env, 'u5', { loai: 'video', app: 'higgsfield', muc_tieu: 'Giới thiệu nhà mẫu', kenh: ['tiktok', 'twitter', 'abc'] });
+assert.equal(pp.data.luat_app.ten, 'Higgsfield');
+assert.ok(pp.data.dinh_dang_kenh.tiktok && pp.data.dinh_dang_kenh.x && !pp.data.dinh_dang_kenh.abc);
+assert.equal(pp.data.phong_cach.hinh_anh, 'Tông be, ánh nắng ấm');
+assert.equal(pp.data.mau_khach_thich.length, 1);
+console.log('promptPro OK');

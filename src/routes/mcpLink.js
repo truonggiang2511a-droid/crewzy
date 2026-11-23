@@ -2,7 +2,7 @@
 // Link trỏ về cổng /mcp/<token> của app; cổng gắn khoá Composio ở máy chủ, khách không thấy khoá.
 // GET /api/mcp-link[?uid=<mã trình duyệt, chỉ dùng khi chưa bật đăng nhập Google>]
 import { Composio } from '@composio/core';
-import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid } from '../lib/common.js';
+import { TOOLKITS, MAX_ACCOUNTS_PER_TOOLKIT, userIdFor, safeDetail, getApiKey, signUpstream, resolveUid, createSession } from '../lib/common.js';
 import { addLink, deviceLabel } from '../lib/mcpLinks.js';
 
 export default async (req, env) => {
@@ -17,7 +17,7 @@ export default async (req, env) => {
 
   try {
     const composio = new Composio({ apiKey });
-    const session = await composio.create(userIdFor(uid), {
+    const session = await createSession(composio, userIdFor(uid), {
       mcp: true,
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
