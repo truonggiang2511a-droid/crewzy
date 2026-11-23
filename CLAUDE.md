@@ -227,6 +227,10 @@ Bộ nhớ AI học khách (23/11) src/lib/memory.js: KV mem:<uid> (≤80 ghi ch
 MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ DO SÁNG TẠO ảnh/video (MCP_MEDIA_FREE trong workflows.js: instructions cổng MCP + tu_do_sang_tao của CREWZY_QUY_TRINH;
                           forMcp đổi "AI LÀM ẢNH/VIDEO", ĐẠO DIỄN PROMPT → GỢI Ý PROMPT không bắt buộc, bỏ nhắc ffmpeg); KHÔNG tự ghép ảnh/video bằng Python/FFmpeg khi khách
                           không yêu cầu; không có công cụ → ảnh thật Kho + prompt cho khách. Crewzy chỉ lưu + đăng. Trợ lý Crewzy trong app giữ cách làm cũ
+Âm thanh + đa dạng (23/11) WORKFLOW_RULES 'ĐA DẠNG NỘI DUNG' (ảnh, carousel, ảnh động, motion/chữ động/icon động/biểu đồ động, video thật, người dẫn AI, trend) và 'ÂM THANH VIDEO'
+                          (HỎI KHÁCH trước: giọng+nhạc / chỉ nhạc / không; lưu CREWZY_GHI_NHO; giọng theo Brain giong_doc — app đã nối ElevenLabs/HeyGen/Fish/Cartesia, Vbee/FPT chưa có cổng
+                          → khách tạo trên studio.vbee.vn rồi tải Kho; nhạc an toàn bản quyền; luôn phụ đề; ghép bằng HyperFrames/Shotstack/Creatomate). Nhiệm vụ san_xuat ô s4 "Giọng đọc,
+                          nhạc nền" (thêm cuối để không lệch apref). MCP_MEDIA_FREE cho motion bằng công cụ chuyên. Máy chủ Crewzy chưa tự ghép âm thanh (cần container/công cụ dựng)
 src/lib/publish.js        DUYỆT NỘI DUNG TRONG CHAT (23/11): CREWZY_XEM_NOI_DUNG (xổ bài chờ duyệt + ảnh/video + kênh · vị trí + giờ vàng đề xuất) và CREWZY_DUYET_HANG_LOAT
                           (dang_ngay → AI đăng luôn | gio_vang → 10 khung GOLDEN, Crewzy tự đăng qua runDuePosts | hen_gio lệch 2 phút/bài; jobs.approveBatch). Qua link MCP:
                           bảng duyệt MCP Apps ui://crewzy/duyet.html (mcpGateway: _meta.ui.resourceUri, resources/list|read, structuredContent; iframe ui/initialize →

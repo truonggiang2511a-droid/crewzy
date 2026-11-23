@@ -48,7 +48,7 @@ import { appBySlug as appOf } from '../src/lib/catalog.js';
 import { workflowById as wfOf } from '../src/lib/workflows.js';
 assert.equal(MISSIONS.length, 6);
 for (const m of MISSIONS) {
-  assert.ok(m.slots.length >= 2 && m.slots.length <= (m.id === 'san_xuat' ? 4 : 3), m.id + ' phải có 2–3 ô app (sản xuất 4: thêm form thu khách)');
+  assert.ok(m.slots.length >= 2 && m.slots.length <= (m.id === 'san_xuat' ? 5 : 3), m.id + ' phải có 2–3 ô app (sản xuất 5: thêm form thu khách, giọng đọc + nhạc)');
   for (const sl of m.slots) for (const a of sl.apps) assert.ok(a.startsWith('mcp:') || appOf(a), m.id + ': app lạ ' + a);
   for (const l of m.lich) { assert.ok(wfOf(l.id), m.id + ': quy trình lạ ' + l.id); assert.equal(missionOf(l.id).id, m.id); }
 }

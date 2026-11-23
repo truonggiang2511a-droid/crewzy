@@ -3,17 +3,21 @@
 // lich = các bước theo giờ (quy trình trong workflows.js) — đây là NGUỒN DUY NHẤT của dây chuyền Run (autopilot.js CHAIN lấy từ đây).
 // Slot: apps = ứng viên (đã nối cái nào thì dùng cái đó), 'mcp:<id>' = máy chủ MCP ngoài; bat_buoc = thiếu thì chưa chạy được; san_co = Crewzy có sẵn.
 import { appBySlug } from './catalog.js';
-import { MCP_HOSTS } from './mcpDirectory.js';
+import { MCP_HOSTS, mcpById } from './mcpDirectory.js';
 
 export const MISSIONS = [
   { id: 'san_xuat', ten: 'Sản xuất & phân phối nội dung', icon: 'noi_dung', mau: '#E879F9', cat: 'social',
     mo_ta: 'AI làm ảnh/video đẹp từ Brain thương hiệu, viết bài chuyển đổi (hashtag, lời kêu gọi), bạn duyệt 1 chạm rồi đăng mọi mạng xã hội.',
     slots: [
-      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva', 'runway', 'elevenlabs'], cat: 'creative', san_co: 'Crewzy có sẵn ảnh/video AI (credit)',
+      { vai: 'AI làm ảnh, video', apps: ['mcp:higgsfield', 'heygen', 'gemini', 'canva', 'runway', 'mcp:hyperframes'], cat: 'creative', san_co: 'Crewzy có sẵn ảnh/video AI (credit)',
         web: [{ id: 'flow', name: 'Google Flow (Veo)', url: 'https://labs.google/flow', letter: 'F', bg: '#1A73E8' }, { id: 'capcut', name: 'CapCut', url: 'https://www.capcut.com/editor', letter: 'C', bg: '#111111' }] },
       { vai: 'Kênh đăng bài', apps: ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'threads', 'upload_post', 'reddit'], cat: 'social', bat_buoc: true, nhieu: true },
       { vai: 'Form thu khách (link gắn dưới bài đăng)', apps: ['googleforms', 'typeform', 'tally', 'jotform'], cat: 'office', nhieu: true, san_co: 'Chưa có form thì AI dùng link website' },
       { vai: 'Bảng báo cáo bài đã đăng (AI tự lập bảng, gửi link qua email)', apps: ['googlesheets', 'gmail', 'notion', 'airtable'], cat: 'office', nhieu: true, san_co: 'Báo cáo xem trong Kết quả' },
+      // 23/11: thêm CUỐI danh sách để không lệch lựa chọn đã lưu (s0–s3). Giọng Vbee/FPT.AI chưa có cổng kết nối: chọn trong Brain, AI hướng dẫn khách.
+      { vai: 'Giọng đọc, nhạc nền, dựng video có âm thanh', apps: ['elevenlabs', 'heygen', 'fish_audio', 'cartesia', 'mcp:hyperframes', 'shotstack', 'creatomate'], cat: 'creative', nhieu: true,
+        san_co: 'Chưa nối: AI hỏi bạn có lồng giọng không, dùng nhạc miễn phí bản quyền + phụ đề, gợi ý app nên nối',
+        web: [{ id: 'vbee', name: 'Vbee (giọng Việt)', url: 'https://studio.vbee.vn', letter: 'V', bg: '#E5352B' }] },
     ],
     lich: [
       { id: 'san_xuat_5x5', gio: '06:30', ngay: 'hang_ngay', buoc: '5 ảnh + 5 video ngắn từ ảnh thật, bài riêng từng kênh, hẹn 10 giờ đăng cả ngày (chờ duyệt)', tu: 'noi_dung', toi: 'phan_phoi' },
@@ -93,7 +97,7 @@ export const missionById = (id) => MISSIONS.find((m) => m.id === id);
 
 const MCP_URL = { higgsfield: 'https://mcp.higgsfield.ai/mcp' };
 const hrefOf = (s, name) => s.startsWith('mcp:') ? 'ket-noi.html?tab=mcp&ten=' + encodeURIComponent(name) + '&url=' + encodeURIComponent(MCP_URL[s.slice(4)] || '') : 'ket-noi.html?app=' + s;
-const nameOf = (slug) => slug.startsWith('mcp:') ? ({ higgsfield: 'Higgsfield' }[slug.slice(4)] || slug.slice(4)) : (appBySlug(slug) || { name: slug }).name;
+const nameOf = (slug) => slug.startsWith('mcp:') ? ({ higgsfield: 'Higgsfield' }[slug.slice(4)] || (mcpById(slug.slice(4)) || {}).name || slug.slice(4)) : (appBySlug(slug) || { name: slug }).name;
 const isOn = (slug, connected, mcpUrls) => slug.startsWith('mcp:') ? (mcpUrls || []).some((u) => u.includes(MCP_HOSTS[slug.slice(4)] || slug.slice(4))) : (connected || []).includes(slug);
 
 // Trạng thái slot cho giao diện: app đã nối (tối đa 3 hiện ra) + ứng viên đầu tiên chưa nối để gợi ý.
