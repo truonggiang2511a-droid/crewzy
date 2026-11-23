@@ -16,6 +16,7 @@ import { CREWZY_TOOL_DEFS, VIDEO_TOOL, isCrewzyTool, runCrewzyTool, imageShortcu
 import { recordActivity } from '../lib/activity.js';
 import { getFeatures, upgradeHint, applyFeatures, capBrain } from '../lib/billing.js';
 import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
+import { memBlock, MEM_RULE } from '../lib/memory.js';
 import { loadExternalTools } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 import { billingOn, gate, makeMeter, prices } from '../lib/billing.js';
@@ -97,6 +98,8 @@ async function buildSystem(env, composio, uid) {
   if (skills) parts.push('# Skill từng ứng dụng\n' + skills);
   const note = planNote(await getFeatures(env, uid).catch(() => null));
   if (note) parts.push(note);
+  const mem = await memBlock(env, uid).catch(() => '');
+  parts.push(MEM_RULE + (mem ? '\n\n' + mem : ''));
   return { system: parts.join('\n\n'), names, slugs: connected };
 }
 
@@ -145,6 +148,7 @@ function toolLabel(name, input) {
   if (name === 'CREWZY_TAO_VIDEO') return input && input.chat_luong === 'dep' ? 'Đang làm video Đẹp (2–4 phút)' : 'Đang làm video (1–3 phút)';
   if (name === 'CREWZY_BRAIN') return 'Đọc Brain thương hiệu';
   if (name === 'CREWZY_LUU_BRAIN') return 'Lưu vào Brain thương hiệu';
+  if (name === 'CREWZY_GHI_NHO') return 'Ghi nhớ điều vừa học về anh/chị';
   if (name === 'CREWZY_XEM_ANH') return 'Đang xem ảnh';
   if (name === 'CREWZY_KHO') return 'Xem Kho lưu trữ';
   if (name === 'CREWZY_BAO_LEAD') return 'Báo khách tiềm năng cho chủ';

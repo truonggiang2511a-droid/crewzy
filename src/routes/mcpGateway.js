@@ -17,6 +17,7 @@ import { MCP_PROMPTS } from '../lib/jobs.js';
 import { APP_ONLY_TOOLS } from '../lib/workflows.js';
 import { billingOn, gate, makeMeter, getFeatures, applyFeatures } from '../lib/billing.js';
 import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
+import { memBlock, MEM_RULE } from '../lib/memory.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
 
@@ -64,6 +65,8 @@ async function buildInstructions(env, uid) {
   if (skills) parts.push('# Skill từng app\n' + skills);
   const note = planNote(await getFeatures(env, uid).catch(() => null));
   if (note) parts.push(note);
+  const mem = await memBlock(env, uid).catch(() => '');
+  parts.push(MEM_RULE + (mem ? '\n' + mem : ''));
   return { text: parts.join('\n'), names };
 }
 

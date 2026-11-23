@@ -52,6 +52,12 @@
 <span data-save-msg role="status" class="muted" style="font-size:14px"></span>
 </div>
 </form>
+<section class="card" id="bo-nho" style="padding:20px;display:flex;flex-direction:column;gap:12px;max-width:820px;scroll-margin-top:80px">
+<div><h2 style="margin:0;font-size:18px;font-weight:600">AI đã học về bạn</h2><p class="muted" style="margin:4px 0 0;font-size:13px;line-height:1.5">Mỗi lần bạn góp ý, sửa bài hay nói thích/không thích, AI (Trợ lý Crewzy hoặc Claude, ChatGPT… của bạn) tự ghi nhớ ở đây. Lần sau mọi quy trình đều làm theo, khỏi hỏi lại. Ghi chú sai thì xoá.</p></div>
+<div data-mem style="display:flex;flex-direction:column;gap:8px"><p class="muted" style="margin:0;font-size:13px">Đang tải…</p></div>
+<form data-mem-add style="display:flex;flex-wrap:wrap;gap:8px"><select data-mem-loai class="field" style="flex:0 0 200px"></select><input data-mem-text class="field" style="flex:1 1 240px" maxlength="400" placeholder="Ví dụ: Không dùng emoji trong bài Facebook"><button type="submit" class="btn btn-ghost">+ Thêm ghi nhớ</button></form>
+</section>
+<script src="assets/memory.js"></script>
 <p class="muted" style="margin:0;font-size:13px;max-width:820px">Không ghi thông tin cá nhân của khách hàng vào đây. Brain lưu theo tài khoản của bạn trên máy chủ Crewzy.</p>
 </main>
 </div>

@@ -14,6 +14,7 @@ import { listServers } from './mcpServers.js';
 import { LIBRARY_TOOL_DEFS, libraryTool, addItem, listItems } from './library.js';
 import { LEAD_TOOL_DEFS, leadTool, careLead, ceoChannels } from './leads.js';
 import { PROMPT_TOOL_DEFS, promptPro } from './promptPro.js';
+import { MEM_TOOL_DEFS, memTool, listMem, memText } from './memory.js';
 
 const SIZES = {
   vuong: { width: 1024, height: 1024, label: 'vuông 1:1' },
@@ -186,7 +187,7 @@ export async function createVideo(env, uid, origin, args) {
   };
 }
 
-CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS, ...PROMPT_TOOL_DEFS);
+CREWZY_TOOL_DEFS.push(...LIBRARY_TOOL_DEFS, ...LEAD_TOOL_DEFS, ...PROMPT_TOOL_DEFS, ...MEM_TOOL_DEFS);
 
 // Link tải file lên cho AI chạy trên máy khách (Claude Code, Codex): video/ảnh vừa dựng bằng Remotion, HyperFrames, ffmpeg…
 CREWZY_TOOL_DEFS.push({
@@ -243,6 +244,7 @@ async function workflowTool(env, uid, args, connected, surface, instant) {
     bao_ceo,
     doc_truoc: 'BƯỚC 0: đọc kỹ thuong_hieu dưới đây (và mở các link mẫu tham khảo) trước khi làm bất cứ bước nào.',
     thuong_hieu: brandPack(brand, !!w.media),
+    bo_nho_ve_khach: memText(await listMem(env, uid)) || undefined,
     dinh_dang_kenh: formatsFor(connected, mcpIds),
     id: w.id, phong: depName[w.phong], ten: w.ten, mo_ta: tx(w.mo_ta), can_hoi_khach: w.hoi || undefined,
     kenh: w.kenh, loai_ket_qua: w.loai,
@@ -391,7 +393,8 @@ export async function readBrain(env, uid, connectedNames) {
   const brand = await getBrand(env, uid);
   const text = brandText(brand);
   const pack = brandPack(brand, true);
-  return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
+  const mem = memText(await listMem(env, uid));
+  return { data: { brain: text || 'Chưa điền Brain thương hiệu. Hỏi người dùng thông tin cần thiết, không tự bịa.', bo_nho_ve_khach: mem || 'Chưa có. Khách góp ý/sửa gì thì lưu bằng CREWZY_GHI_NHO.', mau_tham_khao: pack.mau_tham_khao, giong_doc: pack.giong_doc, nhac: pack.nhac, con_thieu: pack.thieu, app_da_ket_noi: connectedNames || [] } };
 }
 
 // ẢNH THẬT TRƯỚC (23/11, Giang: AI vẽ ảnh giả không đúng thương hiệu, tốn tiền): Kho có ảnh thật (không tính ảnh AI tạo) thì
@@ -417,6 +420,7 @@ export async function runCrewzyTool(env, { uid, origin, name, args, connectedNam
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
     if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
     if (name === 'CREWZY_LUU_BRAIN') return await saveBrainFields(env, uid, args);
+    if (name === 'CREWZY_GHI_NHO') return await memTool(env, uid, args, agent);
     if (name === 'CREWZY_TAO_VIDEO') return await createVideo(env, uid, origin, args);
     if (name === 'CREWZY_QUY_TRINH') return await workflowTool(env, uid, args, connected || [], surface, !!instant);
     if (name === 'CREWZY_VIEC_CAN_LAM') return await jobsForAi(env, uid, args && args.tat_ca, agent, args && args.id);

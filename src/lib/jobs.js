@@ -2,6 +2,7 @@
 //   Crewzy/khách giao việc (trang Việc chờ duyệt → Giao việc) → AI nhận bằng CREWZY_VIEC_CAN_LAM
 //   → AI làm bằng app đã kết nối + skill của nó → nộp bằng CREWZY_NOP_KET_QUA → khách duyệt → AI (hoặc Trợ lý) đăng → cập nhật "đã đăng".
 // KV `jobs:<uid>` = mảng phiếu (mới nhất trước, tối đa 150). Chưa chống ghi đè khi 2 nơi ghi cùng lúc (đủ cho giai đoạn thử).
+import { addMem } from './memory.js';
 import { kvGetJson, kvPutJson } from './common.js';
 import { rehostUrl } from './media.js';
 import { getBrand, putBrand, cleanBrand, BRAND_FIELDS } from './brand.js';
@@ -69,6 +70,10 @@ export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu
   else if (map[action]) j.trang_thai = map[action];
   else return { error: 'Thao tác không hợp lệ.' };
   if (ghi_chu) j.ghi_chu_khach = clip(ghi_chu, 1000);
+  // Học khách: góp ý lúc "Yêu cầu làm lại" / "Từ chối" lưu vào Bộ nhớ để lần sau mọi AI làm đúng ý ngay từ đầu.
+  if (ghi_chu && (action === 'lam_lai' || action === 'tu_choi')) {
+    await addMem(env, uid, { loai: 'gop_y', noi_dung: `${action === 'tu_choi' ? 'Khách từ chối' : 'Khách yêu cầu sửa'} "${clip(j.tieu_de, 60)}": ${clip(ghi_chu, 300)}`, nguon: 'Duyệt bài' }).catch(() => null);
+  }
   j.cap_nhat = now();
   j.lich_su = [...(j.lich_su || []), { luc: now(), viec: action === 'sua' ? 'Bạn sửa nội dung' : action === 'thay_media' ? 'Bạn thay ảnh/video bằng bản tự sửa' : 'Bạn chuyển sang: ' + STATUSES[j.trang_thai] + (ghi_chu ? ' — ' + clip(ghi_chu, 200) : '') }].slice(-20);
   await saveJobs(env, uid, jobs);

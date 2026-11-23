@@ -208,6 +208,10 @@ Gói (23/11 16:47, billing.js) 4 gói: thang 199k/30 ngày (Haiku, 1 tài khoả
                           pay.js: khung "Content mỗi tháng" + ô "Thêm Fanpage/thương hiệu" tự cộng giá. Test: agencytest, billingtest
 Agency (23/11)            Doanh nghiệp con = mã khách "<chủ>-b<n>" (cookie cz_biz, KV biz:<chủ>, /api/doanh-nghiep tao|chon|doi_ten, src/routes/business.js); resolveUid trả
                           {uid, owner, biz}; billing.js ownerUid() trong getAccount/charge/grant… → tiền/gói theo chủ; trang Gói dùng owner, 4 bước theo DN. layout.js: ô chọn DN
+Bộ nhớ AI học khách (23/11) src/lib/memory.js: KV mem:<uid> (≤80 ghi chú, loại phong_cach/tu_ngu/quy_tac/gop_y/cach_lam/thong_tin, trùng bỏ, đầy bỏ cũ trừ quy_tac);
+                          công cụ CREWZY_GHI_NHO (chat + link MCP, lưu/xoá) · memBlock + MEM_RULE nạp vào system Trợ lý và instructions MCP · CREWZY_BRAIN và CREWZY_QUY_TRINH trả
+                          bo_nho_ve_khach · WORKFLOW_RULES "HỌC KHÁCH" · jobs.js: góp ý khi Làm lại/Từ chối tự ghi bộ nhớ · /api/bo-nho + mục "AI đã học về bạn" ở thuong-hieu.html
+                          (assets/memory.js). Test: scripts/memorytest.mjs. AI ngoài phải ngắt/nối lại connector để thấy CREWZY_GHI_NHO
 MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ làm ảnh/video (forMcp viết lại "AI LÀM ẢNH/VIDEO" của san_xuat_5x5; instructions cổng MCP), Crewzy chỉ lưu + đăng
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
