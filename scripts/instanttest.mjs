@@ -21,7 +21,10 @@ assert.equal(instantCredits(env, 0.0001), 1);
 assert.equal(instantCredits(env, 0), 0);
 
 // 3. Trần ngày: khách vượt 0,3 USD thì tắt Instant cho khách đó, khách khác vẫn dùng; toàn app vượt 1 USD thì tắt hết.
-assert.deepEqual(await instantConfig(env, 'khach-a'), { returnInstantCharge: true, returnPricesInSearch: true });
+const cfg = await instantConfig(env, 'khach-a');
+assert.equal(cfg.returnInstantCharge, true); assert.equal(cfg.returnPricesInSearch, true);
+assert.ok(cfg.tools.higgsfield.enable.includes('HIGGSFIELD_GENERATE_SOUL_V2_IMAGE'), 'Higgsfield Instant có ảnh');
+assert.ok(!cfg.tools.higgsfield.enable.some((t) => /SEEDANCE|VIDEO/.test(t)), 'Higgsfield Instant KHÔNG có video');
 await recordInstant(env, 'khach-a', 0.31);
 assert.equal(await instantConfig(env, 'khach-a'), false);
 assert.ok(await instantConfig(env, 'khach-b'));
