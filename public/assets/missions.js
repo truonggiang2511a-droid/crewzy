@@ -149,7 +149,7 @@
       '</button>' + detail +
       '<div class="mz-act">' +
         '<button type="button" class="btn btn-primary" data-run="' + esc(m.id) + '">▶ Chạy ngay</button>' +
-        '<button type="button" class="btn btn-ghost" data-ai-run="' + esc(m.id) + '" title="Chạy bằng Claude/ChatGPT của bạn (nối Crewzy 1 lần bấm)">✦ Chạy bằng AI của bạn</button>' +
+        '<button type="button" class="btn btn-ghost" data-ai-run="' + esc(m.id) + '" title="Chạy bằng Claude/ChatGPT của bạn (nối Crewzy 1 lần bấm)">✦ <span class="mz-long">Chạy bằng </span>AI của bạn</button>' +
         (!m.dang_chay && !m.san_sang ? '<button type="button" class="btn btn-ghost" data-open="' + esc(m.id) + '">+ Nối app</button>' :
         '<button type="button" class="btn btn-ghost" data-nv="' + esc(m.id) + '" data-on="' + (m.dang_chay ? '1' : '') + '"' + (b ? ' disabled' : '') + '>' +
           (b ? 'Đang lưu…' : m.dang_chay ? '⏸ Tắt tự chạy' : '⏰ Tự chạy') + '</button>') +

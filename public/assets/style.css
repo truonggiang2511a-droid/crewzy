@@ -379,7 +379,7 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
   .office-map { padding: 14px 12px 12px; }
   .office-legend { display: none; }
   .office-head p { font-size: 12px; }
-  .of-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .of-tiles { display: none; } /* 23/11 Giang: bỏ lưới thẻ phòng trên điện thoại cho gọn, bấm nhánh trên cây để xem chi tiết */
   .of-tile { position: relative; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 92px; padding: 12px; border-radius: 12px;
     background: #1A1A1A; border: 1px solid #2C2C2C; color: #F2F2F2; font: inherit; cursor: pointer; }
   .of-tile[aria-pressed="true"] { border-color: #8B9BFF; box-shadow: 0 0 0 1px #8B9BFF inset; }
@@ -651,3 +651,30 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .biz-switch { display: grid; gap: 4px; margin: 10px 0 4px; padding: 10px; border: 1px solid #E5E5E5; border-radius: 10px; background: #fff; }
 .biz-switch select { font: inherit; font-size: 14px; padding: 8px; border: 1px solid #E2E2E2; border-radius: 8px; background: #FAFAFA; width: 100%; }
 .msheet-card .biz-switch { margin: 0 0 10px; }
+
+/* Trang Trợ lý (23/11): khoá cuộn cả trang, CHỈ khung tin nhắn cuộn → kéo xuống không lộ khoảng trống, khung chat không trôi.
+   Điện thoại: khung chat cố định giữa thanh trên (52px) và thanh dưới; bàn phím mở (kb-open, chat.js đọc visualViewport) → ẩn thanh dưới, khung chat vừa phần màn còn lại. */
+html.cz-lock, html.cz-lock body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+@media (max-width: 760px) {
+  html.cz-lock body { position: fixed; inset: 0; width: 100%; }
+  html.cz-lock .mtop { position: fixed; left: 0; right: 0; top: 0; }
+  html.cz-lock .cz-chat { position: fixed; left: 0; right: 0; top: 52px; bottom: calc(64px + env(safe-area-inset-bottom)); height: auto !important; padding: 8px 10px 8px !important; }
+  html.cz-lock.kb-open .mbar { display: none; }
+  html.cz-lock.kb-open .cz-chat { top: calc(var(--vvt, 0px) + 52px); bottom: auto; height: calc(var(--vvh, 100%) - 52px) !important; }
+}
+
+/* Soát giao diện điện thoại (23/11): thẻ nhiệm vụ 3 nút 1 hàng, thẻ app gọn 2 dòng, mô tả cắt 2 dòng */
+@media (max-width: 760px) {
+  .mz-card > .mz-act { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .mz-card > .mz-act .btn { min-height: 40px; padding: 0 4px; font-size: 10.5px; letter-spacing: .02em; white-space: nowrap; }
+  .mz-long { display: none; }
+  .app-grid { gap: 8px !important; }
+  .app-card { min-height: 0 !important; padding: 12px !important; align-items: center; }
+  .app-card .app-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12.5px !important; }
+}
+@media (max-width: 760px) {
+  /* Thanh lọc (seg) 1 hàng, vuốt ngang khi dài — không rớt dòng lẻ "Tất cả" */
+  .seg { flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg > * { flex: none; }
+}

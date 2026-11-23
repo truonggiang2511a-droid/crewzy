@@ -63,15 +63,15 @@
     var soon = app.status !== 'ready';
     var extra = app.kind === 'mcp' ? '<p class="muted" style="margin:2px 0 0;font-size:12px">MCP · ' + (app.ngoai ? 'dán link vào Claude/ChatGPT' : app.auth === 'none' ? 'không cần đăng nhập' : 'đăng nhập ' + esc(app.name)) + '</p>' : '';
     var attr = app.kind === 'mcp' ? 'data-mcp-card="' + esc(mcpHref(app)) + '"' : 'data-app="' + app.slug + '"';
-    return '<div class="card" ' + attr + ' role="button" tabindex="0" aria-label="Xem ' + esc(app.name) + '" style="display:flex;gap:12px;padding:14px;cursor:pointer;min-height:96px' + (soon ? ';background:#FCFCFC' : '') + '">' +
+    return '<div class="card app-card" ' + attr + ' role="button" tabindex="0" aria-label="Xem ' + esc(app.name) + '" style="display:flex;gap:12px;padding:14px;cursor:pointer;min-height:96px' + (soon ? ';background:#FCFCFC' : '') + '">' +
       '<div style="' + (soon ? 'opacity:.55;filter:grayscale(.4)' : '') + '">' + logo(app) + '</div>' +
       '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><p style="margin:0;font-weight:600;font-size:15px">' + esc(app.name) + '</p>' + statusHtml(app) + '</div>' +
-      '<p class="muted" style="margin:0;font-size:13px;line-height:1.45">' + esc(app.desc) + '</p>' + extra + '</div></div>';
+      '<p class="muted app-desc" style="margin:0;font-size:13px;line-height:1.45">' + esc(app.desc) + '</p>' + extra + '</div></div>';
   }
 
   function grid(apps) {
-    return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">' + apps.map(card).join('') + '</div>';
+    return '<div class="app-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">' + apps.map(card).join('') + '</div>';
   }
 
   function section(title, apps) {

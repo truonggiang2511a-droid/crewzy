@@ -183,6 +183,20 @@
     grouped().filter(function (it) { return it.kind !== 'memo'; }).forEach(function (it) { thread.appendChild(renderItem(it)); });
     scrollEnd();
   }
+  // Khung chat cố định (23/11): bàn phím điện thoại mở → co khung chat theo visualViewport, ẩn thanh dưới (style.css html.cz-lock.kb-open).
+  (function fitViewport() {
+    var root = document.documentElement, vv = window.visualViewport;
+    root.classList.add('cz-lock');
+    if (!vv) return;
+    var fit = function () {
+      var kb = window.innerHeight - vv.height > 120;
+      root.classList.toggle('kb-open', kb);
+      root.style.setProperty('--vvh', vv.height + 'px');
+      root.style.setProperty('--vvt', vv.offsetTop + 'px');
+      if (kb) requestAnimationFrame(function () { var l = document.getElementById('chat-log'); if (l) l.scrollTop = l.scrollHeight; });
+    };
+    vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); fit();
+  })();
   function scrollEnd() { requestAnimationFrame(function () { log.scrollTop = log.scrollHeight; }); }
   function add(item) {
     if (!items.length) thread.innerHTML = '';
