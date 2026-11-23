@@ -83,8 +83,8 @@ export default async (req, env, ctx) => {
     leaves.splice(8);
     const sch = schedules.filter((s) => s.bat && flows.some((w) => w.id === s.quy_trinh));
     let status = 'idle';
-    if (waiting.length) status = 'wait';
-    else if (working.length) status = 'work';
+    if (working.length) status = 'work'; // đang làm ưu tiên hiện trước (Run trên cây thấy ngay phòng nào đang chạy)
+    else if (waiting.length) status = 'wait';
     else if (todo.length || approved.length) status = 'queue';
     else if (doneRecent.length) status = 'done';
     else if (!ready.length && flows.length) status = 'setup';

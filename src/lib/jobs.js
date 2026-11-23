@@ -47,6 +47,30 @@ export async function createJob(env, uid, { tieu_de, yeu_cau, loai, nguon, quy_t
 }
 
 // Khách thao tác trên trang: duyệt, từ chối, sửa nội dung, xoá.
+// Nút ▶ Run trên Cây vận hành (src/lib/runner.js): tạo nhiều phiếu trong 1 lượt ghi KV; dừng giữa chừng → đóng các phiếu chưa làm.
+export async function createJobs(env, uid, items) {
+  const jobs = await listJobs(env, uid);
+  const made = items.map((it) => {
+    const w = workflowById(it.quy_trinh);
+    return { id: newId(), tieu_de: clip(it.tieu_de, 120) || (w ? w.ten : 'Việc mới'), yeu_cau: clip(it.yeu_cau || (w ? workflowPrompt(w) : ''), 4000),
+      loai: w ? w.loai : 'khac', quy_trinh: w ? w.id : undefined, trang_thai: 'cho_lam', ket_qua: null, nguoi_lam: '', nguon: clip(it.nguon || 'run', 40),
+      ...(it.run ? { run: String(it.run).slice(0, 20) } : {}), tao_luc: now(), cap_nhat: now(), lich_su: [{ luc: now(), viec: 'Tạo phiếu việc (bấm Run)' }] };
+  });
+  jobs.unshift(...made.slice().reverse());
+  await saveJobs(env, uid, jobs);
+  return made;
+}
+export async function closeJobs(env, uid, ids, note) {
+  const jobs = await listJobs(env, uid);
+  let n = 0;
+  for (const j of jobs) if (ids.includes(j.id) && ['cho_lam', 'dang_lam'].includes(j.trang_thai)) {
+    j.trang_thai = 'xong'; j.cap_nhat = now(); j.ket_qua = { ...(j.ket_qua || {}), ghi_chu: clip(note, 300) };
+    j.lich_su = [...(j.lich_su || []), { luc: now(), viec: clip(note, 80) }].slice(-20); n++;
+  }
+  if (n) await saveJobs(env, uid, jobs);
+  return n;
+}
+
 export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu, media }) {
   const jobs = await listJobs(env, uid);
   const i = jobs.findIndex((j) => j.id === id);

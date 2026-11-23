@@ -280,7 +280,9 @@
     var t = el('text', { x: x + 21, y: y + h / 2 + fs * 0.36, fill: '#FFFFFF', 'font-size': fs, 'font-weight': 600 }, g); t.textContent = txt;
   }
   function drawRoom(layer, n, r, isRoot, labelTop) {
-    var st = STATUS[r.status], col = COLOR[r.id] || '#999', busy = !!roomBusy(r);
+    // ▶ Run đang chạy bước của phòng này (assets/run.js) → sáng "Đang làm" + việc AI đang làm, không chờ 20 giây tải lại.
+    var rn = window.crewzyRunNow, live = !!(rn && rn.phong === r.id);
+    var st = live ? STATUS.work : STATUS[r.status], col = COLOR[r.id] || '#999', busy = live || !!roomBusy(r);
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': r.name + ': ' + st.label, 'data-node': r.id, style: 'cursor:pointer' }, layer);
     var R = isRoot ? L.RR : L.R;
     if (busy) {
@@ -307,6 +309,7 @@
     var ly = labelTop ? n.y - R - L.font * 1.9 : n.y + R + L.font * 1.45;
     label(g, n.x, ly, L.names[r.id] || r.name, L.font, '#FFFFFF');
     var t2 = el('text', { x: n.x, y: ly + L.sub * 1.4, 'text-anchor': 'middle', fill: st.color, 'font-size': L.sub }, g);
+    if (live) { var lt = '▶ ' + (rn.label || 'Đang làm'); var mx = isMobile() ? 16 : 30; t2.textContent = lt.length > mx ? lt.slice(0, mx - 1) + '…' : lt; return; }
     t2.textContent = isMobile() && r.status === 'idle' ? '' : st.label + (r.status === 'done' && !isMobile() ? ' · ' + r.counts.xong_24h + ' việc' : '');
   }
   function drawKho(layer, p, lit) {
@@ -322,7 +325,7 @@
     var s2 = el('text', { x: p[0], y: ly + L.sub * 1.4, 'text-anchor': 'middle', fill: '#8F8F8F', 'font-size': L.sub }, g); s2.textContent = 'ảnh, video, tài liệu';
   }
   function drawBrain(layer, n) {
-    var on = brainActive() || state.rooms.some(roomBusy);
+    var on = brainActive() || !!window.crewzyRunNow || state.rooms.some(roomBusy);
     var R = L.BR;
     var g = el('g', { class: 'onode', tabindex: '0', role: 'button', 'aria-label': 'Bộ não AI điều phối', 'data-node': 'brain', style: 'cursor:pointer' }, layer);
     var aura = el('circle', { cx: n.x, cy: n.y, r: R + 12, fill: '#4652FF', opacity: on ? 0.35 : 0.12, filter: 'url(#soft)' }, g);
@@ -534,10 +537,16 @@
   var autoBody = document.querySelector('[data-auto-body]');
   function renderAuto() {
     var a = state.autopilot || {};
-    autoBox.className = 'of-auto' + (a.bat ? ' on' : '');
+    var rv = window.crewzyRun && window.crewzyRun.state();
+    autoBox.className = 'of-auto' + (a.bat || (rv && !rv.het) ? ' on' : '');
+    if (rv && !rv.het) {
+      var rn = window.crewzyRunNow;
+      autoBox.innerHTML = '<p><span class="of-auto-dot" aria-hidden="true"></span><b>Đang chạy dây chuyền · ' + rv.xong + '/' + rv.tong + ' bước</b><small>' + (rn ? esc((SHORT[rn.phong] || '') + ': ' + rn.ten + ' — ' + (rn.label || 'đang làm')) : 'AI đang làm từng bước, xem trạng thái ngay trên cây.') + '</small></p><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" data-auto-open>Xem dây chuyền</button></div>';
+      return;
+    }
     autoBox.innerHTML = a.bat
-      ? '<p><span class="of-auto-dot" aria-hidden="true"></span><b>Đang chạy tự động</b> · ' + a.so_lich + ' bước theo giờ<small>AI tự làm theo dây chuyền. Bạn chỉ cần duyệt bài và gọi khách trong bản tin sáng.</small></p><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" data-auto-open>Xem dây chuyền</button></div>'
-      : '<p><b>Chạy tự động cả cây</b><small>Bấm 1 lần: nội dung → đăng kênh → trả lời bình luận → khách vào CRM → nhắc sale → báo cáo vào Sheet, mỗi ngày đúng giờ.</small></p><button type="button" class="btn btn-run" data-auto-open>▶ Run</button>';
+      ? '<p><span class="of-auto-dot" aria-hidden="true"></span><b>Đang chạy tự động</b> · ' + a.so_lich + ' bước theo giờ<small>AI tự làm theo dây chuyền. Bạn chỉ cần duyệt bài và gọi khách trong bản tin sáng.</small></p><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" data-auto-open>Xem dây chuyền</button><button type="button" class="btn btn-run" data-run-all>▶ Run ngay</button></div>'
+      : '<p><b>Chạy tự động cả cây</b><small>Bấm Run: AI làm thật ngay từng bước trên cây (nội dung → đăng kênh → trả lời khách → CRM → bản tin cho bạn), rồi tự chạy mỗi ngày đúng giờ.</small></p><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" data-auto-open>Xem dây chuyền</button><button type="button" class="btn btn-run" data-run-all>▶ Run</button></div>';
   }
   function openAuto() {
     autoBody.innerHTML = '<p class="muted">Đang kiểm tra app và Brain…</p>';
@@ -562,7 +571,7 @@
       var ev = p.su_kien.filter(function (x) { return !x.form; }), fm = p.su_kien.filter(function (x) { return x.form; });
       html += '<p class="of-auto-note"><b>Sự kiện tức thì</b> (không chờ tới giờ): ' + ev.map(function (x) {
         return esc(x.ten) + ' ' + (x.bat ? '<span style="color:#15803D">● đang nhận</span>' : x.da_noi ? '<span>· bật khi Run</span>' : '<a href="ket-noi.html?app=' + x.app + '">· nối</a>');
-      }).join(' · ') + '. Khách để lại số, điền form hoặc đặt lịch là Crewzy lưu lead, ghi CRM và email báo bạn ngay. Bình luận Facebook, Instagram chưa có sự kiện tức thì nên AI vẫn quét mỗi giờ.</p>';
+      }).join(' · ') + '. Khách để lại số, điền form hoặc đặt lịch là Crewzy lưu lead, ghi CRM và email báo bạn ngay. Fanpage Facebook: Crewzy trực 15 phút/lần, có bình luận/tin nhắn mới là AI trả lời liền; Instagram và kênh khác AI quét mỗi giờ.</p>';
       html += '<div class="of-auto-form"><b>Nhận khách từ form</b>' + fm.map(function (x) {
         if (!x.da_noi) return '<p class="of-auto-note" style="margin:6px 0 0">' + esc(x.ten) + ': <a href="ket-noi.html?app=' + x.app + '">nối ' + (x.app === 'typeform' ? 'Typeform' : 'Google Sheets') + '</a> trước.</p>';
         return '<label>' + esc(x.ten) + (x.bat ? ' <span style="color:#15803D">● đang nhận</span>' : '') + '<input type="url" data-form="' + x.app + '" value="' + esc(x.gia_tri ? (x.app === 'typeform' ? 'https://form.typeform.com/to/' + x.gia_tri : 'https://docs.google.com/spreadsheets/d/' + x.gia_tri) : '') + '" placeholder="' + (x.app === 'typeform' ? 'Link form Typeform' : 'Link Google Sheet chứa câu trả lời form') + '"></label>' +
@@ -570,7 +579,8 @@
       }).join('') + (fm.some(function (x) { return x.da_noi; }) ? '<button type="button" class="btn btn-ghost" data-form-save>Lưu form</button>' : '') + '</div>';
     }
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' + (p.bat ? '<button type="button" class="btn btn-ghost" data-auto-off>Tắt chạy tự động</button>' : '') +
-      '<button type="button" class="btn btn-primary" data-auto-on' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>' + (p.bat ? 'Cập nhật dây chuyền (' + nOn + ' bước)' : 'Bật chạy tự động (' + nOn + ' bước)') + '</button></div>';
+      '<button type="button" class="btn ' + (p.bat ? 'btn-ghost' : 'btn-ghost') + '" data-auto-on' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>' + (p.bat ? 'Cập nhật lịch (' + nOn + ' bước)' : 'Chỉ bật tự chạy mỗi ngày') + '</button>' +
+      '<button type="button" class="btn btn-primary" data-run-all' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>▶ Run ngay</button></div>';
     autoBody.innerHTML = html;
   }
   function autoPost(action) {
@@ -582,10 +592,29 @@
         load(); document.dispatchEvent(new CustomEvent('crewzy:autopilot-changed'));
       });
   }
-  autoBox.addEventListener('click', function (e) { if (e.target.closest('[data-auto-open]')) openAuto(); });
+  // ▶ Run: chạy thật ngay trên cây (assets/run.js) + bật tự chạy mỗi ngày. Thiếu Brain/app → mở dây chuyền để thấy cần làm gì.
+  function runAll(btn) {
+    if (!window.crewzyRun) return openAuto();
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang khởi động…'; }
+    window.crewzyRun.start(null, { lap: true }).then(function (out) {
+      if (out && out.error && !out.run) {
+        autoBody.innerHTML = ''; if (autoDlg.showModal) autoDlg.showModal(); else autoDlg.setAttribute('open', '');
+        if (out.plan) drawPlan(out.plan, out.error); else autoBody.innerHTML = '<p class="of-auto-note" style="color:#B45309">' + esc(out.error) + '</p>';
+      } else if (autoDlg.open) autoDlg.close();
+      renderAuto(); load();
+    }).catch(function () { renderAuto(); });
+  }
+  autoBox.addEventListener('click', function (e) { if (e.target.closest('[data-run-all]')) runAll(e.target.closest('[data-run-all]')); else if (e.target.closest('[data-auto-open]')) openAuto(); });
+  document.addEventListener('crewzy:run', function (e) {
+    var t = (e.detail || {}).type;
+    if (!state) return;
+    if (t === 'tool') { renderGraph(); renderAuto(); }
+    else { renderAuto(); load(); }
+  });
   document.addEventListener('crewzy:autopilot', function () { load(); }); // thẻ 6 nhiệm vụ vừa bật/tắt (assets/missions.js)
   autoDlg.addEventListener('click', function (e) {
     if (e.target === autoDlg || e.target.closest('[data-auto-close]')) autoDlg.close();
+    else if (e.target.closest('[data-run-all]')) runAll(e.target.closest('[data-run-all]'));
     else if (e.target.closest('[data-auto-on]')) autoPost('bat');
     else if (e.target.closest('[data-auto-off]')) autoPost('tat');
     else if (e.target.closest('[data-form-save]')) {

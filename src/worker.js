@@ -7,6 +7,8 @@ import leads from './routes/leads.js';
 import { handleWebhook, runEventQueue } from './lib/events.js';
 import { runBacklog, runDigest, runDuePosts } from './lib/ops.js';
 import { runInbox } from './lib/inbox.js';
+import { runJobAuto, runPendingRuns } from './lib/runner.js';
+import run from './routes/run.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -39,7 +41,7 @@ import { listJobs } from './lib/jobs.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice, '/api/doanh-nghiep': business, '/api/bo-nho': memoryRoute,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice, '/api/doanh-nghiep': business, '/api/run': run, '/api/bo-nho': memoryRoute,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 
@@ -67,32 +69,8 @@ export default {
   // Cron mỗi 15 phút (wrangler.jsonc → triggers.crons): chạy các quy trình đã hẹn giờ.
   async scheduled(controller, env, ctx) {
     const origin = env.PUBLIC_ORIGIN || 'https://crewzy.truonggiang2511a.workers.dev';
-    const runAuto = async (uid, job, prompt) => {
-      if (!env.ANTHROPIC_API_KEY) {
-        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: máy chủ chưa bật credit của Crewzy. Hãy giao cho AI của bạn hoặc bấm Làm ngay bằng Trợ lý Crewzy.', trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
-        return;
-      }
-      // Gói và credit (khi bật): hết hạn gói hoặc hết credit thì không tự chạy; còn thì trừ theo token + công cụ như chat.
-      const blocked = await gate(env, uid, { needCredits: prices(env).min_start }).catch(() => null);
-      if (blocked) {
-        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: ' + blocked.error, trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
-        return;
-      }
-      const meter = await makeMeter(env, uid).catch(() => null);
-      const over = meter ? null : await takeAppQuota(env, uid).catch(() => null);
-      if (over) {
-        await submitResult(env, uid, origin, { id: job.id, tieu_de: job.tieu_de, noi_dung: 'Chưa chạy tự động: ' + over, trang_thai: 'xong', nguoi_lam: 'Crewzy (hẹn giờ)' });
-        return;
-      }
-      await markWorking(env, uid, job.id, 'Trợ lý Crewzy (hẹn giờ)').catch(() => {});
-      const texts = [];
-      // Tự trả lời bình luận chạy mỗi giờ → Haiku cho rẻ; lịch làm nội dung/báo cáo → Opus (mặc định).
-      // Bộ não theo gói (23/11): MCP 1 tháng Haiku, 6 tháng Sonnet, 1 năm/Agency Opus cho mọi việc; riêng đăng bài hẹn giờ (máy móc) luôn Haiku cho rẻ.
-      const featB = await getFeatures(env, uid).catch(() => null);
-      const brain = /ĐĂNG THEO GIỜ HẸN/.test(prompt) ? 'tiet_kiem' : (featB && featB.ai) || 'can_bang';
-      await runAgent({ env, uid, origin, mode: 'app', brain, messages: [{ role: 'user', content: prompt }], emit: (e) => { if (e.type === 'text') texts.push(e.text); }, timeBudgetMs: 240000, meter });
-      console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
-    };
+    // Chạy 1 phiếu bằng Trợ lý Crewzy (src/lib/runner.js runJobAuto: kiểm gói/credit, đo credit, nhận việc, chạy AI, AI quên nộp thì tự đóng phiếu).
+    const runAuto = (uid, job, prompt) => runJobAuto(env, { uid, origin, job, prompt, deps: { runAgent, takeAppQuota } }).then((r) => console.log('auto run done', uid, job.id, (r && (r.error || r.text)) || ''));
     ctx.waitUntil(runWeeklyReports(env, { origin, submitResult, listJobs, plans: plans(env) }).then((r) => console.log('weekly', JSON.stringify(r))).catch((e) => console.error('weekly failed', e && e.stack)));
     ctx.waitUntil(runBacklog(env, { origin }).then((r) => console.log('backlog', JSON.stringify(r))).catch((e) => console.error('backlog failed', e && e.stack)));
     ctx.waitUntil(runDigest(env, { origin }).then((r) => console.log('digest', JSON.stringify(r))).catch((e) => console.error('digest failed', e && e.stack)));
@@ -101,6 +79,8 @@ export default {
     // Trực Fanpage 15 phút: quét bằng code trước hàng đợi để bình luận/tin nhắn mới được AI trả lời ngay lượt này.
     await runInbox(env).then((r) => console.log('inbox', JSON.stringify(r))).catch((e) => console.error('inbox failed', e && e.stack));
     ctx.waitUntil(runEventQueue(env, { origin, runAuto }).then((r) => console.log('events', JSON.stringify(r))).catch((e) => console.error('events failed', e && e.stack)));
+    // Run trên cây mà trang đã đóng giữa chừng → làm nốt.
+    ctx.waitUntil(runPendingRuns(env, { origin, deps: { runAgent, takeAppQuota } }).then((r) => console.log('runs', JSON.stringify(r))).catch((e) => console.error('runs failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
 };

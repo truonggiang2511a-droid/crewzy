@@ -162,7 +162,7 @@
     var running = list.filter(function (m) { return m.dang_chay; }).length;
     var head = '<div class="mz-head"><div><h2>6 nhiệm vụ <span class="hl">hằng ngày</span></h2><p>Mỗi nhiệm vụ chỉ cần 2–3 app. <b>Chạy ngay</b> để AI làm luôn, <b>Tự chạy</b> để AI làm đúng giờ mỗi ngày.</p></div>' +
       '<div class="mz-all">' + (running ? '<span class="label-mono">' + running + '/6 đang tự chạy</span>' : '') +
-      '<button type="button" class="btn btn-primary" data-nv-all' + (busy ? ' disabled' : '') + '>' + (busy === 'all' ? 'Đang bật…' : '▶ Run tất cả') + '</button>' +
+      '<button type="button" class="btn btn-primary" data-nv-all' + (busy ? ' disabled' : '') + '>' + (busy === 'all' ? 'Đang khởi động…' : '▶ Run tất cả') + '</button>' +
       (running ? '<button type="button" class="btn btn-ghost" data-nv-off' + (busy ? ' disabled' : '') + '>Tắt hết</button>' : '') + '</div></div>';
     var warn = !data.brand_ok ? '<p class="mz-warn">Điền <a href="thuong-hieu.html">Brain thương hiệu</a> (tên, sản phẩm, khách hàng, giọng văn) trước khi bật tự chạy, để AI làm đúng thương hiệu.</p>' : '';
     if (data.lich_goi === 0) warn += '<p class="mz-warn">Gói hiện tại chưa có tự chạy theo giờ — vẫn bấm Chạy ngay được. <a href="goi.html">Nâng gói</a> để AI tự làm mỗi ngày.</p>';
@@ -222,7 +222,16 @@
         .then(function (r) { return r.json(); }).then(function (j) {
           if (j.nhiem_vu) data.nhiem_vu = j.nhiem_vu;
           dlg = null;
-          if (d0.mode === 'chay') { location.href = 'chat.html?q=' + encodeURIComponent(runPrompt(m0) + prefLine(m0, d0.sel)); return; }
+          // ▶ Chạy ngay: Trợ lý Crewzy làm thật ngay tại chỗ (assets/run.js), không chuyển sang chat; máy chủ chưa bật Trợ lý thì mới mở chat.
+          if (d0.mode === 'chay') {
+            if (!window.crewzyRun) { location.href = 'chat.html?q=' + encodeURIComponent(runPrompt(m0) + prefLine(m0, d0.sel)); return; }
+            render('▶ Đang khởi động ' + esc(m0.ten) + '…');
+            window.crewzyRun.start([m0.id]).then(function (out) {
+              if (out && out.error && !out.run) return render('⚠ ' + esc(out.error) + (out.brand ? ' <a href="thuong-hieu.html">Mở Brain</a>' : ''));
+              render('▶ ' + esc(m0.ten) + ' đang chạy. Theo dõi ở khung "Dây chuyền đang chạy"' + (document.querySelector('[data-graph]') ? ' và trên cây' : '') + '.');
+            }).catch(function () { render('⚠ Lỗi mạng, thử lại.'); });
+            return;
+          }
           if (d0.mode === 'ai') { openAi(m0, d0.sel); return; }
           post({ action: 'bat', nv: d0.id }, d0.id);
         }).catch(function () { render('⚠ Lỗi mạng, thử lại.'); });
@@ -232,7 +241,17 @@
     if (o) { open = open === o.getAttribute('data-open') ? '' : o.getAttribute('data-open'); return render(); }
     var t = e.target.closest('[data-nv]');
     if (t) { if (!t.getAttribute('data-on')) { var m1 = missionById(t.getAttribute('data-nv')); if (m1) return openDlg(m1, 'tu_chay'); } return post({ action: t.getAttribute('data-on') ? 'tat' : 'bat', nv: t.getAttribute('data-nv') }, t.getAttribute('data-nv')); }
-    if (e.target.closest('[data-nv-all]')) return post({ action: 'bat', nv: 'all' }, 'all');
+    // ▶ Run tất cả: chạy thật ngay các bước hằng ngày đã sẵn sàng + bật tự chạy mỗi ngày.
+    if (e.target.closest('[data-nv-all]')) {
+      if (!window.crewzyRun) return post({ action: 'bat', nv: 'all' }, 'all');
+      busy = 'all'; render();
+      return window.crewzyRun.start(null, { lap: true }).then(function (out) {
+        busy = '';
+        if (out && out.error && !out.run) return render('⚠ ' + esc(out.error) + (out.brand ? ' <a href="thuong-hieu.html">Mở Brain</a>' : ''));
+        render('▶ Đang chạy ' + ((out.run && out.run.tong) || '') + ' bước. Theo dõi ở khung "Dây chuyền đang chạy".' + (out.lap && out.lap.bat ? ' Đã bật tự chạy mỗi ngày.' : ''));
+        document.dispatchEvent(new CustomEvent('crewzy:autopilot'));
+      }).catch(function () { busy = ''; render('⚠ Lỗi mạng, thử lại.'); });
+    }
     if (e.target.closest('[data-nv-off]')) return post({ action: 'tat' }, 'all');
   });
   document.addEventListener('crewzy:autopilot-changed', load);

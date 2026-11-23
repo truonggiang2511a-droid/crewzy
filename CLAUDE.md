@@ -174,6 +174,11 @@ src/lib/inbox.js          TRỰC FANPAGE 15 PHÚT (23/11, Composio Facebook khô
                           (fields lồng comments) + FACEBOOK_GET_PAGE_CONVERSATIONS (fields lồng messages.limit(1)); chỉ khách bật Run chế độ crewzy có lịch tra_loi_*; 7:00–22:59
                           mỗi 15 phút, đêm mỗi giờ (INBOX_NIGHT=off, INBOX=off). Có mục mới của khách → lead+Gmail ngay nếu có SĐT, xếp evq 1 lượt AI trả lời đúng comment_id/PSID
                           (trần INBOX_RUNS_PER_DAY=60). KV inbox:<uid> {since, seen, pages, khac} chỉ ghi khi có mục mới. Lịch mỗi giờ tra_loi_* bỏ Facebook (hourlyCover). Test: inboxtest
+src/lib/runner.js         ▶ RUN CHẠY THẬT TRÊN CÂY (23/11, không qua chat): /api/run (src/routes/run.js) start → createJobs 1 lượt ghi cho bước sẵn sàng (cả cây = bước hằng ngày theo
+                          RUN_ORDER, 1 nhiệm vụ = mọi bước của nó; lap → bật luôn tự chạy mỗi ngày) · step (NDJSON: step/tool/step_done/view, lần lượt từng bước, claim KV run:<uid>,
+                          tab thứ 2 nhận busy) · dung (cờ KV, stopWatcher 8 giây) · runJobAuto dùng chung cron (AI quên nộp → tự đóng phiếu cho_duyet). Trang đóng → runPendingRuns
+                          (cron, quá 6 phút không ai nhận) làm nốt. Giao diện: public/assets/run.js (khung "Dây chuyền đang chạy" + thông báo + Notification, sự kiện crewzy:run),
+                          office.js window.crewzyRunNow → nhánh sáng "▶ <việc AI đang làm>"; /api/office: đang làm ưu tiên hơn chờ duyệt. Test: runtest
 src/lib/notify.js         Việc làm bằng code qua composio.tools.execute (không AI): mailOwner (GMAIL_SEND_EMAIL tới email chủ, tiêu đề [Crewzy]), pushCrm (HUBSPOT_CREATE_CONTACT
                           → PIPEDRIVE_ADD_A_PERSON). Dùng khi có lead (CREWZY_BAO_LEAD và sự kiện) → lead.crm. TEST_OFFLINE/không khoá thì bỏ qua
 src/lib/ops.js            VẬN HÀNH BẰNG CODE cho khách bật Run (không AI, không chiếm lịch): runBacklog mỗi 30 phút (chờ duyệt >4 giờ, lead nóng chưa gọi >2 giờ → 1 Gmail

@@ -26,6 +26,14 @@ function missionView(plan, rctx, prefs = {}) {
   });
 }
 
+// Dùng chung cho /api/run: app đã nối + Brain + phiếu → kế hoạch dây chuyền của khách.
+export async function planFor(env, uid) {
+  const [accounts, servers, brand, jobs, feat] = await Promise.all([connectedApps(env, uid), listServers(env, uid).catch(() => []),
+    getBrand(env, uid).catch(() => null), listJobs(env, uid).catch(() => []), getFeatures(env, uid).catch(() => null)]);
+  const rctx = { connected: Object.keys(accounts || {}), mcpUrls: servers.filter((s) => !s.off).map((s) => s.url), brand: brand || {}, done: doneFlows(jobs), instant: instantOn(env) && !!env.ANTHROPIC_API_KEY };
+  return { plan: await planAutopilot(env, uid, rctx, feat), rctx, feat, accounts };
+}
+
 export default async (req, env) => {
   const url = new URL(req.url);
   let body = {};
