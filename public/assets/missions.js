@@ -23,16 +23,62 @@
     return 'Dùng connector Crewzy. Chạy nhiệm vụ "' + m.ten + '" của doanh nghiệp tôi: gọi CREWZY_QUY_TRINH với id ' + l.map(function (x) { return x.id; }).join(', ') +
       ' để lấy đúng các bước, rồi làm lần lượt TỪNG BƯỚC tới khi xong, không bỏ bước. BƯỚC 0 kiểm tra Brain và Kho: thiếu thông tin, ảnh, video, màu hay logo thì hỏi tôi một lần cho đủ; tôi trả lời thì lưu bằng CREWZY_LUU_BRAIN / CREWZY_LUU_KHO rồi làm tiếp. Nộp mọi kết quả về Crewzy bằng CREWZY_NOP_KET_QUA (bài đăng kèm gio_dang) để tôi duyệt.';
   }
-  var aiPanel = null; // { id, text }
-  function aiPanelHtml(m) {
-    var t = aiPanel.text;
-    return '<div class="mz-dlg" role="dialog" aria-modal="true"><div class="mz-dlg-box"><h3>Chạy "' + esc(m.ten) + '" bằng AI của bạn</h3>' +
-      '<ol class="mz-steps"><li><b>Nối Crewzy vào AI một lần</b> (Claude: thêm connector tên <b>Crewzy</b> với link MCP của bạn). <a href="ket-noi.html?tab=ai">Lấy link MCP →</a></li>' +
-      '<li><b>Mở AI và gửi lệnh dưới đây.</b> AI tự đọc quy trình chuẩn, hỏi bạn phần còn thiếu, làm xong nộp về <a href="cho-duyet.html">Việc chờ duyệt</a>.</li></ol>' +
-      '<textarea class="mz-cmd" readonly rows="6" style="width:100%;font-size:13px">' + esc(t) + '</textarea>' +
-      '<div class="mz-act"><a class="btn btn-primary" href="https://claude.ai/new?q=' + encodeURIComponent(t) + '" target="_blank" rel="noopener">Mở Claude</a>' +
-      '<button type="button" class="btn btn-ghost" data-ai-copy>Chép lệnh (ChatGPT, Gemini…)</button><button type="button" class="btn btn-ghost" data-dlg-x>Đóng</button></div></div></div>';
+  var aiPanel = null; // { id, text, links: null | [{ten, luc}] }
+  // Điều kiện trước khi chạy: mọi ô bắt buộc (kênh mạng xã hội ≥1) + nơi nhận báo cáo ≥1. Ô khác chỉ gợi ý.
+  var REPORT_SUG = [{ slug: 'gmail', name: 'Gmail' }, { slug: 'googlesheets', name: 'Google Sheets' }, { slug: 'telegram', name: 'Telegram' }];
+  function needsOf(m) {
+    var req = m.slots.filter(function (sl) { return sl.bat_buoc; }).map(function (sl) {
+      return { vai: sl.vai + ' (bắt buộc ít nhất 1)', ok: sl.da_noi.length > 0, have: sl.da_noi, sug: sl.goi_y.slice(0, 4), cat: sl.cat || m.cat };
+    });
+    var rep = data.bao_cao_ung_vien || [];
+    req.push({ vai: 'Nơi nhận báo cáo kết quả (bắt buộc ít nhất 1)', ok: rep.length > 0, have: rep, sug: REPORT_SUG, cat: 'office' });
+    var opt = m.slots.filter(function (sl) { return !sl.bat_buoc && !sl.da_noi.length && !/báo cáo/i.test(sl.vai); });
+    return { req: req, opt: opt, ok: req.every(function (r) { return r.ok; }) };
   }
+  function chip(a, m, on) {
+    var href = on ? (a.href || 'ket-noi.html?app=' + a.slug) : back(a.href || ('ket-noi.html?app=' + a.slug), m);
+    return '<a class="mz-app' + (on ? ' on' : '') + '" href="' + esc(href) + '">' + (a.logo || a.slug ? logo(a) : '') + '<span>' + esc(a.name) + '</span><i>' + (on ? '✓' : '+') + '</i></a>';
+  }
+  function aiPanelHtml(m) {
+    var t = aiPanel.text, n = needsOf(m);
+    var used = (aiPanel.links || []).filter(function (l) { return l.dung; }).map(function (l) { return l.dung; });
+    var s1 = '<li><b>Kiểm tra ứng dụng</b>' + n.req.map(function (r) {
+      return '<div class="mz-need ' + (r.ok ? 'ok' : 'miss') + '"><span>' + (r.ok ? '✓ ' : '✗ ') + esc(r.vai) + '</span><div class="mz-apps">' +
+        (r.ok ? r.have.map(function (a) { return chip(a, m, true); }).join('') : r.sug.map(function (a) { return chip(a, m, false); }).join('') +
+          '<a class="mz-app plus" href="' + esc(back('ket-noi.html?cat=' + r.cat, m)) + '"><span>+ App khác</span></a>') + '</div></div>';
+    }).join('') + (n.opt.length ? '<div class="mz-need opt"><span>Nên có thêm (không bắt buộc) để chạy đúng quy trình chuẩn:</span><div class="mz-apps">' +
+      n.opt.map(function (sl) { return sl.goi_y.slice(0, 2).map(function (a) { return chip(a, m, false); }).join(''); }).join('') + '</div></div>' : '') + '</li>';
+    var s2 = '<li><b>Nối Crewzy vào AI của bạn</b>' + (used.length
+      ? '<p class="mz-need ok" style="margin:6px 0">✓ Đã nối với ' + esc(used.map(function (u) { return u.ten; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ')) + '</p><details><summary>Nối thêm AI khác</summary><div class="ai-install-grid" data-mz-install></div><p class="ai-install-msg" data-mz-install-msg hidden></p></details>'
+      : aiPanel.links === null ? '<p class="muted" style="margin:6px 0">Đang kiểm tra…</p>'
+      : '<p class="muted" style="margin:6px 0">Bấm <b>Cài đặt</b> ở Claude: app Claude mở sẵn tên <b>Crewzy</b> và link MCP, bạn chỉ bấm <b>Kết nối</b>. Lệnh chạy được chép sẵn để dán vào chat.</p><div class="ai-install-grid" data-mz-install></div><p class="ai-install-msg" data-mz-install-msg hidden></p>') + '</li>';
+    var s3 = '<li><b>Bắt đầu chạy</b><p class="muted" style="margin:6px 0">' + (n.ok ? 'Mở Claude với lệnh điền sẵn, bấm gửi là AI chạy đúng quy trình chuẩn, hỏi bạn phần còn thiếu, nộp kết quả về <a href="cho-duyet.html">Việc chờ duyệt</a>.' : 'Nối đủ các mục bắt buộc ở bước 1 để bắt đầu.') + '</p>' +
+      '<div class="mz-act"><a class="btn btn-primary' + (n.ok ? '' : ' is-disabled') + '"' + (n.ok ? ' href="https://claude.ai/new?q=' + encodeURIComponent(t) + '" target="_blank" rel="noopener"' : ' aria-disabled="true"') + '>▶ Mở Claude và chạy</a>' +
+      '<button type="button" class="btn btn-ghost" data-ai-copy' + (n.ok ? '' : ' disabled') + '>Chép lệnh (ChatGPT, Gemini…)</button></div>' +
+      '<details><summary>Xem lệnh</summary><textarea class="mz-cmd" readonly rows="6" style="width:100%;font-size:13px">' + esc(t) + '</textarea></details></li>';
+    return '<div class="mz-dlg" role="dialog" aria-modal="true"><div class="mz-dlg-box"><h3>Chạy "' + esc(m.ten) + '" bằng AI của bạn</h3><ol class="mz-steps">' + s1 + s2 + s3 + '</ol>' +
+      '<div class="mz-act"><button type="button" class="btn btn-ghost" data-dlg-x>Đóng</button></div></div></div>';
+  }
+  function openAi(m, sel) {
+    aiPanel = { id: m.id, text: aiPrompt(m) + (sel ? prefLine(m, sel) : ''), links: null };
+    render();
+    refreshLinks(m);
+  }
+  function refreshLinks(m) {
+    var u = window.vpaiUid ? window.vpaiUid() : '';
+    fetch('/api/mcp-links' + (u ? '?uid=' + encodeURIComponent(u) : ''), { credentials: 'same-origin' }).then(function (r) { return r.json(); })
+      .then(function (j) { if (aiPanel && aiPanel.id === m.id) { aiPanel.links = (j && j.links) || []; render(); } })
+      .catch(function () { if (aiPanel) { aiPanel.links = []; render(); } });
+  }
+  // Sau mỗi lần vẽ: gắn lưới nút Cài đặt (ai-install.js) vào bảng.
+  function mountInstall() {
+    var g = box.querySelector('[data-mz-install]');
+    if (!g || !window.crewzyAiInstall || !aiPanel) return;
+    var text = aiPanel.text;
+    window.crewzyAiInstall.mount(g, box.querySelector('[data-mz-install-msg]'), { only: ['claude', 'chatgpt', 'claudecode', 'codex', 'gemini', 'grok'], newTab: true, warm: true, extraCopy: function () { return text; } });
+  }
+  // Quay lại trang sau khi bấm Kết nối trong Claude → kiểm tra lại đã nối chưa.
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && aiPanel && !(aiPanel.links || []).some(function (l) { return l.dung; })) { var mm = missionById(aiPanel.id); if (mm) refreshLinks(mm); } });
 
   // Nối xong quay về đúng nhiệm vụ này (ket-noi.html đọc tro_ve).
   function back(href, m) { return href.indexOf('ket-noi.html') === 0 ? href + (href.indexOf('?') > 0 ? '&' : '?') + 'tro_ve=' + encodeURIComponent((location.pathname.split('/').pop() || 'index.html') + '#nv-' + m.id) : href; }
@@ -103,7 +149,7 @@
       '</button>' + detail +
       '<div class="mz-act">' +
         '<button type="button" class="btn btn-primary" data-run="' + esc(m.id) + '">▶ Chạy ngay</button>' +
-        '<button type="button" class="btn btn-ghost" data-ai-run="' + esc(m.id) + '" title="Chạy bằng Claude/ChatGPT của bạn đã nối link MCP Crewzy">✦ Chạy bằng AI của tôi</button>' +
+        '<button type="button" class="btn btn-ghost" data-ai-run="' + esc(m.id) + '" title="Chạy bằng Claude/ChatGPT của bạn (nối Crewzy 1 lần bấm)">✦ Chạy bằng AI của bạn</button>' +
         (!m.dang_chay && !m.san_sang ? '<button type="button" class="btn btn-ghost" data-open="' + esc(m.id) + '">+ Nối app</button>' :
         '<button type="button" class="btn btn-ghost" data-nv="' + esc(m.id) + '" data-on="' + (m.dang_chay ? '1' : '') + '"' + (b ? ' disabled' : '') + '>' +
           (b ? 'Đang lưu…' : m.dang_chay ? '⏸ Tắt tự chạy' : '⏰ Tự chạy') + '</button>') +
@@ -121,6 +167,7 @@
     var warn = !data.brand_ok ? '<p class="mz-warn">Điền <a href="thuong-hieu.html">Brain thương hiệu</a> (tên, sản phẩm, khách hàng, giọng văn) trước khi bật tự chạy, để AI làm đúng thương hiệu.</p>' : '';
     if (data.lich_goi === 0) warn += '<p class="mz-warn">Gói hiện tại chưa có tự chạy theo giờ — vẫn bấm Chạy ngay được. <a href="goi.html">Nâng gói</a> để AI tự làm mỗi ngày.</p>';
     box.innerHTML = head + warn + (msg ? '<p class="mz-msg">' + msg + '</p>' : '') + '<div class="mz-grid">' + list.map(card).join('') + '</div>' + (dlg && missionById(dlg.id) ? dlgHtml(missionById(dlg.id)) : '') + (aiPanel && missionById(aiPanel.id) ? aiPanelHtml(missionById(aiPanel.id)) : '');
+    mountInstall();
   }
 
   function missionById(id) { return ((data && data.nhiem_vu) || []).filter(function (m) { return m.id === id; })[0]; }
@@ -159,7 +206,8 @@
     var run = e.target.closest('[data-run]');
     if (run) { var mm = missionById(run.getAttribute('data-run')); if (mm) openDlg(mm, 'chay'); return; }
     var air = e.target.closest('[data-ai-run]');
-    if (air) { var ma = missionById(air.getAttribute('data-ai-run')); if (ma) openDlg(ma, 'ai'); return; }
+    // Đủ app bắt buộc → hỏi chọn app trước (trắc nghiệm) rồi mở bảng; thiếu → mở thẳng bảng để thấy cần nối gì.
+    if (air) { var ma = missionById(air.getAttribute('data-ai-run')); if (ma) { if (needsOf(ma).ok) openDlg(ma, 'ai'); else openAi(ma, null); } return; }
     if (e.target.closest('[data-ai-copy]') && aiPanel) {
       var bt = e.target.closest('[data-ai-copy]'), ta = box.querySelector('.mz-cmd');
       var ok = function () { bt.textContent = '✓ Đã chép'; };
@@ -175,7 +223,7 @@
           if (j.nhiem_vu) data.nhiem_vu = j.nhiem_vu;
           dlg = null;
           if (d0.mode === 'chay') { location.href = 'chat.html?q=' + encodeURIComponent(runPrompt(m0) + prefLine(m0, d0.sel)); return; }
-          if (d0.mode === 'ai') { aiPanel = { id: d0.id, text: aiPrompt(m0) + prefLine(m0, d0.sel) }; return render(); }
+          if (d0.mode === 'ai') { openAi(m0, d0.sel); return; }
           post({ action: 'bat', nv: d0.id }, d0.id);
         }).catch(function () { render('⚠ Lỗi mạng, thử lại.'); });
       return;

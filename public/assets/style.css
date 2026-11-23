@@ -634,3 +634,15 @@ textarea.field { padding: 10px 12px; min-height: 88px; resize: vertical; line-he
 .mz-opt { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 14px; cursor: pointer; }
 .mz-opt input { width: 18px; height: 18px; }
 @media (min-width: 761px) { .mz-dlg { align-items: center; } .mz-dlg-box { border-radius: 12px; } }
+/* Bảng "Chạy bằng AI của bạn" (23/11) */
+.mz-steps { margin: 0; padding-left: 20px; display: grid; gap: 14px; }
+.mz-steps > li > b { font-size: 15px; }
+.mz-need { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #F6F6F6; font-size: 13px; display: grid; gap: 6px; }
+.mz-need.ok { background: var(--ok-soft); color: var(--ok); }
+.mz-need.miss { background: #FDECE8; color: #8A2A12; }
+.mz-need .mz-apps { display: flex; flex-wrap: wrap; gap: 6px; }
+.mz-need .mz-app { color: var(--text); }
+.mz-steps details { margin-top: 8px; font-size: 13px; }
+.mz-steps details summary { cursor: pointer; color: var(--muted); }
+.mz-steps .ai-install-grid { margin-top: 8px; }
+.btn.is-disabled { opacity: .4; pointer-events: none; }

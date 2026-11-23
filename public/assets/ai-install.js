@@ -6,10 +6,8 @@
 //   VS Code vscode:mcp/install?<JSON {name, type:'http', url}>
 //   ChatGPT, Gemini, Grok chưa có link điền sẵn cho connector tự tạo → tự chép link rồi mở đúng trang cài đặt, khách chỉ dán.
 // Chưa có link Crewzy thì tự tạo (GET /api/mcp-link) khi mở tab, lưu localStorage vpai.aiLink (dùng chung connect.js).
+// 23/11: dùng chung cho bảng "Chạy bằng AI của bạn" ở thẻ nhiệm vụ: window.crewzyAiInstall.mount(grid, msgEl, { only, newTab, extraCopy }).
 (function () {
-  var grid = document.querySelector('[data-install-grid]');
-  if (!grid) return;
-  var msgEl = document.querySelector('[data-install-msg]');
   var KEY = 'vpai.aiLink';
   var uid = window.vpaiUid();
   var creating = null;
@@ -18,7 +16,7 @@
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function store(v) { try { if (v === undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY, v); } catch (e) {} return null; }
   function link() { var l = store(); return l && !/\/mcp\/aHR0c/.test(l) ? l : ''; }
-  function say(t, ok) { msgEl.hidden = !t; msgEl.textContent = t || ''; msgEl.className = 'ai-install-msg' + (ok ? ' ok' : ''); }
+  function sayIn(msgEl, t, ok) { if (!msgEl) return; msgEl.hidden = !t; msgEl.textContent = t || ''; msgEl.className = 'ai-install-msg' + (ok ? ' ok' : ''); }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
 
   var AIS = [
@@ -52,8 +50,9 @@
     if (a.letter) return '<span class="ai-ico ai-ico-letter" style="background:' + a.bg + '">' + esc(a.letter) + '</span>';
     return '<img class="ai-ico" src="https://logos.composio.dev/api/' + a.logo + '" alt="" loading="lazy">';
   }
-  function render() {
-    var list = AIS.filter(function (a) { return !(a.desktop && mobile); }).concat(AIS.filter(function (a) { return a.desktop && mobile; }));
+  function render(grid, only) {
+    var pool = only ? AIS.filter(function (a) { return only.indexOf(a.id) >= 0; }) : AIS;
+    var list = pool.filter(function (a) { return !(a.desktop && mobile); }).concat(pool.filter(function (a) { return a.desktop && mobile; }));
     grid.innerHTML = list.map(function (a) {
       var off = a.desktop && mobile;
       return '<div class="ai-card' + (off ? ' is-off' : '') + '"><div class="ai-card-top">' + icon(a) + '<span class="ai-card-name">' + esc(a.name) + '</span></div>' +
@@ -92,25 +91,40 @@
     return creating;
   }
 
-  grid.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-install]');
-    if (!b || b.disabled) return;
-    var a = AIS.filter(function (x) { return x.id === b.getAttribute('data-install'); })[0];
-    var l = link();
-    if (!l) {
-      // Chưa có link: tạo xong mới làm được (bấm lại để giữ được quyền chép/mở trên điện thoại).
-      b.disabled = true; var old = b.innerHTML; b.textContent = 'Đang chuẩn bị…';
-      ensureLink().then(function () { b.disabled = false; b.innerHTML = old; say('Đã chuẩn bị link Crewzy. Bấm lại ' + a.name + ' để cài.', true); })
-        .catch(function (err) { b.disabled = false; b.innerHTML = old; say(err.message); });
-      return;
-    }
-    if (a.copyText) { copyNow(a.copyText(l)); say(a.tip, true); return; }
-    if (a.copy) copyNow(l);
-    say(a.tip, true);
-    location.href = a.go(l);
-  });
+  // opts.extraCopy(a): chữ cần chép thêm khi AI đó không cần chép link (vd Claude: chép sẵn lệnh chạy quy trình để dán vào chat sau khi Kết nối).
+  // opts.newTab: mở AI ở tab mới (giữ trang Crewzy để quay lại bấm Bắt đầu).
+  function mount(grid, msgEl, opts) {
+    opts = opts || {};
+    var say = function (t, ok) { sayIn(msgEl, t, ok); };
+    render(grid, opts.only);
+    grid.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-install]');
+      if (!b || b.disabled) return;
+      var a = AIS.filter(function (x) { return x.id === b.getAttribute('data-install'); })[0];
+      var l = link();
+      if (!l) {
+        // Chưa có link: tạo xong mới làm được (bấm lại để giữ được quyền chép/mở trên điện thoại).
+        b.disabled = true; var old = b.innerHTML; b.textContent = 'Đang chuẩn bị…';
+        ensureLink().then(function () { b.disabled = false; b.innerHTML = old; say('Đã chuẩn bị link Crewzy. Bấm lại ' + a.name + ' để cài.', true); })
+          .catch(function (err) { b.disabled = false; b.innerHTML = old; say(err.message); });
+        return;
+      }
+      if (a.copyText) { copyNow(a.copyText(l)); say(a.tip, true); return; }
+      var extra = !a.copy && opts.extraCopy ? opts.extraCopy(a) : '';
+      if (a.copy) copyNow(l); else if (extra) copyNow(extra);
+      say(a.tip + (extra ? ' Lệnh chạy quy trình đã chép sẵn: mở chat mới, bật Crewzy rồi dán và gửi.' : ''), true);
+      if (opts.newTab) { var w = window.open(a.go(l), '_blank', 'noopener'); if (!w) location.href = a.go(l); }
+      else location.href = a.go(l);
+    });
+    if (opts.warm) ensureLink().catch(function (err) { say(err.message); });
+  }
+  window.crewzyAiInstall = { mount: mount, ensureLink: ensureLink, link: link };
 
-  render();
+  var grid = document.querySelector('[data-install-grid]');
+  if (!grid) return;
+  var msgEl = document.querySelector('[data-install-msg]');
+  var say = function (t, ok) { sayIn(msgEl, t, ok); };
+  mount(grid, msgEl);
   // Mở tab AI của bạn là tạo sẵn link (một lần), để mọi nút bấm là chạy ngay.
   // connect.js mở tab sau khi tải danh mục (bất đồng bộ) → theo dõi lúc khối AI hiện ra.
   var view = document.querySelector('[data-view="ai"]');
