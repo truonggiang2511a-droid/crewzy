@@ -21,7 +21,7 @@
     var l = m.lich.filter(function (x) { return x.ngay === 'hang_ngay' && x.id !== 'dang_bai_da_duyet'; });
     if (!l.length) l = m.lich.slice(0, 1);
     return 'Dùng connector Crewzy. Chạy nhiệm vụ "' + m.ten + '" của doanh nghiệp tôi: gọi CREWZY_QUY_TRINH với id ' + l.map(function (x) { return x.id; }).join(', ') +
-      ' để lấy đúng các bước, rồi làm lần lượt TỪNG BƯỚC tới khi xong, không bỏ bước. BƯỚC 0 kiểm tra Brain và Kho: thiếu thông tin, ảnh, video, màu hay logo thì hỏi tôi một lần cho đủ; tôi trả lời thì lưu bằng CREWZY_LUU_BRAIN / CREWZY_LUU_KHO rồi làm tiếp. Nộp mọi kết quả về Crewzy bằng CREWZY_NOP_KET_QUA (bài đăng kèm gio_dang) để tôi duyệt.';
+      ' để lấy đúng các bước, rồi làm lần lượt TỪNG BƯỚC tới khi xong, không bỏ bước. BƯỚC 0 kiểm tra Brain và Kho: thiếu thông tin, ảnh, video, màu hay logo thì hỏi tôi một lần cho đủ; tôi trả lời thì lưu bằng CREWZY_LUU_BRAIN / CREWZY_LUU_KHO rồi làm tiếp. Ảnh và video: bạn tự do sáng tạo bằng khả năng và công cụ của chính bạn (hoặc app tôi đã nối), không cần theo cách làm của Crewzy, không tự ghép ảnh/video bằng code (Python, FFmpeg); chỉ cần đúng sản phẩm thật, đúng thương hiệu, đúng khổ từng kênh. Nộp mọi kết quả về Crewzy bằng CREWZY_NOP_KET_QUA (bài đăng kèm gio_dang) để tôi duyệt.';
   }
   var aiPanel = null; // { id, text, links: null | [{ten, luc}] }
   // Điều kiện trước khi chạy: mọi ô bắt buộc (kênh mạng xã hội ≥1) + nơi nhận báo cáo ≥1. Ô khác chỉ gợi ý.

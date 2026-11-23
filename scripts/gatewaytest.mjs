@@ -84,8 +84,13 @@ for (const w of WORKFLOWS) {
   assert.ok(!/làm video ngắn bằng AI \(credit|tạo ảnh và video \(credit/.test(r.text), w.id + ' còn hứa làm video bằng credit');
 }
 const vid = (await call('CREWZY_QUY_TRINH', { id: 'video_theo_phong_cach' })).data;
-assert.ok(vid.cac_buoc.some((b) => b.includes('CREWZY_TAO_ANH')), 'bước dự phòng vẫn phải còn tạo ảnh');
-assert.ok(vid.cac_buoc.some((b) => /Trợ lý AI/.test(b)), 'bước dự phòng phải chỉ khách sang Trợ lý AI để làm video bằng credit');
+assert.ok(vid.cac_buoc.some((b) => b.includes('kịch bản') && b.includes('prompt')), 'không có công cụ video → nộp kịch bản + prompt');
+// 23/11: AI của khách tự do sáng tạo ảnh/video, không theo cách làm của Crewzy, không tự ghép bằng Python/FFmpeg.
+const sx = (await call('CREWZY_QUY_TRINH', { id: 'san_xuat_5x5' })).data;
+assert.ok(sx.tu_do_sang_tao && sx.tu_do_sang_tao.includes('TỰ DO SÁNG TẠO'));
+assert.ok(!/ffmpeg|python/i.test(sx.cac_buoc.join(' ')), 'các bước không bảo AI dùng Python/FFmpeg');
+assert.ok(sx.quy_tac.some((q) => q.startsWith('GỢI Ý PROMPT')) && !sx.quy_tac.some((q) => q.startsWith('ĐẠO DIỄN PROMPT')), 'bộ não prompt chỉ là gợi ý');
+assert.ok(vid.cac_buoc.some((b) => /Trợ lý Crewzy/.test(b)), 'bước dự phòng phải chỉ khách sang Trợ lý AI để làm video bằng credit');
 const listRes = await call('CREWZY_QUY_TRINH', {});
 assert.ok(!listRes.text.match(HIDDEN_RE));
 // Danh sách phải gọn dưới 12.000 ký tự (chat cắt kết quả công cụ ở 12.000) và vẫn nói rõ quy trình cần chạy trước.

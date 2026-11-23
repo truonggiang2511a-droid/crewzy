@@ -6,7 +6,7 @@ import { getBrand, putBrand, cleanBrand, brandText, brandPack, BRAND_FIELDS } fr
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl, putMedia } from './media.js';
-import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS, forMcp } from './workflows.js';
+import { WORKFLOWS, DEPARTMENTS, workflowById, readiness, doneFlows, WORKFLOW_RULES, formatsFor, MCP_HOSTS, forMcp, MCP_MEDIA_FREE } from './workflows.js';
 import { readWebsite } from './webRead.js';
 import { listJobs } from './jobs.js';
 import { mcpById } from './mcpDirectory.js';
@@ -253,7 +253,8 @@ async function workflowTool(env, uid, args, connected, surface, instant) {
     nen_co: r.nen_co.length ? r.nen_co.map((x) => x.ten + ' → ' + x.cach) : undefined,
     luu_y_du_lieu: r.thieu_du_lieu.length ? 'Chưa đủ dữ liệu để ra kết quả thật. Báo khách mục còn thiếu và cách bổ sung (hoặc chạy quy trình cần chạy trước), KHÔNG tự bịa nội dung thay cho dữ liệu thiếu.' : undefined,
     cac_buoc: w.buoc.map((b, i) => `${i + 1}. ${tx(b)}`),
-    quy_tac: WORKFLOW_RULES,
+    ...(mcp && w.media ? { tu_do_sang_tao: MCP_MEDIA_FREE } : {}),
+    quy_tac: mcp ? WORKFLOW_RULES.map(forMcp) : WORKFLOW_RULES,
     huong_dan_noi: miss.nhom.length
       ? 'Còn thiếu: ' + miss.nhom.join(', ') + '. Khách nối MỘT app bất kỳ trong goi_y của nhóm đó ở Crewzy → Kết nối → Ứng dụng (app dùng khoá API như vidIQ, Apify, Firecrawl, Semrush: Composio mở trang để dán khoá). MCP ngoài' + mcpHint(miss.groups) + ': Kết nối → MCP khác (máy chủ nối ở đó dùng được ngay trong link nối AI).'
       : undefined,

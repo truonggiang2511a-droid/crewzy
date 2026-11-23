@@ -14,7 +14,7 @@ import { getBrand, brandText } from '../lib/brand.js';
 import { CREWZY_TOOL_DEFS, isCrewzyTool, runCrewzyTool, imageShortcut } from '../lib/crewzyTools.js';
 import { recordActivity } from '../lib/activity.js';
 import { MCP_PROMPTS } from '../lib/jobs.js';
-import { APP_ONLY_TOOLS } from '../lib/workflows.js';
+import { APP_ONLY_TOOLS, MCP_MEDIA_FREE } from '../lib/workflows.js';
 import { billingOn, gate, makeMeter, getFeatures, applyFeatures } from '../lib/billing.js';
 import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
 import { memBlock, MEM_RULE } from '../lib/memory.js';
@@ -49,7 +49,7 @@ async function buildInstructions(env, uid) {
   const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
   const parts = [
     `Bạn đang làm việc cho một doanh nghiệp qua ${APP_NAME}. Dùng công cụ Composio để làm việc thật trên các app khách đã kết nối:`,
-    'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. Ảnh/video: TỰ làm bằng công cụ của chính bạn (tạo ảnh/video, chạy code của bạn, hoặc app khách đã nối), lấy ảnh thật trong Kho (CREWZY_KHO) làm tham chiếu, rồi tải lên bằng CREWZY_TAI_LEN; chỉ gọi CREWZY_TAO_ANH khi bạn không tạo được ảnh.',
+    'tìm công cụ bằng COMPOSIO_SEARCH_TOOLS → chạy bằng COMPOSIO_MULTI_EXECUTE_TOOL. ' + MCP_MEDIA_FREE,
     'Luôn trả lời bằng tiếng Việt. Trước khi đăng bài, gửi tin/email cho người khác, xoá dữ liệu hay chi tiền quảng cáo: tóm tắt và hỏi người dùng đồng ý.',
     'Không bịa giá, số liệu; không đưa số điện thoại khách lên bài công khai. Làm ra kết quả thật (bài đăng, ảnh, báo cáo), không đẩy việc về cho người dùng.',
     'Quy trình chuẩn: khi chạy một quy trình (hoặc phiếu việc có quy_trinh), gọi CREWZY_QUY_TRINH với id để lấy đúng các bước, kiểm tra app thiếu và làm đúng thứ tự. Lệnh nhanh: prompts qt_<mã>.',

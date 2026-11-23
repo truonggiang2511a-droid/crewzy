@@ -222,7 +222,9 @@ Bộ nhớ AI học khách (23/11) src/lib/memory.js: KV mem:<uid> (≤80 ghi ch
                           công cụ CREWZY_GHI_NHO (chat + link MCP, lưu/xoá) · memBlock + MEM_RULE nạp vào system Trợ lý và instructions MCP · CREWZY_BRAIN và CREWZY_QUY_TRINH trả
                           bo_nho_ve_khach · WORKFLOW_RULES "HỌC KHÁCH" · jobs.js: góp ý khi Làm lại/Từ chối tự ghi bộ nhớ · /api/bo-nho + mục "AI đã học về bạn" ở thuong-hieu.html
                           (assets/memory.js). Test: scripts/memorytest.mjs. AI ngoài phải ngắt/nối lại connector để thấy CREWZY_GHI_NHO
-MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ làm ảnh/video (forMcp viết lại "AI LÀM ẢNH/VIDEO" của san_xuat_5x5; instructions cổng MCP), Crewzy chỉ lưu + đăng
+MCP: ảnh/video (23/11)    Chạy qua link MCP: AI của khách TỰ DO SÁNG TẠO ảnh/video (MCP_MEDIA_FREE trong workflows.js: instructions cổng MCP + tu_do_sang_tao của CREWZY_QUY_TRINH;
+                          forMcp đổi "AI LÀM ẢNH/VIDEO", ĐẠO DIỄN PROMPT → GỢI Ý PROMPT không bắt buộc, bỏ nhắc ffmpeg); KHÔNG tự ghép ảnh/video bằng Python/FFmpeg khi khách
+                          không yêu cầu; không có công cụ → ảnh thật Kho + prompt cho khách. Crewzy chỉ lưu + đăng. Trợ lý Crewzy trong app giữ cách làm cũ
 package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: wrangler (npm run dev / npm run deploy)
 ```
 
