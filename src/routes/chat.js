@@ -110,6 +110,26 @@ function geminiSchema(node) {
   }
   return out;
 }
+// Claude (và OpenAI) từ chối CẢ lượt chat nếu một công cụ có input_schema tầng ngoài dạng oneOf/anyOf/allOf hoặc không phải object
+// (lỗi 23/11: "tools.21.custom.input_schema: input_schema does not support oneOf, allOf, or anyOf at the top level").
+// Gộp các nhánh thành một object: properties hợp lại, required chỉ giữ trường bắt buộc ở MỌI nhánh (allOf thì gộp hết).
+export function safeTopSchema(schema) {
+  const s = schema && typeof schema === 'object' ? schema : {};
+  const key = ['oneOf', 'anyOf', 'allOf'].find((k) => Array.isArray(s[k]));
+  if (!key && (s.type === 'object' || (!s.type && s.properties))) return { ...s, type: 'object', properties: s.properties || {} };
+  if (!key) return { type: 'object', properties: {} };
+  const branches = s[key].map((b) => safeTopSchema(b));
+  const properties = { ...(s.properties || {}) };
+  for (const b of branches) Object.assign(properties, b.properties || {});
+  const reqs = branches.map((b) => b.required || []);
+  const required = key === 'allOf' ? [...new Set(reqs.flat())] : (reqs.length ? reqs[0].filter((r) => reqs.every((x) => x.includes(r))) : []);
+  const { oneOf, anyOf, allOf, ...rest } = s;
+  const out = { ...rest, type: 'object', properties };
+  const all = [...new Set([...(s.required || []), ...required])].filter((r) => r in properties);
+  if (all.length) out.required = all; else delete out.required;
+  return out;
+}
+
 function geminiSafeTool(t) {
   const f = t.function || t;
   return { type: 'function', function: { name: f.name, description: f.description, parameters: geminiSchema(f.parameters || { type: 'object', properties: {} }) } };
@@ -210,7 +230,7 @@ function withCacheMark(convo) {
 async function runClaude({ client, model, tools, exec, label = toolLabel, messages, emit, deadline, system, onUsage }) {
   const anthropicTools = tools.map((t) => {
     const f = t.function || t;
-    return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: f.parameters || { type: 'object', properties: {} } };
+    return { name: f.name, description: (f.description || '').slice(0, 1000), input_schema: safeTopSchema(f.parameters) };
   });
   // Prompt caching: công cụ + lời dặn + hội thoại tới bước trước được đọc lại từ cache (giá 0,05× với Opus/Sonnet) → mỗi bước sau rẻ hơn nhiều.
   if (anthropicTools.length) anthropicTools[anthropicTools.length - 1].cache_control = { type: 'ephemeral' };
@@ -305,7 +325,7 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
     const session = await createSession(composio, userIdFor(uid), {
       toolkits: TOOLKITS,
       multiAccount: { enable: true, maxAccountsPerToolkit: MAX_ACCOUNTS_PER_TOOLKIT },
-      tools: sessionToolLimits(),
+      ...(Object.keys(sessionToolLimits()).length ? { tools: sessionToolLimits() } : {}),
       instant,
     });
     const [composioTools, built, ext] = await Promise.all([
@@ -313,6 +333,8 @@ export async function runAgent({ env, uid, origin, mode, key, orModel, brain, me
       loadExternalTools(env, uid).catch((e) => { console.error('external mcp failed', e && e.message); return { defs: [], names: [], failed: [] }; }),
     ]);
     let tools = [...composioTools, ...CREWZY_TOOL_DEFS, VIDEO_TOOL, ...ext.defs];
+    // Làm sạch schema cho MỌI đường (Claude, OpenRouter, OpenAI…): một công cụ lạ không được làm chết cả lượt chat.
+    tools = tools.map((t) => (t.function ? { ...t, function: { ...t.function, parameters: safeTopSchema(t.function.parameters) } } : { ...t, parameters: safeTopSchema(t.parameters) }));
     if (mode === 'gemini') tools = tools.map(geminiSafeTool);
     let system = built.system;
     if (instant) system += '\n\n' + INSTANT_NOTE;

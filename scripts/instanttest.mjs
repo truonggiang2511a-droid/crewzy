@@ -23,9 +23,9 @@ assert.equal(instantCredits(env, 0), 0);
 // 3. Trần ngày: khách vượt 0,3 USD thì tắt Instant cho khách đó, khách khác vẫn dùng; toàn app vượt 1 USD thì tắt hết.
 const cfg = await instantConfig(env, 'khach-a');
 assert.equal(cfg.returnInstantCharge, true); assert.equal(cfg.returnPricesInSearch, true);
-const lim = sessionToolLimits().higgsfield.enable;
-assert.ok(lim.includes('HIGGSFIELD_GENERATE_SOUL_V2_IMAGE'), 'Higgsfield có ảnh');
-assert.ok(!lim.some((t) => /SEEDANCE|VIDEO/.test(t)), 'Higgsfield KHÔNG có video');
+// 23/11: bỏ Higgsfield Instant (Giang chốt) → không còn bộ lọc công cụ cấp phiên.
+assert.deepEqual(sessionToolLimits(), {}, 'không còn bộ lọc Higgsfield');
+assert.ok(!INSTANT_APPS.includes('higgsfield'), 'Higgsfield không còn Instant');
 await recordInstant(env, 'khach-a', 0.31);
 assert.equal(await instantConfig(env, 'khach-a'), false);
 assert.ok(await instantConfig(env, 'khach-b'));

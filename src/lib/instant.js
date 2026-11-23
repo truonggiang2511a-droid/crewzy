@@ -7,13 +7,15 @@
 // Tắt hẳn: biến INSTANT=off.
 
 // Toolkit có Instant (dashboard Composio → Toolkits → Instant, 22/11/2026) và đã có trong danh mục Crewzy.
-export const INSTANT_APPS = ['serpapi', 'firecrawl', 'tavily', 'elevenlabs', 'google_maps', 'apollo', 'semrush', 'ahrefs', 'higgsfield'];
+export const INSTANT_APPS = ['serpapi', 'firecrawl', 'tavily', 'elevenlabs', 'google_maps', 'apollo', 'semrush', 'ahrefs'];
 
 // Bộ lọc công cụ cấp PHIÊN (cú pháp tools:{toolkit:{enable:[…]}} đã có trong docs.composio.dev/docs/configuring-sessions): Higgsfield chỉ lộ công cụ ảnh.
 export const sessionToolLimits = () => Object.fromEntries(Object.entries(INSTANT_TOOL_LIMITS).map(([k, v]) => [k, { enable: v }]));
 // Higgsfield Instant (23/11/2026): chỉ cho ẢNH + xem trạng thái. Video (Seedance ~2 USD/lần, trừ trước, không huỷ được, lỗi vẫn mất tiền) KHÔNG bật Instant:
 // khách làm video Higgsfield bằng tài khoản của họ (MCP Higgsfield hoặc khoá API). Cú pháp instant.tools theo docs.composio.dev/docs/instant-tools.
-export const INSTANT_TOOL_LIMITS = { higgsfield: ['HIGGSFIELD_GENERATE_SOUL_STANDARD_IMAGE', 'HIGGSFIELD_GENERATE_SOUL_V2_IMAGE', 'HIGGSFIELD_GENERATE_IMAGE_WITH_REFERENCES', 'HIGGSFIELD_ESTIMATE_SOUL_V2_COST', 'HIGGSFIELD_LIST_SOUL_V2_STYLES', 'HIGGSFIELD_GET_REQUEST_STATUS'] };
+// 23/11 14:57 Giang chốt BỎ Higgsfield Instant (công cụ Higgsfield làm Claude báo lỗi input_schema, hỏng chat). Higgsfield chỉ còn là gợi ý: khách tự nối
+// MCP Higgsfield bằng tài khoản của họ (Kết nối → MCP khác), tự gỡ được. Thêm lại bộ lọc công cụ thì ghi vào đây.
+export const INSTANT_TOOL_LIMITS = {};
 
 const vnDay = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : d; };
