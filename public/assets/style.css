@@ -720,3 +720,22 @@ html.cz-lock, html.cz-lock body { height: 100%; overflow: hidden; overscroll-beh
   .rd { left: 8px; right: 8px; width: auto; bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 55vh; }
   .rd-toasts { top: 60px; }
 }
+
+/* Chọn công cụ cho lần chạy (missions.js): logo app đã nối bấm để chọn/bỏ chọn, không ngắt kết nối; + thêm app của khách */
+.mz-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 2px; }
+.mz-mini.tg { position: relative; cursor: pointer; padding: 0; font: inherit; }
+.mz-mini.tg.sel { border-color: var(--mz, #0F0F0F); box-shadow: 0 0 0 1px var(--mz, #0F0F0F); }
+.mz-mini.tg i { position: absolute; right: -5px; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: #16A34A; color: #fff; font-size: 9px; font-style: normal; display: grid; place-items: center; }
+.mz-mini.tg.unsel { opacity: .4; filter: grayscale(1); border-style: dashed; }
+.mz-mini.plus { font-size: 16px; font-weight: 600; color: #0F0F0F; border-color: #0F0F0F; text-decoration: none; }
+.mz-app.tg { cursor: pointer; font: inherit; }
+.mz-app.tg.unsel { border-style: dashed; border-color: #BDBDBD; background: #fff; opacity: .65; }
+.mz-app.tg.unsel i { color: var(--muted); }
+.qt-tg { position: relative; display: inline-flex; padding: 0; border: 0; background: none; cursor: pointer; }
+.qt-tg img { width: 26px; height: 26px; border-radius: 6px; background: #fff; border: 1px solid #16A34A; padding: 2px; }
+.qt-tg i { position: absolute; right: -4px; top: -4px; width: 13px; height: 13px; border-radius: 50%; background: #16A34A; color: #fff; font-size: 8px; font-style: normal; display: grid; place-items: center; }
+.qt-tg.unsel img { opacity: .4; filter: grayscale(1); border: 1px dashed #BDBDBD; }
+.qt-tg.mcp { align-items: center; gap: 4px; padding: 2px 8px 2px 2px; border-radius: 99px; border: 1px solid #16A34A; font-size: 12px; }
+.qt-tg.mcp.unsel { opacity: .5; border-style: dashed; border-color: #BDBDBD; }
+.qt-plus { width: 26px; height: 26px; border-radius: 6px; border: 1px solid #0F0F0F; display: inline-grid; place-items: center; font-weight: 600; color: #0F0F0F; text-decoration: none; background: #fff; }
+@media (max-width: 760px) { .mz-tools .mz-mini { width: 32px; height: 32px; } .mz-tools .mz-mini img { width: 22px; height: 22px; } }

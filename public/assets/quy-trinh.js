@@ -70,17 +70,44 @@
     }).join('');
   }
 
+  // CHỌN CÔNG CỤ CHO LẦN CHẠY (23/11): app đã nối bấm để chọn/bỏ chọn (không ngắt kết nối), nhớ trong trình duyệt (crewzy.qtchon),
+  // ghép vào lệnh Chạy ngay / Giao cho AI / ghi chú Hẹn giờ để AI dùng đúng app khách chọn. Chưa chọn lần nào = dùng mọi app đã nối.
+  var qtSel = (function () { try { return JSON.parse(localStorage.getItem('crewzy.qtchon') || '{}') || {}; } catch (e) { return {}; } })();
+  function connOf(g) { return g.apps.filter(function (s) { return accounts[s] > 0; }).concat((g.mcp || []).filter(mcpOn).map(function (m) { return 'mcp:' + m; })); }
+  function selG(wid, gi, g) { var c = connOf(g), s = qtSel[wid] && qtSel[wid][gi]; return s ? s.filter(function (v) { return c.indexOf(v) >= 0; }) : c; }
+  function nameOf(v) { if (v.indexOf('mcp:') === 0) { var k = v.slice(4); var i = (data.mcpInfo && data.mcpInfo[k]) || MCP_INFO[k]; return (i && i.name) || k; } return names[v] || v; }
+  function prefOf(w, compact) {
+    var l = [];
+    (w.cong_cu || []).forEach(function (g, gi) {
+      if (!connOf(g).length) return;
+      var s = selG(w.id, gi, g);
+      l.push((compact ? '' : '- ') + g.vai + ': ' + (s.length ? 'dùng ' + s.map(nameOf).join(', ') : 'không dùng app nào lần này'));
+    });
+    if (!l.length) return '';
+    return compact ? 'Khách chọn công cụ: ' + l.join('; ') + '.' : '\n\nLỰA CHỌN CỦA KHÁCH (làm ĐÚNG như vậy, không tự đổi app):\n' + l.join('\n');
+  }
+  function runHref(w) {
+    return 'chat.html?q=' + encodeURIComponent('Chạy quy trình "' + w.ten + '" (mã ' + w.id + '): gọi CREWZY_QUY_TRINH với id "' + w.id + '" để lấy các bước, làm đúng thứ tự, nộp kết quả kèm quy_trinh.' + (w.hoi ? ' Hỏi tôi: ' + w.hoi + ' nếu cần.' : '') + prefOf(w));
+  }
+  function tgIcon(wid, gi, v, on) {
+    var tip = nameOf(v) + (on ? ' · đang dùng lần này (bấm để bỏ chọn, vẫn giữ kết nối)' : ' · đã nối, lần này không dùng (bấm để chọn)');
+    var key = esc(wid + '|' + gi + '|' + v);
+    if (v.indexOf('mcp:') === 0) return '<button type="button" class="qt-tg mcp' + (on ? '' : ' unsel') + '" data-qt-tg="' + key + '" aria-pressed="' + on + '" title="' + esc(tip) + '">' + esc(nameOf(v)) + (on ? ' ✓' : '') + '</button>';
+    return '<button type="button" class="qt-tg' + (on ? '' : ' unsel') + '" data-qt-tg="' + key + '" aria-pressed="' + on + '" title="' + esc(tip) + '"><img src="https://logos.composio.dev/api/' + esc(v) + '" alt="' + esc(nameOf(v)) + '">' + (on ? '<i aria-hidden="true">✓</i>' : '') + '</button>';
+  }
   // Một nhóm công cụ: các app thay thế nhau, nối 1 app là đủ. Hiện app đã nối trước, app gợi ý sau.
-  function groupRow(g) {
+  function groupRow(g, gi, w) {
     var connectedApps = g.apps.filter(function (s) { return accounts[s] > 0; });
     var mcpConnected = (g.mcp || []).filter(mcpOn);
     var ok = connectedApps.length || mcpConnected.length || g.san_co;
     var order = connectedApps.concat(g.apps.filter(function (s) { return connectedApps.indexOf(s) < 0 && catalogStatus[s] === 'ready'; }));
-    var icons = order.slice(0, 10).map(function (s) { return appIcon(s, accounts[s] > 0, false); }).join('');
+    var sel = w ? selG(w.id, gi, g) : connectedApps;
+    var icons = order.slice(0, 10).map(function (s) { return accounts[s] > 0 && w ? tgIcon(w.id, gi, s, sel.indexOf(s) >= 0) : appIcon(s, accounts[s] > 0, false); }).join('');
     var more = order.length > 10 ? '<span class="muted" style="font-size:12px">+' + (order.length - 10) + '</span>' : '';
     var soon = g.apps.filter(function (s) { return catalogStatus[s] && catalogStatus[s] !== 'ready'; }).map(function (s) { return names[s] || s; });
-    var chips = (g.mcp || []).map(function (m) { return mcpChip(m, mcpOn(m)); }).join('');
-    return '<div style="display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:' + (ok ? '#F6FBF7' : g.bat_buoc ? '#FFF6F4' : '#F7F7F8') + '">' +
+    var chips = (g.mcp || []).map(function (m) { return mcpOn(m) && w ? tgIcon(w.id, gi, 'mcp:' + m, sel.indexOf('mcp:' + m) >= 0) : mcpChip(m, mcpOn(m)); }).join('') +
+      '<a class="qt-plus" href="ket-noi.html" title="Thêm app của bạn cho việc này">+</a>';
+    return '<div data-grow="' + (w ? esc(w.id + '|' + gi) : '') + '" style="display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:' + (ok ? '#F6FBF7' : g.bat_buoc ? '#FFF6F4' : '#F7F7F8') + '">' +
       '<p style="margin:0;font-size:12px;font-weight:600;display:flex;gap:6px;align-items:center">' + esc(g.vai) +
       (g.bat_buoc ? '<span style="font-weight:500;color:' + (ok ? 'var(--ok)' : '#B3261E') + '">' + (ok ? '· đã có' : '· cần nối 1 app') + '</span>' : '<span class="muted" style="font-weight:500">· không bắt buộc' + (ok ? ', đã có' : '') + '</span>') + '</p>' +
       (g.san_co ? '<p class="muted" style="margin:0;font-size:12px">' + esc(g.san_co) + '</p>' : '') +
@@ -142,7 +169,7 @@
       var ready = appsOk && !lack.length;
       var miss = firstMissing(w);
       var kenh = (w.kenh || []).map(function (k) { return '<span class="pill" style="font-size:11px">' + esc((data.channels || {})[k] || k) + '</span>'; }).join('');
-      var groups = (w.cong_cu || []).map(groupRow).join('');
+      var groups = (w.cong_cu || []).map(function (g, gi) { return groupRow(g, gi, w); }).join('');
       var fix = miss ? (miss.app ? '<a class="btn btn-primary wrap" href="ket-noi.html?app=' + miss.app + '">Nối 1 app: ' + esc(miss.group.vai) + '</a>' : '<a class="btn btn-primary wrap" href="ket-noi.html?tab=mcp">Nối ' + esc(miss.group.vai.toLowerCase()) + '</a>') : '';
       if (!fix && lack.length) fix = needBtn(lack[0], 'btn btn-primary');
       var needBox = lack.length || soft.length ? '<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:8px;background:' + (lack.length ? '#FFF6F4' : '#F7F7F8') + '">' +
@@ -162,7 +189,7 @@
         (groups ? '<details' + (ready || window.innerWidth <= 760 ? '' : ' open') + '><summary style="cursor:pointer;font-size:13px;font-weight:600">Công cụ chạy quy trình (' + (w.cong_cu || []).length + ' vai trò, chọn app bạn dùng)</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">' + groups + '</div></details>' : '') +
         '<details><summary style="cursor:pointer;font-size:13px;font-weight:600">Các bước (' + w.buoc.length + ')</summary><ol style="margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.6">' + w.buoc.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol></details>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">' + (fix ||
-          '<a class="btn btn-primary" href="chat.html?q=' + encodeURIComponent('Chạy quy trình "' + w.ten + '" (mã ' + w.id + '): gọi CREWZY_QUY_TRINH với id "' + w.id + '" để lấy các bước, làm đúng thứ tự, nộp kết quả kèm quy_trinh.' + (w.hoi ? ' Hỏi tôi: ' + w.hoi + ' nếu cần.' : '')) + '">Chạy ngay</a>') +
+          '<a class="btn btn-primary" data-run-link="' + w.id + '" href="' + esc(runHref(w)) + '">Chạy ngay</a>') +
         '<button type="button" class="btn btn-ghost" data-assign="' + w.id + '">Giao cho AI của tôi</button>' +
         '<button type="button" class="btn btn-ghost" data-sched="' + w.id + '">Hẹn giờ</button></div></article>';
     }).join('');
@@ -226,7 +253,8 @@
   sform.lap.addEventListener('change', syncRepeat);
   sform.addEventListener('submit', function (e) {
     e.preventDefault();
-    post('/api/schedules', { action: 'tao', quy_trinh: schedFor.id, gio: sform.gio.value, ngay: sform.ngay.value, che_do: sform.che_do.value, ghi_chu: sform.ghi_chu.value,
+    var pc = prefOf(schedFor, true);
+    post('/api/schedules', { action: 'tao', quy_trinh: schedFor.id, gio: sform.gio.value, ngay: sform.ngay.value, che_do: sform.che_do.value, ghi_chu: [pc, sform.ghi_chu.value].filter(Boolean).join(' ').slice(0, 500),
       lap: sform.lap.value, den: sform.den.value, tu_dong: !!(schedFor.tu_dong && sform.tu_dong.checked) }).then(function () {
       dialog.close(); sform.ghi_chu.value = '';
       say('Đã hẹn giờ "' + schedFor.ten + '". Tới giờ kết quả sẽ về Việc chờ duyệt.', true);
@@ -236,6 +264,21 @@
 
   document.addEventListener('click', function (e) {
     var t = e.target;
+    var qg = t.closest('[data-qt-tg]');
+    if (qg) {
+      var p = qg.getAttribute('data-qt-tg').split('|'), wid = p[0], gi = +p[1], v = p.slice(2).join('|');
+      var w = data.workflows.filter(function (x) { return x.id === wid; })[0], g = w && w.cong_cu[gi];
+      if (!g) return;
+      var cur = selG(wid, gi, g), on = cur.indexOf(v) >= 0;
+      if (on && g.bat_buoc && cur.length === 1 && !g.san_co) { say('"' + g.vai + '" cần ít nhất 1 app. Chọn app khác trước rồi mới bỏ ' + nameOf(v) + '.'); return; }
+      qtSel[wid] = qtSel[wid] || {}; qtSel[wid][gi] = on ? cur.filter(function (x) { return x !== v; }) : cur.concat([v]);
+      try { localStorage.setItem('crewzy.qtchon', JSON.stringify(qtSel)); } catch (err) {}
+      var row = document.querySelector('[data-grow="' + wid + '|' + gi + '"]');
+      if (row) row.outerHTML = groupRow(g, gi, w);
+      var rl = document.querySelector('[data-run-link="' + wid + '"]');
+      if (rl) rl.setAttribute('href', runHref(w));
+      return;
+    }
     var gt = t.closest('[data-goto]');
     if (gt) { goTo(gt.getAttribute('data-goto')); return; }
     var d = t.closest('[data-dep]');
@@ -247,7 +290,8 @@
     var a = t.closest('[data-assign]');
     if (a) {
       a.disabled = true;
-      post('/api/jobs', { action: 'tao', quy_trinh: a.getAttribute('data-assign') }).then(function (r) {
+      var wa = data.workflows.filter(function (x) { return x.id === a.getAttribute('data-assign'); })[0], pa = wa ? prefOf(wa) : '';
+      post('/api/jobs', Object.assign({ action: 'tao', quy_trinh: a.getAttribute('data-assign') }, pa ? { yeu_cau: 'Chạy quy trình "' + wa.ten + '" (mã ' + wa.id + ') của Crewzy. Gọi CREWZY_QUY_TRINH với id "' + wa.id + '" để lấy đúng các bước, làm lần lượt, cuối cùng nộp kết quả bằng CREWZY_NOP_KET_QUA kèm quy_trinh "' + wa.id + '".' + pa } : {})).then(function (r) {
         say('Đã giao "' + r.job.tieu_de + '". Bảo AI của bạn "làm việc Crewzy" (Claude Code: /mcp__crewzy__lam_viec_crewzy) để nó nhận việc.', true);
         a.disabled = false;
       }).catch(function (err) { say(err.message); a.disabled = false; });

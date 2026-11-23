@@ -82,6 +82,35 @@
 
   // Nối xong quay về đúng nhiệm vụ này (ket-noi.html đọc tro_ve).
   function back(href, m) { return href.indexOf('ket-noi.html') === 0 ? href + (href.indexOf('?') > 0 ? '&' : '?') + 'tro_ve=' + encodeURIComponent((location.pathname.split('/').pop() || 'index.html') + '#nv-' + m.id) : href; }
+  // ----- CHỌN CÔNG CỤ CHO LẦN CHẠY (23/11): bấm logo app đã nối để chọn/bỏ chọn (KHÔNG ngắt kết nối), lưu vào lựa chọn nhiệm vụ (apref)
+  // → lệnh cho AI ghi đúng app được chọn ("dùng Canva…"). Chưa chọn lần nào: ô nhiều app = chọn hết, ô 1 app = app đầu.
+  function selOf(m, i) {
+    var sl = m.slots[i], conn = sl.da_noi.map(function (a) { return a.slug; }), s = (m.chon || {})['s' + i];
+    if (s) return s.filter(function (v) { return v === 'crewzy' || conn.indexOf(v) >= 0; });
+    return sl.nhieu ? conn : conn.slice(0, 1);
+  }
+  function fullSel(m) { var o = {}; m.slots.forEach(function (sl, i) { o['s' + i] = selOf(m, i); }); o.bao_cao = ((m.chon || {}).bao_cao || []).slice(); return o; }
+  function tgBtn(m, i, a, big) {
+    var on = selOf(m, i).indexOf(a.slug) >= 0;
+    var tip = a.name + (on ? ' · đang dùng cho lần chạy này (bấm để bỏ chọn, vẫn giữ kết nối)' : ' · đã nối, lần này không dùng (bấm để chọn)');
+    return big
+      ? '<button type="button" class="mz-app on tg' + (on ? '' : ' unsel') + '" data-tg="' + esc(m.id + '|' + i + '|' + a.slug) + '" aria-pressed="' + on + '" title="' + esc(tip) + '">' + logo(a) + '<span>' + esc(a.name) + '</span><i>' + (on ? '✓' : '○') + '</i></button>'
+      : '<button type="button" class="mz-mini tg' + (on ? ' sel' : ' unsel') + '" data-tg="' + esc(m.id + '|' + i + '|' + a.slug) + '" aria-pressed="' + on + '" title="' + esc(tip) + '">' + logo(a) + (on ? '<i aria-hidden="true">✓</i>' : '') + '</button>';
+  }
+  var saveT = null;
+  function toggle(key) {
+    var p = key.split('|'), m = missionById(p[0]); if (!m) return;
+    var i = +p[1], slug = p.slice(2).join('|'), sl = m.slots[i], cur = selOf(m, i), on = cur.indexOf(slug) >= 0;
+    if (on && sl.bat_buoc && cur.length === 1) return render('⚠ "' + esc(sl.vai) + '" cần ít nhất 1 app. Chọn app khác trước rồi mới bỏ ' + esc((sl.da_noi.filter(function (a) { return a.slug === slug; })[0] || {}).name || slug) + '.');
+    var next = on ? cur.filter(function (v) { return v !== slug; }) : (sl.nhieu ? cur.concat([slug]) : [slug]);
+    var sel = fullSel(m); sel['s' + i] = next; m.chon = sel;
+    render();
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      var u = window.vpaiUid ? window.vpaiUid() : '';
+      fetch('/api/autopilot', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chon', nv: m.id, chon: m.chon, uid: u || undefined }) }).catch(function () {});
+    }, 500);
+  }
   // ----- Hộp thoại chọn app trước khi chạy (trắc nghiệm) -----
   var dlg = null; // { id, mode: 'chay'|'tu_chay', sel: { s0:[], s1:[], bao_cao:[] } }
   function optsOf(sl) { var o = sl.da_noi.map(function (a) { return { v: a.slug, n: a.name }; }); if (sl.san_co) o.push({ v: 'crewzy', n: 'Công cụ có sẵn của Crewzy' }); return o; }
@@ -115,7 +144,8 @@
     return l.length ? '\n\nLỰA CHỌN CỦA KHÁCH (khách đã chọn trong Crewzy, làm ĐÚNG như vậy, không tự đổi app, không hỏi lại):\n' + l.join('\n') : '';
   }
   function slotHtml(sl, m) {
-    var chips = sl.da_noi.map(function (a) { return '<a class="mz-app on" href="' + esc(a.href) + '" title="' + esc(a.name) + ' đã nối">' + logo(a) + '<span>' + esc(a.name) + '</span><i>✓</i></a>'; });
+    var idx = m.slots.indexOf(sl);
+    var chips = sl.da_noi.map(function (a) { return tgBtn(m, idx, a, true); });
     chips = chips.concat(sl.goi_y.map(function (a) { return '<a class="mz-app" href="' + esc(back(a.href, m)) + '" title="Nối ' + esc(a.name) + '">' + logo(a) + '<span>' + esc(a.name) + '</span><i>+</i></a>'; }));
     chips = chips.concat((sl.web || []).map(function (w) { return '<a class="mz-app web" href="' + esc(w.url) + '" target="_blank" rel="noopener" title="' + esc(w.name) + ' chưa có cổng kết nối: mở web để tự chỉnh"><b class="mz-ini" style="background:' + esc(w.bg) + ';color:#fff;display:grid;place-items:center;font-size:11px">' + esc(w.letter) + '</b><span>' + esc(w.name) + '</span><i>↗</i></a>'; }));
     if ((sl.sap_co || []).length) chips.push('<span class="mz-app" style="border-style:solid;color:var(--muted)" title="Chưa nối được ngay"><span>' + esc(sl.sap_co.join(', ')) + ' · sắp có</span></span>');
@@ -131,8 +161,11 @@
     m.slots.forEach(function (sl) { if (sl.da_noi.length) on = on.concat(sl.da_noi); else if (sl.bat_buoc) need++; });
     var okSlots = m.slots.filter(function (sl) { return sl.da_noi.length || sl.san_co; }).length;
     var cand = []; m.slots.forEach(function (sl) { sl.goi_y.slice(0, 2).forEach(function (a) { cand.push(a); }); });
-    var logos = on.slice(0, 5).map(function (a) { return '<span class="mz-mini" title="' + esc(a.name) + '">' + logo(a) + '</span>'; }).join('') + (on.length > 5 ? '<span class="mz-mini more">+' + (on.length - 5) + '</span>' : '') +
-      cand.slice(0, Math.max(0, 6 - on.length)).map(function (a) { return '<span class="mz-mini off" title="' + esc(a.name) + ' (chưa nối)">' + logo(a) + '</span>'; }).join('') + '<span class="mz-mini more" title="Bấm Chi tiết để thêm app">+</span>';
+    // Hàng công cụ: app đã nối = nút chọn/bỏ chọn (✓), app gợi ý chưa nối = mờ (bấm để nối), + = thêm app của bạn.
+    var tg = [];
+    m.slots.forEach(function (sl, i) { sl.da_noi.forEach(function (a) { tg.push(tgBtn(m, i, a, false)); }); });
+    var logos = tg.join('') + cand.slice(0, Math.max(0, 6 - tg.length)).map(function (a) { return '<a class="mz-mini off" href="' + esc(back(a.href, m)) + '" title="Nối ' + esc(a.name) + '">' + logo(a) + '</a>'; }).join('') +
+      '<a class="mz-mini plus" href="' + esc(back('ket-noi.html?cat=' + m.cat, m)) + '" title="Thêm app của bạn vào nhiệm vụ này">+</a>';
     var first = m.lich[0];
     var isOpen = open === m.id, b = busy === m.id;
     var detail = !isOpen ? '' : '<div class="mz-detail"><p class="mz-desc">' + esc(m.mo_ta) + '</p>' +
@@ -142,11 +175,10 @@
     return '<article class="card mz-card' + (m.dang_chay ? ' running' : '') + (isOpen ? ' open' : '') + '" style="--mz:' + esc(m.mau) + '" id="nv-' + esc(m.id) + '">' +
       '<button type="button" class="mz-sum" data-open="' + esc(m.id) + '" aria-expanded="' + isOpen + '">' +
         '<span class="mz-top"><b class="mz-name">' + esc(m.ten) + '</b>' + st + '</span>' +
-        '<span class="mz-line"><span class="mz-logos">' + logos + '</span>' +
-        '<span class="mz-meta">' + okSlots + '/' + total + ' ô app · ' + esc(first ? when(first) : '') + '</span></span>' +
+        '<span class="mz-meta">' + okSlots + '/' + total + ' ô app · ' + esc(first ? when(first) : '') + '</span>' +
         (!m.san_sang && m.ly_do ? '<span class="mz-why">' + esc(m.ly_do) + '</span>' : '') +
         '<span class="mz-chev" aria-hidden="true">' + (isOpen ? '▴ Thu gọn' : '▾ Chi tiết') + '</span>' +
-      '</button>' + detail +
+      '</button>' + '<div class="mz-logos mz-tools">' + logos + '</div>' + detail +
       '<div class="mz-act">' +
         '<button type="button" class="btn btn-primary" data-run="' + esc(m.id) + '">▶ Chạy ngay</button>' +
         '<button type="button" class="btn btn-ghost" data-ai-run="' + esc(m.id) + '" title="Chạy bằng Claude/ChatGPT của bạn (nối Crewzy 1 lần bấm)">✦ <span class="mz-long">Chạy bằng </span>AI của bạn</button>' +
@@ -195,28 +227,8 @@
       }).catch(function () { busy = ''; render('⚠ Lỗi mạng, thử lại.'); });
   }
 
-  box.addEventListener('change', function (e) {
-    var q = e.target.closest('[data-q]');
-    if (!q || !dlg) return;
-    var k = q.getAttribute('data-q'), v = q.value, cur = dlg.sel[k] || [];
-    if (q.type === 'radio') dlg.sel[k] = [v];
-    else dlg.sel[k] = q.checked ? cur.concat([v]) : cur.filter(function (x) { return x !== v; });
-  });
-  box.addEventListener('click', function (e) {
-    var run = e.target.closest('[data-run]');
-    if (run) { var mm = missionById(run.getAttribute('data-run')); if (mm) openDlg(mm, 'chay'); return; }
-    var air = e.target.closest('[data-ai-run]');
-    // Đủ app bắt buộc → hỏi chọn app trước (trắc nghiệm) rồi mở bảng; thiếu → mở thẳng bảng để thấy cần nối gì.
-    if (air) { var ma = missionById(air.getAttribute('data-ai-run')); if (ma) { if (needsOf(ma).ok) openDlg(ma, 'ai'); else openAi(ma, null); } return; }
-    if (e.target.closest('[data-ai-copy]') && aiPanel) {
-      var bt = e.target.closest('[data-ai-copy]'), ta = box.querySelector('.mz-cmd');
-      var ok = function () { bt.textContent = '✓ Đã chép'; };
-      if (navigator.clipboard) navigator.clipboard.writeText(aiPanel.text).then(ok, function () { if (ta) { ta.select(); document.execCommand('copy'); ok(); } });
-      else if (ta) { ta.select(); document.execCommand('copy'); ok(); }
-      return;
-    }
-    if (e.target.closest('[data-dlg-x]')) { dlg = null; aiPanel = null; return render(); }
-    if (e.target.closest('[data-dlg-go]') && dlg) {
+  // Lưu lựa chọn công cụ rồi chạy theo chế độ (chay = Trợ lý làm ngay, ai = AI của khách, tu_chay = bật tự chạy).
+  function goDlg() {
       var m0 = missionById(dlg.id), d0 = dlg, u = window.vpaiUid ? window.vpaiUid() : '';
       fetch('/api/autopilot', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chon', nv: d0.id, chon: d0.sel, uid: u || undefined }) })
         .then(function (r) { return r.json(); }).then(function (j) {
@@ -235,12 +247,36 @@
           if (d0.mode === 'ai') { openAi(m0, d0.sel); return; }
           post({ action: 'bat', nv: d0.id }, d0.id);
         }).catch(function () { render('⚠ Lỗi mạng, thử lại.'); });
+  }
+  box.addEventListener('change', function (e) {
+    var q = e.target.closest('[data-q]');
+    if (!q || !dlg) return;
+    var k = q.getAttribute('data-q'), v = q.value, cur = dlg.sel[k] || [];
+    if (q.type === 'radio') dlg.sel[k] = [v];
+    else dlg.sel[k] = q.checked ? cur.concat([v]) : cur.filter(function (x) { return x !== v; });
+  });
+  box.addEventListener('click', function (e) {
+    var tgl = e.target.closest('[data-tg]');
+    if (tgl) { e.preventDefault(); toggle(tgl.getAttribute('data-tg')); return; }
+    var run = e.target.closest('[data-run]');
+    // Chọn công cụ ngay trên thẻ rồi → chạy luôn với lựa chọn đó (hộp thoại trắc nghiệm chỉ còn khi chưa có trình chạy).
+    if (run) { var mm = missionById(run.getAttribute('data-run')); if (mm) { if (window.crewzyRun) { dlg = { id: mm.id, mode: 'chay', sel: fullSel(mm) }; goDlg(); } else openDlg(mm, 'chay'); } return; }
+    var air = e.target.closest('[data-ai-run]');
+    // Đủ app bắt buộc → hỏi chọn app trước (trắc nghiệm) rồi mở bảng; thiếu → mở thẳng bảng để thấy cần nối gì.
+    if (air) { var ma = missionById(air.getAttribute('data-ai-run')); if (ma) openAi(ma, fullSel(ma)); return; }
+    if (e.target.closest('[data-ai-copy]') && aiPanel) {
+      var bt = e.target.closest('[data-ai-copy]'), ta = box.querySelector('.mz-cmd');
+      var ok = function () { bt.textContent = '✓ Đã chép'; };
+      if (navigator.clipboard) navigator.clipboard.writeText(aiPanel.text).then(ok, function () { if (ta) { ta.select(); document.execCommand('copy'); ok(); } });
+      else if (ta) { ta.select(); document.execCommand('copy'); ok(); }
       return;
     }
+    if (e.target.closest('[data-dlg-x]')) { dlg = null; aiPanel = null; return render(); }
+    if (e.target.closest('[data-dlg-go]') && dlg) return goDlg();
     var o = e.target.closest('[data-open]');
     if (o) { open = open === o.getAttribute('data-open') ? '' : o.getAttribute('data-open'); return render(); }
     var t = e.target.closest('[data-nv]');
-    if (t) { if (!t.getAttribute('data-on')) { var m1 = missionById(t.getAttribute('data-nv')); if (m1) return openDlg(m1, 'tu_chay'); } return post({ action: t.getAttribute('data-on') ? 'tat' : 'bat', nv: t.getAttribute('data-nv') }, t.getAttribute('data-nv')); }
+    if (t) { if (!t.getAttribute('data-on')) { var m1 = missionById(t.getAttribute('data-nv')); if (m1) { dlg = { id: m1.id, mode: 'tu_chay', sel: fullSel(m1) }; return goDlg(); } } return post({ action: t.getAttribute('data-on') ? 'tat' : 'bat', nv: t.getAttribute('data-nv') }, t.getAttribute('data-nv')); }
     // ▶ Run tất cả: chạy thật ngay các bước hằng ngày đã sẵn sàng + bật tự chạy mỗi ngày.
     if (e.target.closest('[data-nv-all]')) {
       if (!window.crewzyRun) return post({ action: 'bat', nv: 'all' }, 'all');

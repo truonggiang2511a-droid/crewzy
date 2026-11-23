@@ -148,6 +148,8 @@ src/lib/missions.js       6 NHIỆM VỤ HẰNG NGÀY (nguồn duy nhất của 
                           mỗi nhiệm vụ 2–3 slot app (apps ứng viên, 'mcp:<id>', bat_buoc, nhieu, san_co) + lich (quy trình theo giờ, tu/toi cho dây trên cây).
                           PRIORITY = thứ tự ưu tiên khi gói hết số lịch; slotStatus (đã nối/gợi ý/href). Thẻ: public/assets/missions.js vào [data-missions]
                           ở Trung tâm điều hành + đầu trang Quy trình (▶ Chạy ngay → chat.html?q=, Tự chạy hằng ngày → POST /api/autopilot {action, nv}, Run tất cả)
+                          Chọn công cụ (23/11): logo app đã nối trên thẻ = nút chọn/bỏ chọn (✓, KHÔNG ngắt kết nối; ô bắt buộc giữ ≥1) → POST action 'chon' (apref) → prefText vào lệnh
+                          (Run/lịch/AI của bạn); nút + thêm app của khách. Trang Quy trình: nhóm công cụ cũng chọn/bỏ chọn (localStorage crewzy.qtchon) → lệnh Chạy ngay/Giao AI/ghi chú Hẹn giờ
 src/lib/autopilot.js      CHẠY TỰ ĐỘNG CẢ CÂY (nút ▶ Run trên Cây vận hành): CHAIN = PRIORITY × missions.lich (12 bước, lịch gắn nv = mã nhiệm vụ; bật/tắt riêng từng nhiệm vụ), (lead → CRM, trả lời bình luận mỗi giờ, nhắc sale, bản tin sáng CEO,
                           lịch nội dung, đăng bài đã duyệt, báo cáo tuần vào Google Sheets, soi đối thủ, chiến lược tháng) = lịch nguon 'cay'; chỉ bật bước
                           readiness sẵn sàng, theo số lịch gói (ưu tiên ra khách trước); cần Brain ≥4/6 mục. GET/POST /api/autopilot (src/routes/autopilot.js).
