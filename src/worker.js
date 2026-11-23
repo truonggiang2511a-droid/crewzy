@@ -4,6 +4,7 @@ import upload from './routes/upload.js';
 import office from './routes/office.js';
 import autopilot from './routes/autopilot.js';
 import leads from './routes/leads.js';
+import { handleWebhook, runEventQueue } from './lib/events.js';
 import auth from './routes/auth.js';
 import brand from './routes/brand.js';
 import catalog from './routes/catalog.js';
@@ -48,6 +49,7 @@ export default {
       if (pathname.startsWith('/api/img/')) return await serveImage(request, env);
       if (pathname.startsWith('/api/media/')) return await serveMedia(request, env);
       if (pathname === '/api/upload' || pathname.startsWith('/api/upload/')) return await upload(request, env);
+      if (pathname === '/api/composio/webhook' && request.method === 'POST') return await handleWebhook(request, env, env.PUBLIC_ORIGIN || new URL(request.url).origin);
       const handler = ROUTES[pathname];
       if (handler) return await handler(request, env, ctx);
       if (pathname.startsWith('/api/')) return Response.json({ error: 'Không có API này.' }, { status: 404 });
@@ -86,6 +88,7 @@ export default {
       console.log('auto run done', uid, job.id, texts.join(' ').slice(0, 200));
     };
     ctx.waitUntil(runWeeklyReports(env, { origin, submitResult, listJobs, plans: plans(env) }).then((r) => console.log('weekly', JSON.stringify(r))).catch((e) => console.error('weekly failed', e && e.stack)));
+    ctx.waitUntil(runEventQueue(env, { origin, runAuto }).then((r) => console.log('events', JSON.stringify(r))).catch((e) => console.error('events failed', e && e.stack)));
     ctx.waitUntil(runDueSchedules(env, { origin, runAuto }).then((r) => console.log('schedules', JSON.stringify(r))).catch((e) => console.error('schedules failed', e && e.stack)));
   },
 };

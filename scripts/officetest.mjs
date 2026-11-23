@@ -59,3 +59,44 @@ await updateLead(env, 'u3', r1.data.id, { trang_thai: 'da_chot', gia_tri: 150000
 const st = leadStats(await listLeads(env, 'u3'));
 assert.equal(st.hom_nay, 2); assert.equal(st.chot_thang, 1); assert.equal(st.doanh_thu_thang, 1500000000); assert.equal(st.theo_nguon.facebook.doanh_thu, 1500000000); assert.equal(st.can_goi, 1);
 console.log('leads OK');
+
+// Sự kiện tức thì (Composio trigger): rút thông tin, lọc email tự động/của chính chủ, tạo lead + phiếu việc, xếp hàng khi bật chạy tự động.
+import { normalize, handleEvent, listEvents, runEventQueue } from '../src/lib/events.js';
+const g = normalize('GMAIL_NEW_GMAIL_MESSAGE', { sender: 'Nguyễn Văn A <a@gmail.com>', subject: 'Hỏi giá nhà 2 tầng', message_text: 'Cho em xin báo giá, sđt 0912 345 678' });
+assert.equal(g.kenh, 'email'); assert.equal(g.email, 'a@gmail.com'); assert.equal(g.ten, 'Nguyễn Văn A');
+const ev1 = await handleEvent(env, 'u3', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'Nguyễn Văn A <a@gmail.com>', subject: 'Hỏi giá nhà 2 tầng', message_text: 'Cho em xin báo giá, sđt 0912 345 678' }, 'https://x', { noMail: true });
+assert.ok(ev1.lead && ev1.job, 'email có số → lead + phiếu');
+const l3 = (await listLeads(env, 'u3')).find((l) => l.id === ev1.lead);
+assert.equal(l3.sdt, '0912345678'); assert.equal(l3.muc_do, 'nong'); assert.equal(l3.nguon, 'email');
+assert.ok((await handleEvent(env, 'u3', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'Shop <no-reply@shop.vn>', subject: 'Khuyến mãi' }, 'https://x', { noMail: true })).bo_qua);
+assert.ok((await handleEvent(env, 'u3', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'ceo@nhaxinh.vn', subject: 'abc' }, 'https://x', { noMail: true })).bo_qua, 'email của chính chủ bỏ qua (chống vòng lặp)');
+assert.ok((await handleEvent(env, 'u3', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'x@y.vn', subject: '[Crewzy] Lead nóng' }, 'https://x', { noMail: true })).bo_qua);
+const cal = await handleEvent(env, 'u3', 'CALENDLY_MEETING_SCHEDULED', { name: 'Chị Mai', email: 'mai@x.vn', questions_and_answers: [{ question: 'SĐT', answer: '0988 111 222' }] }, 'https://x', { noMail: true });
+assert.ok(cal.lead, 'đặt lịch = lead nóng');
+const nolead = await handleEvent(env, 'u3', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'Bạn B <b@x.vn>', subject: 'Cảm ơn', message_text: 'Hôm qua vui quá' }, 'https://x', { noMail: true });
+assert.ok(!nolead.lead && nolead.job, 'email thường: không lead, vẫn có phiếu soạn trả lời');
+assert.ok((await listEvents(env, 'u3')).length >= 3);
+// Bật chạy tự động (u2 có lịch nguon cay chế độ crewzy) → sự kiện vào hàng đợi, cron chạy.
+await handleEvent(env, 'u2', 'GMAIL_NEW_GMAIL_MESSAGE', { sender: 'K <k@x.vn>', subject: 'Muốn mua nhà', message_text: 'tư vấn giúp' }, 'https://x', { noMail: true });
+const ranJobs = [];
+const qr = await runEventQueue(env, { runAuto: async (uid, job) => { ranJobs.push(uid + ':' + job.id); }, origin: 'https://x' });
+assert.equal(qr.ran, 1); assert.ok(ranJobs[0].startsWith('u2:'));
+assert.equal((await runEventQueue(env, { runAuto: async () => {}, origin: 'https://x' })).ran, 0, 'hàng đợi đã rỗng');
+console.log('events OK');
+
+// Webhook Composio thật (V3, chữ ký v1 HMAC): đúng khoá → xử lý; sai khoá → 401; gửi lại cùng webhook-id → bỏ qua.
+import { handleWebhook } from '../src/lib/events.js';
+import { sealText } from '../src/lib/common.js';
+env.SESSION_SECRET = 'test-secret-123'; env.COMPOSIO_API_KEY = 'ak_test_offline';
+const WH = 'whsec_test_abc';
+store.set('composio:whsecret', await sealText(env, WH));
+const sign = async (id, ts, body, secret) => { const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return 'v1,' + Buffer.from(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(`${id}.${ts}.${body}`))).toString('base64'); };
+const bodyV3 = JSON.stringify({ id: 'msg_1', timestamp: new Date().toISOString(), type: 'composio.trigger.message', metadata: { log_id: 'l', trigger_slug: 'CALENDLY_MEETING_SCHEDULED', trigger_id: 'ti_1', connected_account_id: 'ca_1', auth_config_id: 'ac_1', user_id: 'vpai-u5' }, data: { name: 'Anh Tuấn', email: 't@x.vn', questions_and_answers: [{ question: 'Phone', answer: '0903 222 333' }] } });
+const ts = String(Math.floor(Date.now() / 1000));
+const mk = async (secret, id = 'wh_1') => new Request('https://x/api/composio/webhook', { method: 'POST', body: bodyV3, headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': await sign(id, ts, bodyV3, secret) } });
+assert.equal((await handleWebhook(await mk('sai-khoa'), env, 'https://x')).status, 401);
+const okRes = await (await handleWebhook(await mk(WH), env, 'https://x')).json();
+assert.ok(okRes.ok && okRes.lead, JSON.stringify(okRes));
+assert.equal((await listLeads(env, 'u5'))[0].sdt, '0903222333');
+assert.ok((await (await handleWebhook(await mk(WH), env, 'https://x')).json()).trung, 'gửi lại cùng id phải bỏ qua');
+console.log('webhook OK');

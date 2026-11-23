@@ -117,7 +117,7 @@ export async function leadTool(env, uid, args, connected, agent) {
   const tin = `${l.muc_do === 'nong' ? 'LEAD NÓNG' : 'Lead mới'}: ${l.ten}${l.sdt ? ' · ' + l.sdt : ''} · ${l.nguon} · ${l.nhu_cau || ''}${l.link ? ' · ' + l.link : ''}`;
   const viec = [];
   if (!out.trung) {
-    if (ch.kenh_bao.length) viec.push('Gửi NGAY tin dưới đây cho chủ doanh nghiệp qua ' + ch.kenh_bao.join(', ') + (ch.email_ceo ? ' (Gmail gửi tới ' + ch.email_ceo + ')' : '') + '. Đây là tin nội bộ cho chủ, không cần hỏi duyệt.');
+    if (ch.kenh_bao.length) viec.push('Gửi NGAY tin dưới đây cho chủ doanh nghiệp qua ' + ch.kenh_bao.join(', ') + (ch.email_ceo ? ' (Gmail gửi tới ' + ch.email_ceo + ', tiêu đề bắt đầu bằng [Crewzy])' : '') + '. Đây là tin nội bộ cho chủ, không cần hỏi duyệt.');
     if (ch.crm.length) viec.push('Tạo liên hệ (và deal nếu là khách nóng) trong ' + ch.crm[0] + ' với tên, số, nhu cầu, nguồn.');
     viec.push('Trả lời khách: cảm ơn, báo nhân viên sẽ gọi sớm (nhắn riêng, không lặp lại số điện thoại công khai).');
   }

@@ -515,7 +515,7 @@ export function forMcp(text) {
 }
 
 export const WORKFLOW_RULES = [
-  'BÁO CHỦ: báo cáo, bản tin, lead nóng gửi tới chủ doanh nghiệp qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack, Teams đã nối). Tin nội bộ cho chủ không cần hỏi duyệt; tin gửi KHÁCH vẫn theo cổng duyệt.',
+  'BÁO CHỦ: báo cáo, bản tin, lead nóng gửi tới chủ doanh nghiệp qua các kênh trong bao_ceo (Gmail tới email_ceo, Telegram, Slack, Teams đã nối). Email gửi chủ: tiêu đề bắt đầu bằng [Crewzy]. Tin nội bộ cho chủ không cần hỏi duyệt; tin gửi KHÁCH vẫn theo cổng duyệt.',
   'LEAD: thấy khách để lại số điện thoại/email hoặc khách nóng ở bất kỳ kênh nào → gọi CREWZY_BAO_LEAD ngay, rồi làm theo viec_tiep.',
   'BƯỚC 0 BẮT BUỘC: đọc kỹ thuong_hieu kèm trong kết quả CREWZY_QUY_TRINH (Brain, phong cách hình ảnh/video, giọng đọc, nhạc, mẫu tham khảo) TRƯỚC khi làm bất cứ việc gì. Mở các link mẫu khách thích để học phong cách; làm theo phong cách đó cho thương hiệu của khách, không sao chép nội dung, logo, người trong mẫu. Mục trong thuong_hieu.thieu: hỏi khách 1 lần hoặc dùng mặc định và ghi rõ trong kết quả.',
   'Đăng bài: chỉ đăng lên kênh có định dạng phù hợp trong dinh_dang_kenh (vd YouTube chỉ nhận video, Instagram không nhận bài chỉ có chữ); kênh không nhận thì bỏ qua và ghi chú. Mỗi kênh một nội dung riêng đúng văn phong và khổ ảnh/video của kênh đó.',

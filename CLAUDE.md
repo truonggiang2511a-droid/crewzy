@@ -148,6 +148,14 @@ src/lib/leads.js          KHÁCH TIỀM NĂNG + BÁO CEO NGAY: KV leads:<uid> (�
                           tiếp bằng Composio. CREWZY_QUY_TRINH trả bao_ceo (báo cáo/bản tin gửi chủ qua các kênh đó). GET/POST /api/leads (cap_nhat: da_goi|hen|da_chot
                           +gia_tri|huy|xoa; them). leadStats: hôm nay, cần gọi, chốt + doanh thu tháng theo nguồn. Trung tâm điều hành: ô "N lead hôm nay" trên thân cây,
                           bảng Khách tiềm năng (Gọi tel:, Đã gọi, Chốt + số tiền), lead vào Hoạt động. layout.js: thông báo lead mọi trang (60 giây, Notification nếu bật)
+src/lib/events.js         SỰ KIỆN TỨC THÌ (Composio Triggers): TRIGGERS gmail GMAIL_NEW_GMAIL_MESSAGE (query bỏ from:me, [Crewzy], quảng cáo; poll ~15 phút),
+                          outlook OUTLOOK_MESSAGE_TRIGGER, calendly CALENDLY_MEETING_SCHEDULED (scope user), zendesk ZENDESK_NEW_ZENDESK_TICKET_TRIGGER. Facebook/Instagram/
+                          TikTok/LinkedIn/Telegram KHÔNG có trigger (tra docs.composio.dev/toolkits/<slug>.md 23/11). ensureSubscription: 1 webhook cho cả project →
+                          https://<site>/api/composio/webhook, khoá ký lưu KV composio:whsecret (sealText); KHÔNG ghi đè nếu project đã có webhook khác. syncTriggers
+                          (KV trg:<uid>) chạy khi bật/tắt Run và khi /api/office thấy app có trigger mới nối. handleWebhook: verifyWebhook (v1 HMAC), chống lặp evseen:<id>,
+                          vpai-<uid>. handleEvent: lọc email tự động/của chính chủ (chống vòng lặp), có SĐT/đặt lịch/hỏi mua → addLead ngay + GMAIL_SEND_EMAIL báo chủ
+                          ngay (tools.execute, dangerouslySkipVersionCheck), phiếu việc nguon su_kien; bật Run chế độ crewzy → evq:<uid> (≤20 lượt AI/ngày) → cron
+                          runEventQueue (4/lượt cron). Nhật ký evlog:<uid> vào Hoạt động. Test: officetest (events + webhook ký thật)
 src/lib/library.js        KHO (D1 library, migrations/0003_library.sql ĐÃ áp lên D1 thật 23/11): addItem (UNIQUE uid+url), listItems, usageBytes, removeItem,
                           CREWZY_KHO + CREWZY_LUU_KHO (AI đọc kho, lưu ảnh web/fanpage vào kho qua rehostUrl). Tự vào kho: upload (tai_len, PUT của AI = ket_qua),
                           ảnh/video AI tạo (ai_tao). Ảnh Nhanh giờ lưu R2 (putMedia) thay KV img 90 ngày khi có MEDIA
@@ -550,6 +558,10 @@ package.json              @composio/core 0.31, @anthropic-ai/sdk, openai; dev: w
   gọi CREWZY_BAO_LEAD; ban_tin_sang/bao_cao_tuan gửi chủ qua bao_ceo; WORKFLOW_RULES thêm BÁO CHỦ + LEAD. Zalo chưa có (Composio không có) → báo qua Gmail/Telegram.
   Lead chỉ về khi AI chạy (lịch trả lời bình luận mỗi giờ hoặc khách chat) — không phải webhook tức thời từ Facebook. AI ngoài (claude.ai) phải ngắt/nối lại connector
   mới thấy CREWZY_BAO_LEAD. Test: officetest (lưu, gộp trùng, kênh báo, chốt → doanh thu).
+- 23/11/2026: Giang hỏi Crewzy đã đủ kiến trúc 9 lớp (Brain, Agent runtime, Connector, DB, Event bus, Queue, Scheduler, Monitoring, Voice) chưa → thiếu
+  Event bus, Queue, Monitoring; đề xuất làm trên Cloudflare (không Supabase/Redis/LangGraph). Giang: "làm mục 1" → events.js. Phát hiện: Composio KHÔNG có trigger
+  bình luận Facebook/Instagram → bình luận vẫn quét mỗi giờ; sự kiện tức thì cho Gmail/Outlook/Calendly/Zendesk. AI xử lý sự kiện chờ cron ≤15 phút (chưa có
+  Queues — cần Workers Paid); lead + email báo chủ thì ngay khi webhook tới. CHƯA thử với Composio thật (webhook tạo khi khách đầu tiên bật Run có Gmail…).
 
 ## 6. Việc tiếp theo
 

@@ -11,6 +11,7 @@ import { listServers } from '../lib/mcpServers.js';
 import { getBrand } from '../lib/brand.js';
 import { appBySlug } from '../lib/catalog.js';
 import { listLeads, leadStats } from '../lib/leads.js';
+import { listTriggers, listEvents, syncTriggers, TRIGGERS } from '../lib/events.js';
 
 // Lá của Cây vận hành: mỗi nhánh một bộ ứng dụng ĐÚNG chuyên môn (mỗi app một nhiệm vụ), app đã nối hiện trước.
 // Sửa ở đây khi muốn đổi app của nhánh; slug phải có trong catalog (scripts/officetest.mjs kiểm).
@@ -42,14 +43,15 @@ const DAY_MS = 86400 * 1000;
 
 const roomOf = (j) => { const w = j.quy_trinh && workflowById(j.quy_trinh); return w ? w.phong : KIND_ROOM[j.loai] || 'hang_ngay'; };
 
-export default async (req, env) => {
+export default async (req, env, ctx) => {
   const url = new URL(req.url);
   const who = await resolveUid(req, env, url.searchParams.get('uid'));
   if (who.response) return who.response;
   const uid = who.uid;
-  const [jobs, schedules, servers, brand, accounts, aiseen, leadList] = await Promise.all([
+  const [jobs, schedules, servers, brand, accounts, aiseen, leadList, trg, evlog] = await Promise.all([
     listJobs(env, uid), listSchedules(env, uid).catch(() => []), listServers(env, uid).catch(() => []),
     getBrand(env, uid).catch(() => null), connectedApps(env, uid), kvGetJson(env, 'aiseen:' + uid).catch(() => null), listLeads(env, uid).catch(() => []),
+    listTriggers(env, uid).catch(() => ({})), listEvents(env, uid).catch(() => []),
   ]);
   const now = Date.now();
   const connected = Object.keys(accounts || {});
@@ -99,8 +101,13 @@ export default async (req, env) => {
     for (const h of (j.lich_su || []).slice(-4)) events.push({ luc: h.luc, viec: h.viec, tieu_de: j.tieu_de, phong: roomOf(j), id: j.id, trang_thai: j.trang_thai });
   }
   for (const l of leadList.slice(0, 20)) events.push({ luc: l.luc, viec: (l.muc_do === 'nong' ? 'Lead nóng' : 'Lead mới') + (l.nhu_cau ? ': ' + l.nhu_cau.slice(0, 80) : ''), tieu_de: l.ten + ' · ' + l.nguon, phong: 'ban_hang', lead: l.id });
+  for (const ev of evlog.slice(0, 10)) if (!ev.lead && ev.job) events.push({ luc: ev.luc, viec: 'Sự kiện tức thì: ' + (ev.kenh === 'email' ? 'email mới' : ev.kenh), tieu_de: (ev.ten || '') + (ev.tieu_de ? ' · ' + ev.tieu_de : ''), phong: 'cham_soc', id: ev.job });
   events.sort((a, b) => (a.luc < b.luc ? 1 : -1));
 
+  // Đang chạy tự động mà khách vừa nối thêm app có sự kiện tức thì (Gmail, Calendly…) → tự bật trigger, không chặn trang.
+  const autoOnNow = schedules.some((s) => s.nguon === 'cay' && s.bat);
+  const needTrg = Object.keys(TRIGGERS).some((k) => connected.includes(k) !== !!trg[k]);
+  if (autoOnNow && needTrg && accounts && ctx && ctx.waitUntil) ctx.waitUntil(syncTriggers(env, uid, connected, true, env.PUBLIC_ORIGIN || url.origin).catch((e) => console.error('sync triggers', e && e.message)));
   const count = (st) => jobs.filter((j) => effective(j) === st).length;
   const week = jobs.filter((j) => ['da_dang', 'xong'].includes(j.trang_thai) && now - Date.parse(j.cap_nhat) < 7 * DAY_MS).length;
   const b = brand || {};
@@ -123,6 +130,7 @@ export default async (req, env) => {
       app_names: connected.slice(0, 12).map((s) => (appBySlug(s) || { name: s }).name),
     },
     leads: { ...leadStats(leadList), moi: leadList.slice(0, 8).map((l) => ({ id: l.id, ten: l.ten, sdt: l.sdt, nguon: l.nguon, nhu_cau: l.nhu_cau, muc_do: l.muc_do, trang_thai: l.trang_thai, luc: l.luc, link: l.link })) },
+    su_kien: { bat: Object.keys(trg), co_the: Object.keys(TRIGGERS).filter((k) => connected.includes(k) && !trg[k]) },
     autopilot: { bat: schedules.some((s) => s.nguon === 'cay' && s.bat), so_lich: schedules.filter((s) => s.nguon === 'cay' && s.bat).length,
       buoc: schedules.filter((s) => s.nguon === 'cay' && s.bat).map((s) => s.quy_trinh) },
     now: new Date(now).toISOString(),

@@ -554,6 +554,9 @@
       return '<li class="' + (x.se_bat || x.dang_chay ? '' : 'off') + '"><i style="background:' + (COLOR[x.toi] || '#999') + '"></i><div><b>' + esc(x.buoc) + '</b><small>' +
         esc((SHORT[x.tu] || '') + ' → ' + (SHORT[x.toi] || '')) + ' · ' + esc(DAY_TXT[x.ngay] || '') + ' ' + esc(x.lap ? x.gio + '–' + x.den + ' mỗi giờ' : x.gio) + (x.ly_do ? ' · ' + esc(x.ly_do) : '') + '</small></div>' + right + '</li>';
     }).join('') + '</ol>';
+    if (p.su_kien) html += '<p class="of-auto-note"><b>Sự kiện tức thì</b> (không chờ tới giờ): ' + p.su_kien.map(function (x) {
+      return esc(x.ten) + ' ' + (x.bat ? '<span style="color:#15803D">● đang nhận</span>' : x.da_noi ? '<span>· bật khi Run</span>' : '<a href="ket-noi.html?app=' + x.app + '">· nối</a>');
+    }).join(' · ') + '. Khách để lại số hoặc đặt lịch là Crewzy lưu lead và email báo bạn ngay. Bình luận Facebook, Instagram chưa có sự kiện tức thì nên AI vẫn quét mỗi giờ.</p>';
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' + (p.bat ? '<button type="button" class="btn btn-ghost" data-auto-off>Tắt chạy tự động</button>' : '') +
       '<button type="button" class="btn btn-primary" data-auto-on' + (!p.brand_ok || !nOn ? ' disabled' : '') + '>' + (p.bat ? 'Cập nhật dây chuyền (' + nOn + ' bước)' : 'Bật chạy tự động (' + nOn + ' bước)') + '</button></div>';
     autoBody.innerHTML = html;

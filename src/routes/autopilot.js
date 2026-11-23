@@ -8,6 +8,7 @@ import { doneFlows } from '../lib/workflows.js';
 import { instantOn } from '../lib/instant.js';
 import { getFeatures } from '../lib/billing.js';
 import { planAutopilot, enableAutopilot, disableAutopilot } from '../lib/autopilot.js';
+import { syncTriggers, listTriggers, TRIGGERS } from '../lib/events.js';
 
 export default async (req, env) => {
   const url = new URL(req.url);
@@ -20,10 +21,17 @@ export default async (req, env) => {
   const [accounts, servers, brand, jobs, feat] = await Promise.all([connectedApps(env, uid), listServers(env, uid).catch(() => []),
     getBrand(env, uid).catch(() => null), listJobs(env, uid).catch(() => []), getFeatures(env, uid).catch(() => null)]);
   const rctx = { connected: Object.keys(accounts || {}), mcpUrls: servers.filter((s) => !s.off).map((s) => s.url), brand: brand || {}, done: doneFlows(jobs), instant: instantOn(env) && !!env.ANTHROPIC_API_KEY };
-  if (req.method === 'GET') return Response.json(await planAutopilot(env, uid, rctx, feat), { headers: { 'cache-control': 'no-store' } });
-  if (body.action === 'tat') return Response.json(await disableAutopilot(env, uid));
+  const origin = env.PUBLIC_ORIGIN || url.origin;
+  const suKien = async () => { const t = await listTriggers(env, uid); return Object.keys(TRIGGERS).map((k) => ({ app: k, ten: TRIGGERS[k].ten, da_noi: rctx.connected.includes(k), bat: !!t[k] })); };
+  if (req.method === 'GET') return Response.json({ ...(await planAutopilot(env, uid, rctx, feat)), su_kien: await suKien() }, { headers: { 'cache-control': 'no-store' } });
+  if (body.action === 'tat') { await syncTriggers(env, uid, rctx.connected, false, origin).catch(() => {}); return Response.json(await disableAutopilot(env, uid)); }
   if (body.action !== 'bat') return Response.json({ error: 'Thao tác không hợp lệ.' }, { status: 400 });
   if (feat && !feat.lich) return Response.json({ error: 'Gói hiện tại chưa có hẹn giờ tự chạy. Nâng lên gói Cơ bản trở lên ở trang Gói và credit.' }, { status: 400 });
   const out = await enableAutopilot(env, uid, rctx, feat);
+  if (!out.error) {
+    const t = await syncTriggers(env, uid, rctx.connected, true, origin).catch((e) => ({ loi: [e && e.message] }));
+    if (t.loi && t.loi.length) out.loi = [...(out.loi || []), ...t.loi.map((x) => 'Sự kiện tức thì: ' + x)];
+    out.su_kien = await suKien();
+  }
   return Response.json(out, { status: out.error ? 400 : 200 });
 };
