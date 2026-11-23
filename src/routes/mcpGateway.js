@@ -21,6 +21,7 @@ import { postQuota, mediaQuota, planNote } from '../lib/quota.js';
 import { memBlock, MEM_RULE } from '../lib/memory.js';
 import { loadExternalTools, callExternalTool, EXTERNAL_TOOL_RE, listServers } from '../lib/mcpServers.js';
 import { collectMedia } from '../lib/media.js';
+import { BRAND_TOOL, brandTool, activeUid, listBrands, ownerOf, multiExecuteAs } from '../lib/mcpBrand.js';
 
 const plain = (status, text) => new Response(text, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
@@ -48,7 +49,7 @@ async function connectedApps(env, uid) {
 }
 
 async function buildInstructions(env, uid) {
-  const [slugs, brand, servers] = await Promise.all([connectedApps(env, uid), getBrand(env, uid).catch(() => null), listServers(env, uid).catch(() => [])]);
+  const [slugs, brand, servers, brands] = await Promise.all([connectedApps(env, uid), getBrand(env, uid).catch(() => null), listServers(env, uid).catch(() => []), listBrands(env, ownerOf(uid)).catch(() => [])]);
   const names = slugs.map((s) => (appBySlug(s) || { name: s }).name);
   const parts = [
     `Bạn đang làm việc cho một doanh nghiệp qua ${APP_NAME}. Dùng công cụ Composio để làm việc thật trên các app khách đã kết nối:`,
@@ -57,6 +58,7 @@ async function buildInstructions(env, uid) {
     'Không bịa giá, số liệu; không đưa số điện thoại khách lên bài công khai. Làm ra kết quả thật (bài đăng, ảnh, báo cáo), không đẩy việc về cho người dùng.',
     'Quy trình chuẩn: khi chạy một quy trình (hoặc phiếu việc có quy_trinh), gọi CREWZY_QUY_TRINH với id để lấy đúng các bước, kiểm tra app thiếu và làm đúng thứ tự. Lệnh nhanh: prompts qt_<mã>.',
     'Phiếu việc: khách giao việc trong Crewzy → xem bằng CREWZY_VIEC_CAN_LAM. Làm xong MỌI sản phẩm (bài viết, báo cáo, kịch bản, danh sách khách, ảnh/video, file bạn tạo bằng skill của mình) thì nộp về Crewzy bằng CREWZY_NOP_KET_QUA (ghi nguoi_lam là tên của bạn) để khách duyệt, đăng và xem báo cáo. Việc khách đã duyệt (da_duyet): đăng/gửi rồi nộp lại trạng thái da_dang kèm link. Khách bảo "đăng luôn" ngay trong cuộc trò chuyện thì đó là đồng ý: đăng ngay rồi nộp phiếu trạng thái da_dang kèm link (không cần chờ duyệt trong Crewzy).',
+    ...(brands.length > 1 ? ['# Nhiều thương hiệu\nTài khoản này có ' + brands.length + ' thương hiệu: ' + brands.map((b) => b.ten).join('; ') + '. Brain bên dưới là của thương hiệu đang làm. Khách nhắc thương hiệu khác thì gọi CREWZY_THUONG_HIEU (xem → chon) trước khi làm; đừng nói là không có thương hiệu đó. Không dùng COMPOSIO_REMOTE_WORKBENCH để đăng bài khi đang làm thương hiệu phụ.'] : []),
     '# Brain thương hiệu\n' + (brandText(brand) || 'Chưa điền (người dùng điền ở trang Brain thương hiệu của Crewzy). Hỏi khi cần.'),
     '# App đã kết nối\n' + (names.length ? names.join(', ') : 'Chưa có. Người dùng kết nối ở trang Kết nối của Crewzy.'),
   ];
@@ -106,12 +108,15 @@ export default async (request, env, ctx) => {
   const upstream = await verifyUpstreamToken(token, apiKey);
   if (!upstream) return plain(403, 'Link nối AI không hợp lệ hoặc đã bị đổi.');
   if (upstream.protocol !== 'https:' || !upstream.hostname.endsWith('composio.dev')) return plain(403, 'Link nối AI không trỏ tới Composio.');
-  const uid = upstream.crewzyUid || null;
+  const linkUid = upstream.crewzyUid || null;
   // Bật gói: link v1 (không có mã khách) không tính được credit → bắt tạo link mới. Link đã thu hồi → từ chối.
-  if (!uid && billingOn(env)) return plain(403, 'Link nối AI này đã cũ. Vào Crewzy → Kết nối → AI của bạn để tạo link mới.');
-  if (uid && !(await linkAllowed(env, uid, upstream.crewzyLink).catch(() => true))) {
+  if (!linkUid && billingOn(env)) return plain(403, 'Link nối AI này đã cũ. Vào Crewzy → Kết nối → AI của bạn để tạo link mới.');
+  if (linkUid && !(await linkAllowed(env, linkUid, upstream.crewzyLink).catch(() => true))) {
     return plain(403, 'Link nối AI này đã bị thu hồi. Vào Crewzy → Kết nối → AI của bạn để tạo link mới rồi nối lại.');
   }
+  // Thương hiệu đang làm (Agency): AI chọn bằng CREWZY_THUONG_HIEU, lưu theo từng link. Mọi việc phía Crewzy dùng mã của thương hiệu đó.
+  const uid = linkUid ? await activeUid(env, linkUid, upstream.crewzyLink) : null;
+  const otherBrand = !!uid && uid !== linkUid;
 
   let bodyBuf = null;
   let rpc = null;
@@ -141,6 +146,12 @@ export default async (request, env, ctx) => {
     if ((rpc.params && rpc.params.uri) !== UI_URI) return Response.json({ jsonrpc: '2.0', id: rpc.id, error: { code: -32002, message: 'Không có tài nguyên này' } }, sid);
     const origin = env.PUBLIC_ORIGIN || reqUrl.origin;
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { contents: [{ ...res0, text: publishUiHtml(), _meta: { ui: { csp: { resourceDomains: [origin], connectDomains: [] }, prefersBorder: false } } }] } }, sid);
+  }
+
+  // Chọn thương hiệu đang làm (miễn phí, không qua cổng gói).
+  if (rpc && rpc.method === 'tools/call' && rpc.params && linkUid && rpc.params.name === BRAND_TOOL.name) {
+    const out = await brandTool(env, linkUid, upstream.crewzyLink, rpc.params.arguments || {}, reqUrl.origin).catch((e) => ({ error: String((e && e.message) || e) }));
+    return Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data) }], isError: !!out.error } }, { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } });
   }
 
   // Tính năng theo gói: ảnh Đẹp chỉ từ gói Tăng trưởng (hạ xuống Nhanh trước khi trừ credit).
@@ -213,6 +224,16 @@ export default async (request, env, ctx) => {
     return Response.json({ jsonrpc: '2.0', id: rpc.id, result }, sid);
   }
 
+  // Đang làm cho thương hiệu khác thương hiệu của link: phiên Composio của link là tài khoản cũ → chạy công cụ bằng tài khoản thương hiệu đã chọn.
+  if (otherBrand && rpc && rpc.method === 'tools/call' && rpc.params) {
+    const sid = { headers: { 'mcp-session-id': request.headers.get('mcp-session-id') || '' } };
+    const reply = (out) => Response.json({ jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: out.error ? 'Lỗi: ' + out.error : JSON.stringify(out.data) }], isError: !!out.error } }, sid);
+    if (rpc.params.name === 'COMPOSIO_MULTI_EXECUTE_TOOL') return reply(await multiExecuteAs(env, uid, rpc.params.arguments || {}));
+    if (rpc.params.name === 'COMPOSIO_MANAGE_CONNECTIONS') {
+      return reply({ error: `Đang làm cho thương hiệu khác thương hiệu chính: nối app cho thương hiệu này tại ${reqUrl.origin}/ket-noi.html (chọn đúng thương hiệu ở ô chọn doanh nghiệp trước). Gửi khách link này.` });
+    }
+  }
+
   const headers = new Headers();
   for (const name of ['content-type', 'accept', 'mcp-session-id', 'mcp-protocol-version', 'last-event-id']) {
     const value = request.headers.get(name);
@@ -238,12 +259,12 @@ export default async (request, env, ctx) => {
   if (rpc.method === 'tools/list') {
     const ext = await loadExternalTools(env, uid).catch((e) => { console.error('gateway ext tools failed', e && e.message); return { defs: [] }; });
     const extTools = ext.defs.map((d) => ({ name: d.function.name, description: d.function.description, inputSchema: d.function.parameters }));
-    patched = rewriteRpc(text, ct, rpc.id, (result) => { result.tools = [...(result.tools || []), ...MCP_TOOLS, ...extTools]; });
+    patched = rewriteRpc(text, ct, rpc.id, (result) => { result.tools = [...(result.tools || []), ...MCP_TOOLS, BRAND_TOOL, ...extTools]; });
   } else {
     // Ghi lại AI của khách vừa nối (Văn phòng → Bộ não hiện "Claude hoạt động 5 phút trước"). Chỉ ghi lúc initialize để đỡ tốn lượt ghi KV.
     const ci = (rpc.params && rpc.params.clientInfo) || {};
     ctx && ctx.waitUntil && ctx.waitUntil(env.KV.put('aiseen:' + uid, JSON.stringify({ ten: aiName(ci.name), luc: new Date().toISOString() }), { expirationTtl: 60 * 86400 }).catch(() => {}));
-    ctx && ctx.waitUntil && ctx.waitUntil(touchLink(env, uid, upstream.crewzyLink, aiName(ci.name)).catch(() => {}));
+    ctx && ctx.waitUntil && ctx.waitUntil(touchLink(env, linkUid, upstream.crewzyLink, aiName(ci.name)).catch(() => {}));
     const ins = await buildInstructions(env, uid);
     patched = rewriteRpc(text, ct, rpc.id, (result) => {
       result.instructions = [result.instructions, ins.text].filter(Boolean).join('\n\n');

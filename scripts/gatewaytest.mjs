@@ -61,6 +61,30 @@ assert.equal(JSON.parse(store.get('aiseen:' + UID)).ten, 'Claude');
 
 // 2. tools/list: có đủ công cụ Crewzy cho AI ngoài, không lộ công cụ chỉ dành cho Trợ lý trong app.
 const names = (await rpc('tools/list', {})).tools.map((t) => t.name);
+// 23/11: nhiều thương hiệu trên một link (Agency): xem, chọn theo tên gần đúng, Brain theo thương hiệu đã chọn, Composio chạy bằng tài khoản thương hiệu đó.
+{
+  store.set('biz:' + UID, JSON.stringify({ items: [{ n: 1, ten: 'Vị Trí Studio' }] }));
+  store.set('brand:' + UID, JSON.stringify({ name: 'Nhà Xinh Minh Thùy' }));
+  store.set('brand:' + UID + '-b1', JSON.stringify({ name: 'Vị Trí Studio', industry: 'Video bản đồ bất động sản' }));
+  const tl = (await rpc('tools/list', {})).tools.map((t) => t.name);
+  assert.ok(tl.includes('CREWZY_THUONG_HIEU'), 'có công cụ chọn thương hiệu');
+  const ini = await rpc('initialize', { protocolVersion: '2025-06-18', clientInfo: { name: 'claude-ai' }, capabilities: {} });
+  assert.match(ini.instructions, /2 thương hiệu: Nhà Xinh Minh Thùy; Vị Trí Studio/);
+  let r = await call('CREWZY_THUONG_HIEU', { hanh_dong: 'xem' });
+  assert.equal(r.data.dang_lam_cho, 'Nhà Xinh Minh Thùy');
+  r = await call('CREWZY_THUONG_HIEU', { hanh_dong: 'chon', thuong_hieu: 'vi tri studio' });
+  assert.equal(r.data.dang_lam_cho, 'Vị Trí Studio'); assert.match(r.data.brain, /Video bản đồ/);
+  const b = await call('CREWZY_BRAIN', {});
+  assert.match(JSON.stringify(b.data), /Vị Trí Studio/, 'Brain theo thương hiệu đã chọn');
+  const before = upstreamCalls;
+  const m = await rpc('tools/call', { name: 'COMPOSIO_MULTI_EXECUTE_TOOL', arguments: { tools: [{ tool_slug: 'FACEBOOK_GET_PAGE_POSTS', arguments: {} }] } });
+  assert.equal(upstreamCalls, before, 'không gửi phiên Composio của thương hiệu chính');
+  assert.equal(JSON.parse(m.content[0].text).results[0].successful, false); // SDK giả offline → lỗi, nhưng đúng đường
+  assert.ok((await call('CREWZY_THUONG_HIEU', { hanh_dong: 'chon', thuong_hieu: 'abc' })).isError);
+  r = await call('CREWZY_THUONG_HIEU', { hanh_dong: 'chon', thuong_hieu: '1' });
+  assert.equal(r.data.dang_lam_cho, 'Nhà Xinh Minh Thùy');
+  store.delete('biz:' + UID); store.delete('brand:' + UID); store.delete('brand:' + UID + '-b1');
+}
 // 23/11: máy dựng của Crewzy chỉ cho Trợ lý Crewzy, AI của khách không thấy.
 { const tl = (await rpc('tools/list', {})).tools.map((t) => t.name); assert.ok(!tl.includes('CREWZY_DUNG_VIDEO') && !tl.includes('CREWZY_THIET_KE_ANH'), 'máy dựng không lộ qua MCP'); }
 // 23/11: bảng duyệt nội dung trong chat (MCP Apps).

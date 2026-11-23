@@ -218,6 +218,10 @@ Gói (23/11 16:47, billing.js) 4 gói: thang 199k/30 ngày (Haiku, 1 tài khoả
                           150 ảnh + 30 video/tháng/TH). Mua thêm nằm trong mã gói "sau_thang+fp15", "agency+th3" (parsePlanId/priceOf/planFeatures), không đổi D1. Mã cũ map sang gói mới.
                           capBrain hạ bộ não; src/lib/quota.js: postQuota (bài/ngày/nền tảng), mediaQuota (ảnh/video Crewzy/THÁNG), planNote (hạn mức + lệch 2 phút + spin).
                           pay.js: khung "Content mỗi tháng" + ô "Thêm Fanpage/thương hiệu" tự cộng giá. Test: agencytest, billingtest
+Nhiều thương hiệu/1 link  src/lib/mcpBrand.js (23/11): link MCP ký theo mã khách lúc tạo → CREWZY_THUONG_HIEU (xem|chon theo tên gần đúng/số) lưu KV mcpbiz:<mã link>:<k>;
+  (MCP, 23/11)            cổng đọc mỗi yêu cầu → uid = thương hiệu đã chọn cho Brain/Kho/phiếu/bộ nhớ/hạn mức; linkAllowed + touchLink vẫn theo mã link. Khác mã link thì
+                          COMPOSIO_MULTI_EXECUTE_TOOL chạy bằng tools.execute với tài khoản thương hiệu đã chọn (không gửi phiên cũ), MANAGE_CONNECTIONS → link Kết nối.
+                          instructions liệt kê các thương hiệu khi ≥2. Test: gatewaytest. Khách phải ngắt/nối lại connector để thấy công cụ mới
 Agency (23/11)            Doanh nghiệp con = mã khách "<chủ>-b<n>" (cookie cz_biz, KV biz:<chủ>, /api/doanh-nghiep tao|chon|doi_ten, src/routes/business.js); resolveUid trả
                           {uid, owner, biz}; billing.js ownerUid() trong getAccount/charge/grant… → tiền/gói theo chủ; trang Gói dùng owner, 4 bước theo DN. layout.js: ô chọn DN
 Bộ nhớ AI học khách (23/11) src/lib/memory.js: KV mem:<uid> (≤80 ghi chú, loại phong_cach/tu_ngu/quy_tac/gop_y/cach_lam/thong_tin, trùng bỏ, đầy bỏ cũ trừ quy_tac);
