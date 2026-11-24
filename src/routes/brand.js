@@ -18,7 +18,8 @@ export default async (req, env) => {
   const who = await resolveUid(req, env, body && body.uid);
   if (who.response) return who.response;
   try {
-    const brand = { ...cleanBrand(body && body.brand), updatedAt: new Date().toISOString() };
+    const prev = (await getBrand(env, who.uid)) || {};
+    const brand = { ...cleanBrand(body && body.brand, prev), updatedAt: new Date().toISOString() };
     await putBrand(env, who.uid, brand);
     return Response.json({ ok: true, brand });
   } catch (err) {

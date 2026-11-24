@@ -81,7 +81,7 @@ export async function updateJobByOwner(env, uid, id, { action, noi_dung, ghi_chu
   if (action === 'duyet' && j.loai === 'brain' && j.ket_qua && j.ket_qua.brain) {
     // Duyệt Brain thương hiệu AI đề xuất → lưu luôn (chỉ ghi đè mục AI có điền, giữ mục khách đã có).
     const current = (await getBrand(env, uid)) || {};
-    await putBrand(env, uid, { ...current, ...cleanBrand(j.ket_qua.brain) });
+    await putBrand(env, uid, { ...current, ...cleanBrand(j.ket_qua.brain, current) });
   }
   if (action === 'sua' && j.ket_qua) j.ket_qua.noi_dung = clip(noi_dung, 20000);
   else if (action === 'thay_media') {

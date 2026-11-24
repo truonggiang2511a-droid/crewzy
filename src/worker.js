@@ -27,6 +27,7 @@ import results from './routes/results.js';
 import kho from './routes/kho.js';
 import business from './routes/business.js';
 import memoryRoute from './routes/memory.js';
+import refAnalyze from './routes/refAnalyze.js';
 import voice from './routes/voice.js';
 import { runAgent, takeAppQuota } from './routes/chat.js';
 import { runDueSchedules } from './lib/schedules.js';
@@ -41,7 +42,7 @@ import { listJobs } from './lib/jobs.js';
 const ROUTES = {
   '/api/auth/me': auth, '/api/auth/google': auth, '/api/auth/logout': auth,
   '/api/brand': brand, '/api/catalog': catalog, '/api/chat': chat, '/api/connect': connect,
-  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice, '/api/doanh-nghiep': business, '/api/run': run, '/api/bo-nho': memoryRoute,
+  '/api/mcp-link': mcpLink, '/api/mcp-links': mcpLinks, '/api/jobs': jobs, '/api/workflows': workflows, '/api/workflows/status': workflows, '/api/schedules': workflows, '/api/skill.md': jobs, '/api/mcp-servers': mcpServers, '/api/mcp-callback': mcpServers, '/api/oauth-client.json': mcpServers, '/api/openrouter-key': openrouterKey, '/api/status': status, '/api/office': office, '/api/autopilot': autopilot, '/api/leads': leads, '/api/results': results, '/api/kho': kho, '/api/giong-noi': voice, '/api/doanh-nghiep': business, '/api/run': run, '/api/bo-nho': memoryRoute, '/api/phan-tich-mau': refAnalyze,
   '/api/billing': billing, '/api/billing/order': billing, '/api/billing/admin': billing, '/api/sepay/webhook': billing, '/api/onboarding': billing, '/api/onboarding/brand-from-web': billing,
 };
 

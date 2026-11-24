@@ -43,9 +43,9 @@
 </div>
 <p class="muted" style="margin:-8px 0 0;font-size:12px;line-height:1.5">Nối ElevenLabs ở Kết nối (ứng dụng hoặc MCP) để AI đọc bằng giọng của bạn. Vbee, FPT.AI chưa có kết nối thẳng: tải file giọng mẫu bên dưới để AI dùng làm giọng tham khảo.</p>
 <div id="mau-tham-khao" style="display:flex;flex-direction:column;gap:8px;scroll-margin-top:80px"><p style="margin:0;font-size:14px;font-weight:600">Mẫu tham khảo và tài nguyên</p>
-<p class="muted" style="margin:0;font-size:12px;line-height:1.5">Dán link (TikTok, Reels, YouTube, Google Drive…) hoặc tải file lên (ảnh, video, giọng, nhạc ≤ 95MB). Ghi chú thích điều gì ở mẫu để AI làm đúng ý.</p>
+<p class="muted" style="margin:0;font-size:12px;line-height:1.5">Tải file lên (chọn nhiều file một lần, mỗi file ≤ 95MB) hoặc dán link. Tải xong Crewzy <b>tự lưu</b> và cho <b>AI xem từng cảnh, nghe lời thoại</b>, ghi lại cách dựng (nhịp cắt, chữ, màu, âm thanh) để làm video y phong cách đó cho bạn. Mỗi mẫu có <b>mã</b> (V1 = video, A1 = ảnh, G1 = giọng…): bấm mã để chép, rồi gõ trong chat <i>"làm video theo mẫu V1"</i>.</p>
 <div data-refs style="display:flex;flex-direction:column;gap:8px"></div>
-<div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-ghost" data-ref-add>+ Thêm link</button><label class="btn btn-ghost" style="cursor:pointer">Tải file lên<input type="file" data-ref-file accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/mp4" style="position:absolute;width:1px;height:1px;opacity:0"></label><span data-ref-msg role="status" class="muted" style="font-size:13px;align-self:center"></span></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-ghost" data-ref-add>+ Thêm link</button><label class="btn btn-ghost" style="cursor:pointer">Tải file lên<input type="file" multiple data-ref-file accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/mp4" style="position:absolute;width:1px;height:1px;opacity:0"></label><span data-ref-msg role="status" class="muted" style="font-size:13px;align-self:center"></span></div>
 </div>
 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-top:6px;border-top:1px solid var(--line)">
 <button type="submit" class="btn btn-primary" data-save style="min-height:44px;padding:0 20px">Lưu Brain thương hiệu</button>
@@ -61,6 +61,7 @@
 <p class="muted" style="margin:0;font-size:13px;max-width:820px">Không ghi thông tin cá nhân của khách hàng vào đây. Brain lưu theo tài khoản của bạn trên máy chủ Crewzy.</p>
 </main>
 </div>
+<script src="assets/ref-watch.js"></script>
 <script src="assets/brand.js"></script>
 </body>
 </html>

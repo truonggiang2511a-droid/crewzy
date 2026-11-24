@@ -2,7 +2,7 @@
 // CREWZY_TAO_ANH: tạo ảnh thật bằng Workers AI, lưu KV, trả link công khai https://<site>/api/img/<id>.jpg
 //   (dùng được để đăng Facebook/Instagram, tải lên Canva/Drive). Canva API KHÔNG tạo ảnh từ chữ nên phải dùng công cụ này.
 // CREWZY_BRAIN: đọc Brain thương hiệu + danh sách app đã kết nối (cho AI bên ngoài như Claude/ChatGPT/Gemini/Grok).
-import { getBrand, putBrand, cleanBrand, brandText, brandPack, BRAND_FIELDS } from './brand.js';
+import { getBrand, putBrand, cleanBrand, brandText, brandPack, BRAND_FIELDS, REF_TYPES, findRef } from './brand.js';
 import { createPutLink } from './uploads.js';
 import { JOB_TOOL_DEFS, jobsForAi, submitResult } from './jobs.js';
 import { rehostUrl, putMedia } from './media.js';
@@ -50,8 +50,8 @@ export const CREWZY_TOOL_DEFS = [
     type: 'function',
     function: {
       name: 'CREWZY_BRAIN',
-      description: 'Đọc Brain thương hiệu của doanh nghiệp (tên, sản phẩm, khách hàng, giọng văn, điều không được nói, giá/ưu đãi, câu hỏi thường gặp) và danh sách app đã kết nối. Gọi trước khi viết nội dung hoặc trả lời khách.',
-      parameters: { type: 'object', properties: {} },
+      description: 'Đọc Brain thương hiệu của doanh nghiệp (tên, sản phẩm, khách hàng, giọng văn, điều không được nói, giá/ưu đãi, câu hỏi thường gặp, mẫu tham khảo có MÃ như V1, A2) và danh sách app đã kết nối. Gọi trước khi viết nội dung hoặc trả lời khách. Khách nói "làm theo mẫu V2" → gọi với ma "V2" để đọc BẢN PHÂN TÍCH CÁCH DỰNG mà Crewzy đã xem video/ảnh mẫu (từng cảnh, nhịp cắt, chữ, màu, âm thanh, công thức dựng lại) rồi làm đúng công thức đó cho thương hiệu khách.',
+      parameters: { type: 'object', properties: { ma: { type: 'string', description: 'Mã mẫu tham khảo (V1, A2, G1…) để đọc bản phân tích chi tiết của riêng mẫu đó. Bỏ trống = đọc cả Brain.' } } },
     },
   },
 ];
@@ -392,8 +392,16 @@ export async function storeImageBytes(env, uid, origin, base64, mimeType) {
   return `${origin}/api/img/${id}.jpg`;
 }
 
-export async function readBrain(env, uid, connectedNames) {
+export async function readBrain(env, uid, connectedNames, args) {
   const brand = await getBrand(env, uid);
+  const ma = args && String(args.ma || '').trim();
+  if (ma) {
+    const r = findRef(brand, ma);
+    if (!r) return { error: `Không có mẫu mã ${ma.toUpperCase()}. Các mã đang có: ${((brand && brand.refs) || []).map((x) => x.ma).filter(Boolean).join(', ') || 'chưa có mẫu nào'}.` };
+    return { data: { ma: r.ma, loai: REF_TYPES[r.loai] || r.loai, link: r.link, ghi_chu_cua_khach: r.ghi_chu || '',
+      phan_tich_cach_dung: r.phan_tich || (r.loai === 'video_mau' ? 'Crewzy chưa xem được mẫu này (chỉ có link). Nhờ khách tải file video lên trang Brain thương hiệu rồi bấm "AI xem mẫu", hoặc tự mở link nếu bạn xem được.' : 'Chưa có bản phân tích. Mở link để xem nếu bạn xem được ảnh.'),
+      cach_dung: 'Làm cho THƯƠNG HIỆU KHÁCH theo đúng công thức dựng trong bản phân tích (nhịp cắt, độ dài cảnh, kiểu chữ, màu, chuyển cảnh, âm thanh, cấu trúc hook → thân → CTA). Thay nội dung, sản phẩm, người, logo bằng của khách; KHÔNG sao chép lời thoại, logo, người trong mẫu.' } };
+  }
   const text = brandText(brand);
   const pack = brandPack(brand, true);
   const mem = memText(await listMem(env, uid));
@@ -421,7 +429,7 @@ export async function imageShortcut(env, uid, args, feat) {
 export async function runCrewzyTool(env, { uid, origin, name, args, connectedNames, connected, agent, surface, instant }) {
   try {
     if (name === 'CREWZY_TAO_ANH') return await createImage(env, uid, origin, args);
-    if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames);
+    if (name === 'CREWZY_BRAIN') return await readBrain(env, uid, connectedNames, args);
     if (name === 'CREWZY_LUU_BRAIN') return await saveBrainFields(env, uid, args);
     if (name === 'CREWZY_GHI_NHO') return await memTool(env, uid, args, agent);
     if (name === 'CREWZY_DUNG_VIDEO') return await renderVideo(env, uid, origin, args || {});

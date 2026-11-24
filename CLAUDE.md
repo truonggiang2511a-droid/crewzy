@@ -57,7 +57,11 @@ public/ket-noi.html      Màn 3 · Kết nối (kiểu Composio): lưới logo, 
 public/quy-trinh.html    Quy trình (assets/quy-trinh.js): 20 quy trình chuẩn từ /api/workflows, lọc 8 phòng (?phong=), app bắt buộc/nên có sáng khi đã
                          nối, MCP ngoài (Apify/Firecrawl/OpenArt), Chạy ngay · Giao cho AI của tôi · Hẹn giờ (hộp thoại), danh sách Lịch đang hẹn
 public/thuong-hieu.html  Brain thương hiệu: 16 mục + Mẫu tham khảo (refs: video/ảnh mẫu, giọng mẫu, nhạc, logo, tư liệu; dán link hoặc tải file
-                         qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình
+                         qua /api/upload), lưu /api/brand, AI đọc mỗi lượt chat và BƯỚC 0 của mọi quy trình.
+                         25/11: tải nhiều file (XHR có %, lần lượt) → TỰ LƯU; MÃ MẪU V/A/G/N/L/T + số (brand.js assignCodes, giữ mã cũ) → khách gõ "theo mẫu V1",
+                         AI gọi CREWZY_BRAIN {ma}. AI XEM MẪU: assets/ref-watch.js (trình duyệt đo cắt cảnh 48×27, ≤24 khung 512px, tiếng 16kHz 4×55s WAV)
+                         → POST /api/phan-tich-mau (src/routes/refAnalyze.js: Whisper + Claude Sonnet 5.5 nhìn khung → phan_tich/tom_tat lưu vào ref, 30 lần/ngày,
+                         trừ credit theo token). Link TikTok/YouTube không xem được (CORS) → bảo khách tải file. brandPack chỉ gửi tom_tat, chi tiết qua {ma}
 public/chat.html         Màn 4 · Trợ lý AI kiểu Claude/ChatGPT (23/11, assets/chat.js): main lưới 3 hàng (đầu · khung chat cuộn · ô soạn) nên ô soạn KHÔNG đè tin;
                          điện thoại: html.cz-lock (body fixed, chỉ khung tin cuộn, khung chat fixed giữa .mtop và .mbar; bàn phím mở → visualViewport + class kb-open);
                          ô soạn tự giãn ≤220px; nút + (tải ảnh/video/tài liệu → /api/upload vào Kho, chọn từ Kho, Ứng dụng: đã nối + tìm + Kết nối
