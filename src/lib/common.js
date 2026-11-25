@@ -8,7 +8,7 @@ export const APP_NAME = 'Crewzy';
 export const TOOLKITS = READY_SLUGS;
 // App 'ready' CHƯA thử /api/connect trên trang thật (auth API_KEY nên gần như chắc chạy). Lưới an toàn: tạo phiên lỗi "auth config"
 // thì tạo lại không có các app này để chat/link nối AI của mọi người không hỏng. Thử ra link (admin: /api/connect?toolkit=<slug>) rồi xoá khỏi đây.
-export const UNVERIFIED = ['vapi', 'retellai', 'bland_ai', 'upload_post'];
+export const UNVERIFIED = ['vapi', 'retellai', 'bland_ai', 'upload_post', 'tiktok_ads'];
 // Lưới an toàn nhiều tầng (23/11 sửa lỗi "AI gặp lỗi" sau khi thêm Higgsfield): bản cũ ở tầng cuối bỏ app UNVERIFIED khỏi toolkits
 // nhưng VẪN giữ tools:{higgsfield:…} → Composio từ chối vì bộ lọc trỏ tới app không có trong phiên → chat chết với mọi khách.
 // Giờ: mỗi tầng bỏ app UNVERIFIED khỏi CẢ toolkits lẫn tools, không phụ thuộc chữ trong thông báo lỗi; tầng cuối là cấu hình tối thiểu.
